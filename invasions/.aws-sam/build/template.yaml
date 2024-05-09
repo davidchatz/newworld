@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Scan invasions files
+Resources:
+  InvasionBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Sub: ${AWS::StackName}-${AWS::AccountId}-${AWS::Region}
+      PublicAccessBlockConfiguration:
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+  InvasionBucketBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: InvasionBucket
+      PolicyDocument:
+        Id: RequireEncryptionInTransit
+        Version: '2012-10-17'
+        Statement:
+        - Principal: '*'
+          Action: '*'
+          Effect: Deny
+          Resource:
+          - Fn::GetAtt:
+            - InvasionBucket
+            - Arn
+          - Fn::Sub: ${InvasionBucket.Arn}/*
+          Condition:
+            Bool:
+              aws:SecureTransport: 'false'
+  InvasionDb:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: invasion
+        AttributeType: S
+      - AttributeName: id
+        AttributeType: S
+      KeySchema:
+      - AttributeName: invasion
+        KeyType: HASH
+      - AttributeName: id
+        KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      OnDemandThroughput:
+        MaxReadRequestUnits: 5
+        MaxWriteRequestUnits: 5
+  InvasionScan:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.lambda_handler
+      Runtime: python3.11
+      CodeUri: InvasionScan
+      Description: Scan invasion screen shots
+      MemorySize: 128
+      Timeout: 10
+      Policies:
+      - TextractPolicy: {}
+      - S3ReadPolicy:
+          BucketName:
+            Fn::Sub: ${AWS::StackName}-${AWS::AccountId}-${AWS::Region}
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: InvasionDb
+      Environment:
+        Variables:
+          TABLE_NAME:
+            Ref: InvasionDb
+      Events:
+        CatBucket:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: InvasionBucket
+            Events:
+            - s3:ObjectCreated:*
+    Metadata:
+      SamResourceId: InvasionScan
+Outputs:
+  Bucket:
+    Description: Invasion Bucket
+    Value:
+      Ref: InvasionBucket

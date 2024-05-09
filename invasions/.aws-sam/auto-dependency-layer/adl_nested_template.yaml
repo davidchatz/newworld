@@ -1,0 +1,22 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS SAM CLI Nested Stack for Auto Dependency Layer Creation
+Metadata:
+  SamCliInfo: 1.114.0
+  key: AWS SAM CLI sync command
+Outputs:
+  InvasionScanba3701b7DepLayer:
+    Value:
+      Ref: InvasionScanba3701b7DepLayer
+Resources:
+  InvasionScanba3701b7DepLayer:
+    Metadata:
+      CreatedBy: AWS SAM CLI sync command
+    Properties:
+      CompatibleRuntimes:
+      - python3.11
+      ContentUri: /home/chatz/git/newworld/invasions/.aws-sam/auto-dependency-layer/InvasionScanba3701b7DepLayer
+      Description: Auto created layer for dependencies of function InvasionScan
+      LayerName: invasions9cf3a186-InvasionScanba3701b7-DepLayer
+      RetentionPolicy: Delete
+    Type: AWS::Serverless::LayerVersion
+Transform: AWS::Serverless-2016-10-31
