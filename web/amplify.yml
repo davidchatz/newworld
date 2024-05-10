@@ -9,5 +9,7 @@ applications:
         files:
           - '**/*'
       cache:
-        paths: []
+        paths:
+          - .npm/**/*
+          - node_modules/**/*
     appRoot: web
