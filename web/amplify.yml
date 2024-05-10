@@ -3,9 +3,10 @@ applications:
   - frontend:
       phases:
         build:
-          commands: []
+          commands:
+            - nom run build
       artifacts:
-        baseDirectory: /
+        baseDirectory: dist
         files:
           - '**/*'
       cache:
