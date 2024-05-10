@@ -5,8 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "start": "npm-run-all clean --parallel watch:build watch:server --print-label",
-    "build": "tsc && vite build",
+    "build": "npm list -g && npm config get prefix && tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
