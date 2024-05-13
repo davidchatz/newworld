@@ -1,6 +1,7 @@
 import boto3
 from botocore.exceptions import ClientError
 import os
+import urllib
 
 textract = boto3.client('textract')
 dynamodb = boto3.resource('dynamodb')
@@ -16,9 +17,6 @@ def import_table(bucket, key):
         Document={'S3Object': {'Bucket': bucket, 'Name': key}},
         FeatureTypes=['TABLES']
     )
-    # return response
-    # print(f'import_table: {response}')
-    #pprint.pprint(response)
     return response
 
 def extract_blocks(response: dict):
@@ -93,22 +91,43 @@ def generate_table(table_result, blocks_map):
 
     for row_index, cols in rows.items():
         col_indices = len(cols.items())
-        if col_indices != 9:
-            print(f'Skipping {row_index} with {col_indices} items: {cols}')
-        else:
-            # Name may flow into score, so be more aggresive filtering this value
-            f = filter(str.isnumeric,cols[4])
-            result = {
-                'id': '{0:02d}'.format(int(cols[1])),
-                'name': cols[3].rstrip(),
-                'score': int("".join(f)),
-                'kills': int(cols[5].replace(',','')),
-                'deaths': int(cols[6].replace(',','')),
-                'assists': int(cols[7].replace(',','')),
-                'heals': int(cols[8].replace(',','')),
-                'damage': int(cols[9].replace(',',''))
-            }
-            rec.append(result)
+        
+        try:
+
+            # sometimes textextract treats icon as a column
+            if col_indices == 9 or col_indices == 10:
+                # Name may flow into score, so be more aggresive filtering this value
+                f = filter(str.isnumeric,cols[4])
+                result = {
+                    'id': '{0:02d}'.format(int(cols[1])),
+                    'name': cols[3].rstrip(),
+                    'score': int("".join(f)),
+                    'kills': int(cols[5].replace(',','')),
+                    'deaths': int(cols[6].replace(',','')),
+                    'assists': int(cols[7].replace(',','')),
+                    'heals': int(cols[8].replace(',','')),
+                    'damage': int(cols[9].replace(',',''))
+                }
+                rec.append(result)
+            elif col_indices == 8:
+                f = filter(str.isnumeric,cols[3])
+                result = {
+                    'id': '{0:02d}'.format(int(cols[1])),
+                    'name': cols[2].rstrip(),
+                    'score': int("".join(f)),
+                    'kills': int(cols[4].replace(', ', '')),
+                    'deaths': int(cols[5].replace(', ', '')),
+                    'assists': int(cols[6].replace(', ', '')),
+                    'heals': int(cols[7].replace(', ', '')),
+                    'damage': int(cols[8].replace(',',''))
+                }
+                rec.append(result)
+            else:
+                print(f'Skipping {row_index} with {col_indices} items: {cols}')
+
+        except Exception as e:
+            print(f'Skipping row {row_index}, unable to scan')
+            print(e)
 
     print(f'generate_table rec: {rec}')
     return rec
@@ -133,8 +152,18 @@ def insert_db(table, invasion, result, key):
 def lambda_handler(event, context):
     # get bucket and key from event
     bucket = event['Records'][0]['s3']['bucket']['name']
-    key = event['Records'][0]['s3']['object']['key']
-    invasion = key.split('/')[0]
+    # key = event['Records'][0]['s3']['object']['key']
+    key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'])
+    folders = key.split('/')
+
+    if len(folders) != 3:
+        print(f'Skipping {key} as it is not in the correct format, expecting (invasion)/ladder/(filename).')
+        raise Exception(f'Skipping {key} as it is not in the correct format')
+    if folders[1] != 'ladder':
+        print(f'Skipping {key} as it is not in the correct format, expecting (invasion)/ladder/(filename).')
+        raise Exception(f'Skipping {key} as it is not in the correct format')
+
+    invasion = folders[0]
     print(f'{bucket}/{key} (invasion: {invasion})')
 
     table = dynamodb.Table(table_name)
@@ -144,9 +173,11 @@ def lambda_handler(event, context):
     table_blocks, blocks_map = extract_blocks(response)
 
     if len(table_blocks) == 0:
-        return "No table found"
+        print(f'No table found in {bucket}/{key}')
+        raise Exception(f'No table found in {bucket}/{key}')
     elif len(table_blocks) > 1:
-        return "Multiple tables found"
+        print(f'No table found in {bucket}/{key}')
+        raise Exception(f'No table found in {bucket}/{key}')
 
     result = generate_table(table_blocks[0], blocks_map)
     insert_db(table, invasion, result, key)

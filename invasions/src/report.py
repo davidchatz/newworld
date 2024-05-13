@@ -23,22 +23,8 @@ def lambda_handler(event, context):
     try:
         table = dynamodb.Table(table_name)
 
-        # if routeKey is GET /, set body to a list of all invasions from table
-        if event['httpMethod'] == 'GET' and event['resource'] == '/invasions':
-            # get all invasions
-            response = table.query(KeyConditionExpression=Key('invasion').eq('#invasion'),
-                                   ProjectionExpression='id')
-            # set body to id and labels
-            print(response)
-        
-            if not response.get('Items', None):
-                statusCode = 404
-                body = f'No invasions found'
-            else:
-                body = str(response["Items"])
-
-        # else if routeKey is GET /ladder/{invasion}, set body to ladder items
-        elif event['httpMethod'] == 'GET' and event['resource'] == '/ladder/{invasion}':
+        # if routeKey is GET /ladder/{invasion}, set body to ladder items
+        if event['httpMethod'] == 'GET' and event['resource'] == '/ladder/{invasion}':
             # get item from DynamoDB table_name with id from pathParameters
             invasion = event['pathParameters']['invasion']
             response = table.query(KeyConditionExpression=Key('invasion').eq(f'#ladder#{invasion}'))
@@ -67,6 +53,32 @@ def lambda_handler(event, context):
                 body = "Rank,Name,Score,Kills,Assists,Deaths,Heals,Damage\n"
                 for row in response["Items"]:
                     body += '{id},{name},{score},{assists},{deaths},{heals},{damage}\n'.format_map(row)
+
+        # else if routeKey is GET /summary/{invasion}, return ladder items as comma separated values
+        elif event['httpMethod'] == 'GET' and event['resource'] == '/summary/{invasion}':
+            # get item from DynamoDB table_name with id from pathParameters
+            invasion = event['pathParameters']['invasion']
+            response = table.query(KeyConditionExpression=Key('invasion').eq(f'#ladder#{invasion}'))            
+
+            if not response.get('Items', None):
+                statusCode = 404
+                body = f'Item {invasion} not found'
+            else:
+                pos = 1
+                consecutive = True
+                for row in response["Items"]:
+                    if int(row["id"]) != pos:
+                        consecutive = False
+                        print(f'Missing row {pos}, found {row["id"]}')
+                        pos = int(row["id"])
+                    else:
+                        pos += 1
+
+                if not consecutive:
+                    statusCode = 400
+                    body = f'Missing rows in ladder'
+                else:
+                    body = f'Found {pos-1} consecutive rows in ladder'
 
         # else raise exception for unexpected route
         else:

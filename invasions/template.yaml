@@ -104,12 +104,6 @@ Resources:
         Variables:
           TABLE_NAME: !Ref Table
       Events:
-        ApiGET:
-          Type: Api
-          Properties:
-            Path: /invasions
-            Method: GET
-            RestApiId: !Ref Api
         ApiGETladder:
           Type: Api
           Properties:
@@ -130,10 +124,10 @@ Resources:
       LogGroupName: !Sub /aws/lambda/${Report}
       RetentionInDays: 30
 
-  Storage:
+  Invasion:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: storage.lambda_handler
+      Handler: invasion.lambda_handler
       Runtime: python3.11
       CodeUri: src
       Description: 'Implement APIs for invasion S3 bucket'
@@ -142,36 +136,61 @@ Resources:
       Policies: 
         - S3WritePolicy:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Table
       Environment:
         Variables:
           BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+          TABLE_NAME: !Ref Table
       Events:
-        ApiGETcsv:
+        ApiGET:
           Type: Api
           Properties:
-            Path: /add/{invasion}
+            Path: /invasion
+            Method: GET
+            RestApiId: !Ref Api
+        ApiPOSTadd:
+          Type: Api
+          Properties:
+            Path: /invasion/add/{invasion}
             Method: POST
             RestApiId: !Ref Api
 
-  StorageLogGroup:
+  InvasionLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete
     Properties:
-      LogGroupName: !Sub /aws/lambda/${Storage}
+      LogGroupName: !Sub /aws/lambda/${Invasion}
       RetentionInDays: 30
 
   Api:
     Type: AWS::Serverless::Api
     Properties:
-      Name: !Sub
-        - "${ResourceName} From Stack ${AWS::StackName}"
-        - ResourceName: Api
+      Name: !Sub 'Invasions API from ${AWS::StackName}'
       StageName: prod
+      EndpointConfiguration:
+        Type: REGIONAL
+      # TracingEnabled: true
+      Cors:
+        MaxAge: 5
       DefinitionBody:
-        openapi: '3.0'
-        info: {}
+        openapi: "3.0.1"
+        info:
+          title: "Api From Stack invasions"
+          version: "2024-05-12T23:32:55Z"
         paths:
-          /add:
+          /invasions:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: "POST"
+                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Invasion.Arn}/invocations"
+                responses:
+                  default:
+                    statusCode: "200"
+                passthroughBehavior: "when_no_match"
+                contentHandling: "CONVERT_TO_TEXT"
+                type: "aws_proxy"
+          /invasions/add:
             post:
               requestBody:
                 content:
@@ -179,28 +198,36 @@ Resources:
                     schema:
                       $ref: "#/components/schemas/invasion"
                 required: true
-              responses:
-                "200":
-                  description: "200 response"
-                  content: {}
               x-amazon-apigateway-request-validator: "Validate body"
               x-amazon-apigateway-integration:
                 httpMethod: "POST"
-                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${Storage.Arn}/invocations"
+                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Invasion.Arn}/invocations"
                 responses:
                   default:
                     statusCode: "200"
                 passthroughBehavior: "when_no_match"
                 contentHandling: "CONVERT_TO_TEXT"
-                type: "aws"
-          /invasions:
+                type: "aws_proxy"
+          /csv/{invasion}:
             get:
+              parameters:
+              - name: "invasion"
+                in: "path"
+                required: true
+                schema:
+                  type: "string"
               x-amazon-apigateway-integration:
                 httpMethod: "POST"
-                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${Report.Arn}/invocations"
+                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Report.Arn}/invocations"
                 passthroughBehavior: "when_no_match"
                 type: "aws_proxy"
             options:
+              parameters:
+              - name: "invasion"
+                in: "path"
+                required: true
+                schema:
+                  type: "string"
               responses:
                 "200":
                   description: "200 response"
@@ -238,54 +265,7 @@ Resources:
                   type: "string"
               x-amazon-apigateway-integration:
                 httpMethod: "POST"
-                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${Report.Arn}/invocations"
-                passthroughBehavior: "when_no_match"
-                type: "aws_proxy"
-            options:
-              parameters:
-              - name: "invasion"
-                in: "path"
-                required: true
-                schema:
-                  type: "string"
-              responses:
-                "200":
-                  description: "200 response"
-                  headers:
-                    Access-Control-Allow-Origin:
-                      schema:
-                        type: "string"
-                    Access-Control-Allow-Methods:
-                      schema:
-                        type: "string"
-                    Access-Control-Max-Age:
-                      schema:
-                        type: "string"
-                  content: {}
-              x-amazon-apigateway-integration:
-                responses:
-                  default:
-                    statusCode: "200"
-                    responseParameters:
-                      method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
-                      method.response.header.Access-Control-Allow-Origin: "'*'"
-                    responseTemplates:
-                      application/json: "{}\n"
-                requestTemplates:
-                  application/json: "{\n  \"statusCode\" : 200\n}\n"
-                passthroughBehavior: "when_no_match"
-                type: "mock"
-          /csv/{invasion}:
-            get:
-              parameters:
-              - name: "invasion"
-                in: "path"
-                required: true
-                schema:
-                  type: "string"
-              x-amazon-apigateway-integration:
-                httpMethod: "POST"
-                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${Report.Arn}/invocations"
+                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Report.Arn}/invocations"
                 passthroughBehavior: "when_no_match"
                 type: "aws_proxy"
             options:
@@ -327,19 +307,116 @@ Resources:
             invasion:
               title: "Invasion"
               required:
-              - "invasion"
+              - "day"
+              - "month"
+              - "settlement"
+              - "win"
+              - "year"
               type: "object"
               properties:
-                invasion:
+                year:
+                  maximum: 2100
+                  minimum: 2024
+                  type: "number"
+                month:
+                  maximum: 12
+                  minimum: 1
+                  type: "number"
+                day:
+                  maximum: 31
+                  minimum: 1
+                  type: "number"
+                notes:
                   type: "string"
+                win:
+                  type: "boolean"
+                settlement:
+                  type: "string"
+                  enum:
+                  - "bw"
+                  - "bs"
+                  - "ck"
+                  - "er"
+                  - "eg"
+                  - "ef"
+                  - "mb"
+                  - "md"
+                  - "rw"
+                  - "rs"
+                  - "wf"
+                  - "ww"
         x-amazon-apigateway-request-validators:
           Validate body:
             validateRequestParameters: false
             validateRequestBody: true
-      EndpointConfiguration: REGIONAL
-      # TracingEnabled: true
-      Cors:
-        MaxAge: 5
+
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      AliasAttributes:
+        - email
+      UsernameConfiguration:
+        CaseSensitive: False
+      AutoVerifiedAttributes:
+        - email
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Mutable: true
+          Required: true
+          
+  PoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: Invasion
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_PASSWORD_AUTH
+      PreventUserExistenceErrors: ENABLED
+      # SupportedIdentityProviders:
+      #   - COGNITO
+      # AllowedOAuthFlows:
+      #   - "implicit"
+      # AllowedOAuthScopes:
+      #   - "email"
+      #   - "openid"
+      # AllowedOAuthFlowsUserPoolClient: true
+      # CallbackURLs: 
+      #   - !Sub
+      #     - 'https://${DemoDNS}/app/login/oauth2/code/cognito'
+      #     - DemoDNS: invasion.chatz.link      
+      # LogoutURLs:
+      #   - !Sub
+      #     - 'https://${DemoDNS}/app/logout'
+      #     - DemoDNS: invasion.chatz.link
+
+  WebAppUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties: 
+      Domain: invasion-chatz-link
+      UserPoolId: !Ref UserPool
+
+  # IdentityPool:
+  #   Type: AWS::Cognito::IdentityPool
+  #   Properties:
+  #     AllowUnauthenticatedIdentities: false
+  #     CognitoIdentityProviders:
+  #       - ClientId:
+  #           !Ref PoolClient
+  #         ProviderName:
+  #           !GetAtt Pool.ProviderName
+
+  # IdentityPoolRoles:
+  #   Type: AWS::Cognito::IdentityPoolRoleAttachment
+  #   Properties:
+  #     IdentityPoolId:
+  #       !Ref IdentityPool
+  #     Roles:
+  #       authenticated:
+  #         !Sub arn:aws:iam::${AWS::AccountId}:role/PollyCognitoAuthRole
+
 
 Outputs:
   Bucket:
