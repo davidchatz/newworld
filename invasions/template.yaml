@@ -6,6 +6,12 @@ Transform: AWS::Serverless-2016-10-31
 
 Description: Scan invasions files
 
+Parameters:
+
+  Timezone:
+    Type: String
+    Default: Australia/Sydney
+
 Resources:
 
   InvasionBucket:
@@ -60,7 +66,7 @@ Resources:
     Properties:
       Handler: ladder.lambda_handler
       Runtime: python3.11
-      CodeUri: src
+      CodeUri: src/ladder
       Description: 'Scan invasion screen shots'
       MemorySize: 256
       Timeout: 10
@@ -91,9 +97,9 @@ Resources:
   Report:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: report.lambda_handler
+      Handler: reports.lambda_handler
       Runtime: python3.11
-      CodeUri: src
+      CodeUri: src/reports
       Description: 'Report invasion scan results'
       MemorySize: 256
       Timeout: 10
@@ -129,8 +135,8 @@ Resources:
     Properties:
       Handler: invasion.lambda_handler
       Runtime: python3.11
-      CodeUri: src
-      Description: 'Implement APIs for invasion S3 bucket'
+      CodeUri: src/invasion
+      Description: 'Implement APIs for tracking invasions'
       MemorySize: 256
       Timeout: 10
       Policies: 
@@ -152,7 +158,7 @@ Resources:
         ApiPOSTadd:
           Type: Api
           Properties:
-            Path: /invasion/add/{invasion}
+            Path: /invasion/add
             Method: POST
             RestApiId: !Ref Api
 
@@ -161,6 +167,43 @@ Resources:
     DeletionPolicy: Delete
     Properties:
       LogGroupName: !Sub /aws/lambda/${Invasion}
+      RetentionInDays: 30
+
+  Members:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: members.lambda_handler
+      Runtime: python3.11
+      CodeUri: src/members
+      Description: 'Implement APIs for company members'
+      MemorySize: 256
+      Timeout: 10
+      Policies: 
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Table
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref Table
+          TZ: !Ref Timezone
+      Events:
+        ApiGET:
+          Type: Api
+          Properties:
+            Path: /members
+            Method: GET
+            RestApiId: !Ref Api
+        ApiPOSTadd:
+          Type: Api
+          Properties:
+            Path: /members/add
+            Method: POST
+            RestApiId: !Ref Api
+
+  MembersLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${Members}
       RetentionInDays: 30
 
   Api:
