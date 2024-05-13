@@ -106,7 +106,8 @@ def generate_table(table_result, blocks_map):
                     'deaths': int(cols[6].replace(',','')),
                     'assists': int(cols[7].replace(',','')),
                     'heals': int(cols[8].replace(',','')),
-                    'damage': int(cols[9].replace(',',''))
+                    'damage': int(cols[9].replace(',','')),
+                    'member': False
                 }
                 rec.append(result)
             elif col_indices == 8:
@@ -119,7 +120,8 @@ def generate_table(table_result, blocks_map):
                     'deaths': int(cols[5].replace(', ', '')),
                     'assists': int(cols[6].replace(', ', '')),
                     'heals': int(cols[7].replace(', ', '')),
-                    'damage': int(cols[8].replace(',',''))
+                    'damage': int(cols[8].replace(',','')),
+                    'member': False
                 }
                 rec.append(result)
             else:
@@ -139,11 +141,23 @@ def insert_db(table, invasion, result, key):
         table.put_item(Item={'invasion': f'#invasion', 'id': invasion})
         # Add row to identity this upload
         table.put_item(Item={'invasion': f'#upload#{invasion}', 'id': key})
+
+        for item in result:
+            item['invasion'] = f'#ladder#{invasion}'
+
+            # check if member and flag if they are
+            member = table.get_item(Key={'invasion': '#member', 'id': item["name"]})
+            if 'Item' in member:
+                print(f'Matched member {item["name"]} to position {item["id"]}')
+                item['member'] = True
+            else:
+                item['member'] = False
+
         # Add ladder results from scan
         with table.batch_writer() as batch:
             for item in result:
-                item['invasion'] = f'#ladder#{invasion}'
                 batch.put_item(Item=item)
+
     except ClientError as err:
         print(err.response['Error']['Message'])
         raise

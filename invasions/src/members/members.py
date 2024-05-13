@@ -35,7 +35,12 @@ def lambda_handler(event, context):
                 statusCode = 404
                 body = f'No members found'
             else:
-                body = str(response["Items"])
+                items = response["Items"]
+                body = f"Members {len(items)}: "
+                if len(items) > 0:
+                    body += items.pop(0)["id"]
+                    for player in items:
+                        body += ", " + player["id"]
 
         # if routeKey is GET /, set body to a list of all invasions from table
         elif event['httpMethod'] == 'GET' and event['resource'] == '/members/{player}':
@@ -63,7 +68,7 @@ def lambda_handler(event, context):
             admin = request['admin'] == True if 'admin' in request else False
 
             additem = {
-                'invasion': f'#memberevent',
+                'invasion': '#memberevent',
                 'id': timestamp,
                 'event': "add",
                 'player': player,
@@ -77,7 +82,7 @@ def lambda_handler(event, context):
                 additem['notes'] = notes
 
             memberitem = {
-                'invasion': f'#member',
+                'invasion': '#member',
                 'id': player,
                 'faction': faction,
                 'admin': admin,
