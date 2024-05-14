@@ -219,9 +219,42 @@ Resources:
       DefinitionBody:
         openapi: "3.0.1"
         info:
-          title: "Api From Stack invasions"
+          title: "Invasions API from invasions"
           version: "2024-05-12T23:32:55Z"
         paths:
+          /members/{player}:
+            get:
+              parameters:
+              - name: "player"
+                in: "path"
+                required: true
+                schema:
+                  type: "string"
+              x-amazon-apigateway-integration:
+                httpMethod: "POST"
+                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Members.Arn}/invocations"
+                responses:
+                  default:
+                    statusCode: "200"
+                passthroughBehavior: "when_no_match"
+                contentHandling: "CONVERT_TO_TEXT"
+                type: "aws_proxy"
+            delete:
+              parameters:
+              - name: "player"
+                in: "path"
+                required: true
+                schema:
+                  type: "string"
+              x-amazon-apigateway-integration:
+                httpMethod: "POST"
+                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Members.Arn}/invocations"
+                responses:
+                  default:
+                    statusCode: "200"
+                passthroughBehavior: "when_no_match"
+                contentHandling: "CONVERT_TO_TEXT"
+                type: "aws_proxy"
           /invasions:
             get:
               x-amazon-apigateway-integration:
@@ -233,6 +266,34 @@ Resources:
                 passthroughBehavior: "when_no_match"
                 contentHandling: "CONVERT_TO_TEXT"
                 type: "aws_proxy"
+            options:
+              responses:
+                "200":
+                  description: "200 response"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: "string"
+                    Access-Control-Allow-Methods:
+                      schema:
+                        type: "string"
+                    Access-Control-Max-Age:
+                      schema:
+                        type: "string"
+                  content: {}
+              x-amazon-apigateway-integration:
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                    responseTemplates:
+                      application/json: "{}\n"
+                requestTemplates:
+                  application/json: "{\n  \"statusCode\" : 200\n}\n"
+                passthroughBehavior: "when_no_match"
+                type: "mock"
           /invasions/add:
             post:
               requestBody:
@@ -251,6 +312,34 @@ Resources:
                 passthroughBehavior: "when_no_match"
                 contentHandling: "CONVERT_TO_TEXT"
                 type: "aws_proxy"
+            options:
+              responses:
+                "200":
+                  description: "200 response"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: "string"
+                    Access-Control-Allow-Methods:
+                      schema:
+                        type: "string"
+                    Access-Control-Max-Age:
+                      schema:
+                        type: "string"
+                  content: {}
+              x-amazon-apigateway-integration:
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST'"
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                    responseTemplates:
+                      application/json: "{}\n"
+                requestTemplates:
+                  application/json: "{\n  \"statusCode\" : 200\n}\n"
+                passthroughBehavior: "when_no_match"
+                type: "mock"
           /csv/{invasion}:
             get:
               parameters:
@@ -298,6 +387,28 @@ Resources:
                   application/json: "{\n  \"statusCode\" : 200\n}\n"
                 passthroughBehavior: "when_no_match"
                 type: "mock"
+          /members/add:
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: "#/components/schemas/member"
+                required: true
+              responses:
+                "200":
+                  description: "200 response"
+                  content: {}
+              x-amazon-apigateway-request-validator: "Validate body"
+              x-amazon-apigateway-integration:
+                httpMethod: "POST"
+                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Members.Arn}/invocations"
+                responses:
+                  default:
+                    statusCode: "200"
+                passthroughBehavior: "when_no_match"
+                contentHandling: "CONVERT_TO_TEXT"
+                type: "aws_proxy"
           /ladder/{invasion}:
             get:
               parameters:
@@ -345,6 +456,51 @@ Resources:
                   application/json: "{\n  \"statusCode\" : 200\n}\n"
                 passthroughBehavior: "when_no_match"
                 type: "mock"
+          /members:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: "POST"
+                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Members.Arn}/invocations"
+                responses:
+                  default:
+                    statusCode: "200"
+                passthroughBehavior: "when_no_match"
+                contentHandling: "CONVERT_TO_TEXT"
+                type: "aws_proxy"
+          /month/{month}:
+            get:
+              parameters:
+              - name: "month"
+                in: "path"
+                required: true
+                schema:
+                  type: "string"
+              x-amazon-apigateway-integration:
+                httpMethod: "POST"
+                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Report.Arn}/invocations"
+                responses:
+                  default:
+                    statusCode: "200"
+                passthroughBehavior: "when_no_match"
+                contentHandling: "CONVERT_TO_TEXT"
+                type: "aws_proxy"
+          /summary/{invasion}:
+            get:
+              parameters:
+              - name: "invasion"
+                in: "path"
+                required: true
+                schema:
+                  type: "string"
+              x-amazon-apigateway-integration:
+                httpMethod: "POST"
+                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Report.Arn}/invocations"
+                responses:
+                  default:
+                    statusCode: "200"
+                passthroughBehavior: "when_no_match"
+                contentHandling: "CONVERT_TO_TEXT"
+                type: "aws_proxy"
         components:
           schemas:
             invasion:
@@ -357,22 +513,22 @@ Resources:
               - "year"
               type: "object"
               properties:
-                year:
-                  maximum: 2100
-                  minimum: 2024
-                  type: "number"
+                notes:
+                  type: "string"
                 month:
                   maximum: 12
                   minimum: 1
                   type: "number"
+                year:
+                  maximum: 2100
+                  minimum: 2024
+                  type: "number"
+                win:
+                  type: "boolean"
                 day:
                   maximum: 31
                   minimum: 1
                   type: "number"
-                notes:
-                  type: "string"
-                win:
-                  type: "boolean"
                 settlement:
                   type: "string"
                   enum:
@@ -388,6 +544,31 @@ Resources:
                   - "rs"
                   - "wf"
                   - "ww"
+            member:
+              title: "Member"
+              required:
+              - "faction"
+              - "player"
+              type: "object"
+              properties:
+                player:
+                  type: "string"
+                discord:
+                  type: "string"
+                start:
+                  maximum: 20301231
+                  minimum: 20240501
+                  type: "number"
+                notes:
+                  type: "string"
+                admin:
+                  type: "boolean"
+                faction:
+                  type: "string"
+                  enum:
+                  - "green"
+                  - "purple"
+                  - "yellow"
         x-amazon-apigateway-request-validators:
           Validate body:
             validateRequestParameters: false
@@ -458,7 +639,7 @@ Resources:
   #       !Ref IdentityPool
   #     Roles:
   #       authenticated:
-  #         !Sub arn:aws:iam::${AWS::AccountId}:role/PollyCognitoAuthRole
+  #         !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/PollyCognitoAuthRole
 
 
 Outputs:
