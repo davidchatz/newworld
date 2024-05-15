@@ -12,10 +12,32 @@ Parameters:
     Type: String
     Default: Australia/Sydney
 
+  SsmPrefix:
+    Default: /chatzinvasionstats
+    Type: String
+
+  PublicKeyPath:
+    Default: publickey
+    Type: String
+
+  AppIdPath:
+    Default: appid
+    Type: String
+
+  BotTokenPath:
+    Default: bottoken
+    Type: String
+
+  ServerIdPath:
+    Default: chatzdev/serverid
+    Type: String
+
 Resources:
 
   InvasionBucket:
     Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
       # AccessControl: Private
@@ -45,6 +67,8 @@ Resources:
 
   Table:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       AttributeDefinitions:
         - AttributeName: invasion
@@ -90,6 +114,7 @@ Resources:
   LadderLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       LogGroupName: !Sub /aws/lambda/${Ladder}
       RetentionInDays: 30
@@ -126,6 +151,7 @@ Resources:
   ReportLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       LogGroupName: !Sub /aws/lambda/${Report}
       RetentionInDays: 30
@@ -165,6 +191,7 @@ Resources:
   InvasionLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       LogGroupName: !Sub /aws/lambda/${Invasion}
       RetentionInDays: 30
@@ -202,8 +229,40 @@ Resources:
   MembersLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       LogGroupName: !Sub /aws/lambda/${Members}
+      RetentionInDays: 30
+
+  Bot:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: bot.lambda_handler
+      Runtime: python3.11
+      CodeUri: src/bot
+      Description: 'Test discord bot'
+      MemorySize: 256
+      Timeout: 10
+      Policies: 
+        - SSMParameterReadPolicy:
+            ParameterName: "*"
+      Environment:
+        Variables:
+          PUBLIC_KEY_PATH: !Sub "${SsmPrefix}/${PublicKeyPath}"
+      Events:
+        ApiPOSTdiscord:
+          Type: Api
+          Properties:
+            Path: /discord
+            Method: POST
+            RestApiId: !Ref Api
+
+  BotLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${Bot}
       RetentionInDays: 30
 
   Api:
