@@ -13,7 +13,8 @@ Parameters:
     Default: Australia/Sydney
 
   SsmPrefix:
-    Default: /chatzinvasionstats
+    # Default: /chatzinvasionstats
+    Default: /chatzinvasionhttp
     Type: String
 
   PublicKeyPath:
@@ -246,9 +247,13 @@ Resources:
       Policies: 
         - SSMParameterReadPolicy:
             ParameterName: "*"
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Table
       Environment:
         Variables:
           PUBLIC_KEY_PATH: !Sub "${SsmPrefix}/${PublicKeyPath}"
+          TABLE_NAME: !Ref Table
+      # ReservedConcurrentExecutions: 5
       Events:
         ApiPOSTdiscord:
           Type: Api
@@ -256,6 +261,12 @@ Resources:
             Path: /discord
             Method: POST
             RestApiId: !Ref Api
+        HttpPOSTdiscord:
+          Type: HttpApi
+          Properties:
+            Path: /discord
+            Method: POST
+            ApiId: !Ref HttpApi
 
   BotLogGroup:
     Type: AWS::Logs::LogGroup
@@ -264,6 +275,17 @@ Resources:
     Properties:
       LogGroupName: !Sub /aws/lambda/${Bot}
       RetentionInDays: 30
+
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowMethods:
+          - POST
+        AllowHeaders:
+          - "*"
 
   Api:
     Type: AWS::Serverless::Api
@@ -632,73 +654,6 @@ Resources:
           Validate body:
             validateRequestParameters: false
             validateRequestBody: true
-
-  UserPool:
-    Type: AWS::Cognito::UserPool
-    Properties:
-      AliasAttributes:
-        - email
-      UsernameConfiguration:
-        CaseSensitive: False
-      AutoVerifiedAttributes:
-        - email
-      Schema:
-        - Name: email
-          AttributeDataType: String
-          Mutable: true
-          Required: true
-          
-  PoolClient:
-    Type: AWS::Cognito::UserPoolClient
-    Properties:
-      ClientName: Invasion
-      UserPoolId: !Ref UserPool
-      GenerateSecret: false
-      ExplicitAuthFlows:
-        - ALLOW_REFRESH_TOKEN_AUTH
-        - ALLOW_USER_PASSWORD_AUTH
-      PreventUserExistenceErrors: ENABLED
-      # SupportedIdentityProviders:
-      #   - COGNITO
-      # AllowedOAuthFlows:
-      #   - "implicit"
-      # AllowedOAuthScopes:
-      #   - "email"
-      #   - "openid"
-      # AllowedOAuthFlowsUserPoolClient: true
-      # CallbackURLs: 
-      #   - !Sub
-      #     - 'https://${DemoDNS}/app/login/oauth2/code/cognito'
-      #     - DemoDNS: invasion.chatz.link      
-      # LogoutURLs:
-      #   - !Sub
-      #     - 'https://${DemoDNS}/app/logout'
-      #     - DemoDNS: invasion.chatz.link
-
-  WebAppUserPoolDomain:
-    Type: AWS::Cognito::UserPoolDomain
-    Properties: 
-      Domain: invasion-chatz-link
-      UserPoolId: !Ref UserPool
-
-  # IdentityPool:
-  #   Type: AWS::Cognito::IdentityPool
-  #   Properties:
-  #     AllowUnauthenticatedIdentities: false
-  #     CognitoIdentityProviders:
-  #       - ClientId:
-  #           !Ref PoolClient
-  #         ProviderName:
-  #           !GetAtt Pool.ProviderName
-
-  # IdentityPoolRoles:
-  #   Type: AWS::Cognito::IdentityPoolRoleAttachment
-  #   Properties:
-  #     IdentityPoolId:
-  #       !Ref IdentityPool
-  #     Roles:
-  #       authenticated:
-  #         !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/PollyCognitoAuthRole
 
 
 Outputs:
