@@ -3,6 +3,7 @@ from botocore.exceptions import ClientError
 from boto3.dynamodb.conditions import Key, Attr
 import os
 from datetime import datetime
+import urllib3
 
 # get bucket name of environment
 s3 = boto3.client('s3')
@@ -13,6 +14,7 @@ dynamodb = boto3.resource('dynamodb')
 table_name = os.environ['TABLE_NAME']
 table = dynamodb.Table(table_name)
 
+pool_mgr = urllib3.PoolManager()
 
 def invasion_list() -> str:
     print(f'invasion_list:')
@@ -45,7 +47,9 @@ def create_folder(invasion_name):
 def register_invasion(day:int, month:int, year:int, settlement:str, win:bool, notes:str = None) -> str:
     print(f'register_invasion: {day}, {month}, {year}, {settlement}, {win}, {notes}')
 
-    date = f'{year}{month}{day}'
+    zero_month = '{0:02d}'.format(month)
+    zero_day = '{0:02d}'.format(day)
+    date = f'{year}{zero_month}{zero_day}'
     folder = date + '-' + settlement
 
     create_folder(folder)
@@ -113,11 +117,40 @@ def invasion_today(options:list) -> str:
                             notes=notes)
 
 
-def invasion_ladder(options:list) -> str:
+def invasion_ladder(options:list, resolved:dict) -> str:
     print(f'invasion_ladder: {options}')
-    return 'Not defined'
 
-def invasion_cmd(options:dict) -> str:
+    for o in options:
+        if o["name"] == "invasion":
+            invasion = o["value"]
+        elif o["name"] == "file":
+            attachment = o["value"]
+
+    print(f'resolved: {resolved["attachments"][attachment]}')
+    # content_type = resolved['attachment']['content_type']
+    filename = resolved['attachments'][attachment]['filename']
+    url = resolved['attachments'][attachment]['url']
+    target = invasion + '/ladder/' + filename
+
+    print(f'Checking {invasion} exists')
+    # Check this invasion exists
+    try:
+        s3.head_object(Bucket=bucket_name, Key=invasion + '/ladder/')
+    except ClientError as e:
+        if e.response['Error']['Code'] == '404':
+            return f'Invasion {invasion} does not exist'
+
+    print(f'Downloading file {filename} from {url}')
+
+    try:
+        s3.upload_fileobj(pool_mgr.request('GET', url, preload_content=False), bucket_name, target)
+    except Exception as e:
+        return f'Error uploading {filename} to {target}: {e}'
+
+    return f'Uploaded screenshot {filename}'
+
+
+def invasion_cmd(options:dict, resolved: dict) -> str:
     print(f'invasion_cmd: {options}')
     name = options['name']
     if name == 'list':
@@ -127,7 +160,7 @@ def invasion_cmd(options:dict) -> str:
     elif name == 'today':
         return invasion_today(options['options'])
     elif name == 'ladder':
-        return invasion_ladder(options['options'])
+        return invasion_ladder(options['options'],resolved)
     else:
         print(f'Invalid command {name}')
         return f'Invalid command {name}'

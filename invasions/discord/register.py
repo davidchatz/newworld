@@ -14,6 +14,17 @@ def dump_response(resp, verbose:bool):
         pprint.pprint(json.loads(resp.data.decode("utf-8")))
     print('')
 
+def list_options(command, indent='  '):
+    if command["options"]:
+        for c in command["options"]:
+            print(f'{indent}{c["name"]}: {c["description"]}')
+            if 'options' in c:
+                list_options(c, indent + '  ')
+            if 'choices' in c:
+                for choice in c['choices']:
+                    print(f'{indent}  {choice["name"]}: {choice["value"]}')
+
+
 def get_param(param) -> str:
     return subprocess.run(shlex.split(f'aws ssm get-parameter --with-decryption --name /chatzinvasionstats/{param} --profile {AWS_PROFILE} --query Parameter.Value --output text'), stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
 
@@ -23,6 +34,7 @@ BOT_TOKEN = get_param('bottoken')
 
 url = f'https://discord.com/api/v10/applications/{APP_ID}/guilds/{SERVER_ID}/commands'
 headers = {'Authorization': f'Bot {BOT_TOKEN}', 'Content-Type': 'application/json'}
+
 
 def main():
     parser = argparse.ArgumentParser(description = "Discord slash command manager")
@@ -46,6 +58,8 @@ def main():
             commands = json.loads(response.data.decode("utf-8"))
             for c in commands:
                 print(f'{c["name"]} ({c["id"]}): {c["description"]}')
+                list_options(c)
+
 
     elif args.register:
         print('Registering commands:')
@@ -58,7 +72,11 @@ def main():
         for command in commands:
             print(f'{command["name"]}:')
             response = urllib3.request(method='POST', url=url, body=json.dumps(command), headers=headers)
-            dump_response(response, verbose)
+            if response.status > 204:
+                print(f'Error registering command: {command["name"]}')
+                dump_response(response, True)
+            else:
+                dump_response(response, verbose)
 
     elif args.unregister:
         print(f'Unregistering command {args.unregister}:')

@@ -47,8 +47,10 @@ def lambda_handler(event, context):
         elif body["type"] == 2 and body["data"]["name"] == discord_cmd:
             print(f'body: {body["data"]}')
             subcommand = body["data"]["options"][0]
+            resolved = body["data"]["resolved"] if "resolved" in body["data"] else None
+
             if subcommand["name"] == "invasion":
-                content = bot_invasion.invasion_cmd(subcommand["options"][0])
+                content = bot_invasion.invasion_cmd(subcommand["options"][0], resolved)
             else:
                 content = f'Unexpected subcommand {subcommand["name"]}'
         else:

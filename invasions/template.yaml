@@ -33,6 +33,10 @@ Parameters:
     Default: chatzdev/serverid
     Type: String
 
+  DiscordCmd:
+    Default: iru
+    Type: String
+
 Resources:
 
   InvasionBucket:
@@ -111,6 +115,11 @@ Resources:
             Bucket: !Ref InvasionBucket
             Events:
               - s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: .png
 
   LadderLogGroup:
     Type: AWS::Logs::LogGroup
@@ -249,10 +258,14 @@ Resources:
             ParameterName: "*"
         - DynamoDBCrudPolicy:
             TableName: !Ref Table
+        - S3CrudPolicy:
+            BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
       Environment:
         Variables:
           PUBLIC_KEY_PATH: !Sub "${SsmPrefix}/${PublicKeyPath}"
           TABLE_NAME: !Ref Table
+          DISCORD_CMD: !Ref DiscordCmd
+          BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
       # ReservedConcurrentExecutions: 5
       Events:
         ApiPOSTdiscord:
