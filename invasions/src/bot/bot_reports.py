@@ -4,7 +4,6 @@ from botocore.exceptions import ClientError
 from boto3.dynamodb.conditions import Key, Attr
 import os
 from decimal import Decimal, getcontext
-from bot_result import Result
 
 # create client to DynamoDB service
 dynamodb = boto3.resource('dynamodb')
@@ -13,22 +12,6 @@ table = dynamodb.Table(table_name)
 
 # precision to use for Decimals
 prec = Decimal("1.0")
-
-# def invasions() -> Result:
-#     query = table.query(KeyConditionExpression=Key('invasion').eq('#invasion'),
-#                             ProjectionExpression='id')
-#     # set body to id and labels
-#     print(query)
-
-#     response = Result()
-
-#     if not query.get('Items', None):
-#         response.content(f'No invasions found')
-#     else:
-#         response.content(query["Items"])
-
-#     print(f'invasions response: {response}')
-#     return response
 
 def invasions() -> str:
     query = table.query(KeyConditionExpression=Key('invasion').eq('#invasion'),
@@ -45,21 +28,52 @@ def invasions() -> str:
         print(f'str: {res}')
         return res
 
+def invasion_members(event, context) -> str:
 
-def ladder_invasion(invasion: str) -> Result:
-    query = table.query(KeyConditionExpression=Key('invasion').eq(f'#ladder#{invasion}'))
-    # set body to id and labels
-    print(query)
+    invasion = event['pathParameters']['invasion']
+    response = table.query(KeyConditionExpression=Key('invasion').eq(f'#ladder#{invasion}'))            
+    body = ""
 
-    response = Result()
-    
-    if not query.get('Items', None):
-        response.status(404)
-        response.body(f'Item {invasion} not found')
+    if not response.get('Items', None):
+        body = f'Item {invasion} not found'
     else:
-        response.body(query["Items"])
+        members = 0
+        pos = 1
+        consecutive = True
+        for row in response["Items"]:
+            print(row)
+            if row["member"]:
+                members += 1
+            if int(row["id"]) != pos:
+                consecutive = False
+                print(f'Missing row {pos}, found {row["id"]}')
+                pos = int(row["id"])
+            else:
+                pos += 1
 
-    return response
+        if not consecutive:
+            statusCode = 400
+            body = f'Missing rows in ladder'
+        else:
+            body = f'For {invasion} found {members} members from {pos} participants'
+
+    return body
+
+
+# def ladder_invasion(invasion: str) -> Result:
+#     query = table.query(KeyConditionExpression=Key('invasion').eq(f'#ladder#{invasion}'))
+#     # set body to id and labels
+#     print(query)
+
+#     response = Result()
+    
+#     if not query.get('Items', None):
+#         response.status(404)
+#         response.body(f'Item {invasion} not found')
+#     else:
+#         response.body(query["Items"])
+
+#     return response
 
 def foo(event, context):
     # Log the event argument for debugging and for use in local development.
