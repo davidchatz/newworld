@@ -74,7 +74,13 @@ def register_invasion(day:int, month:int, year:int, settlement:str, win:bool, no
 
 def invasion_add(options:list) -> str:
     print(f'invasion_add: {options}')
+
     notes=None
+    now = datetime.now()
+    day = now.day
+    month = now.month
+    year = now.year
+
     for o in options:
         if o["name"] == "day":
             day = int(o["value"])
@@ -92,26 +98,6 @@ def invasion_add(options:list) -> str:
     return register_invasion(day=day,
                             month=month,
                             year=year,
-                            settlement=settlement,
-                            win=win,
-                            notes=notes)
-
-
-def invasion_today(options:list) -> str:
-    print(f'invasion_today: {options}')
-    notes=None
-    for o in options:
-        if o["name"] == "settlement":
-            settlement = o["value"]
-        elif o["name"] == "win":
-            win = bool(["value"])
-        elif o["name"] == "notes":
-            notes = o["value"]
-
-    now = datetime.now()
-    return register_invasion(day=now.day,
-                            month=now.month,
-                            year=now.year,
                             settlement=settlement,
                             win=win,
                             notes=notes)
@@ -157,8 +143,6 @@ def invasion_cmd(options:dict, resolved: dict) -> str:
         return invasion_list()
     elif name == 'add':
         return invasion_add(options['options'])
-    elif name == 'today':
-        return invasion_today(options['options'])
     elif name == 'ladder':
         return invasion_ladder(options['options'],resolved)
     else:

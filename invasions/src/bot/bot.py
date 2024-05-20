@@ -4,6 +4,7 @@ import os
 import pprint
 import bot_reports
 import bot_invasion
+import bot_member
 
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
@@ -54,9 +55,11 @@ def lambda_handler(event, context):
                 content = bot_invasion.invasion_cmd(subcommand["options"][0], resolved)
             elif subcommand["name"] == "report":
                 content = bot_reports.report_cmd(subcommand["options"][0], resolved)
+            elif subcommand["name"] == "member":
+                content = bot_member.member_cmd(subcommand["options"][0], resolved)
             else:
                 content = f'Unexpected subcommand {subcommand["name"]}'
-                
+
         else:
             content = f'Unexpected interaction type {body["type"]}'
 
@@ -87,6 +90,7 @@ def lambda_handler(event, context):
                 }
             }
 
+        print(f"data: {json.dumps(data)}")
         return {
             "statusCode": status,
             "headers": headers,

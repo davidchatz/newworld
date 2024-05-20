@@ -210,7 +210,7 @@ def report_member(options:list) -> str:
 
     month = f'{year}' + '{0:02d}'.format(month)
     response = table.get_item(Key={'invasion': f'#month#{month}', 'id': player})
-    mesg = f'No data found for {player} for {month}'
+    mesg = f'No data found for player {player} in month {month}'
 
     if 'Item' in response:
         item = response['Item']

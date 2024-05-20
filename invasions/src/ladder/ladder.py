@@ -138,8 +138,6 @@ def generate_table(table_result, blocks_map):
 def insert_db(table, invasion, result, key):
 
     try:
-        # Add row to identify this invasion
-        table.put_item(Item={'invasion': f'#invasion', 'id': invasion})
         # Add row to identity this upload
         table.put_item(Item={'invasion': f'#upload#{invasion}', 'id': key})
 
