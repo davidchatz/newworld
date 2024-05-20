@@ -29,7 +29,7 @@ def get_param(param) -> str:
     return subprocess.run(shlex.split(f'aws ssm get-parameter --with-decryption --name /chatzinvasionstats/{param} --profile {AWS_PROFILE} --query Parameter.Value --output text'), stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
 
 APP_ID = get_param('appid')
-SERVER_ID = get_param('chatzdev/serverid')
+SERVER_ID = get_param('invasionsrusstats/serverid')
 BOT_TOKEN = get_param('bottoken')
 
 url = f'https://discord.com/api/v10/applications/{APP_ID}/guilds/{SERVER_ID}/commands'

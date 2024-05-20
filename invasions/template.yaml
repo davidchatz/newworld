@@ -34,7 +34,7 @@ Parameters:
     Type: String
 
   DiscordCmd:
-    Default: iru
+    Default: irus
     Type: String
 
 Resources:
@@ -45,9 +45,6 @@ Resources:
     UpdateReplacePolicy: Retain
     Properties:
       BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
-      # AccessControl: Private
-      # VersioningConfiguration:
-      #   Status: Enabled
       PublicAccessBlockConfiguration:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
@@ -131,128 +128,13 @@ Resources:
       LogGroupName: !Sub /aws/lambda/${Ladder}
       RetentionInDays: 30
 
-  Report:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: reports.lambda_handler
-      Runtime: python3.11
-      CodeUri: src/reports
-      Description: 'Report invasion scan results'
-      MemorySize: 256
-      Timeout: 10
-      Policies: 
-        - DynamoDBCrudPolicy:
-            TableName: !Ref Table
-      Environment:
-        Variables:
-          TABLE_NAME: !Ref Table
-      Events:
-        ApiGETladder:
-          Type: Api
-          Properties:
-            Path: /ladder/{invasion}
-            Method: GET
-            RestApiId: !Ref Api
-        ApiGETcsv:
-          Type: Api
-          Properties:
-            Path: /csv/{invasion}
-            Method: GET
-            RestApiId: !Ref Api
-
-  ReportLogGroup:
-    Type: AWS::Logs::LogGroup
-    DeletionPolicy: Delete
-    UpdateReplacePolicy: Delete
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${Report}
-      RetentionInDays: 30
-
-  Invasion:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: invasion.lambda_handler
-      Runtime: python3.11
-      CodeUri: src/invasion
-      Description: 'Implement APIs for tracking invasions'
-      MemorySize: 256
-      Timeout: 10
-      Policies: 
-        - S3WritePolicy:
-            BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
-        - DynamoDBCrudPolicy:
-            TableName: !Ref Table
-      Environment:
-        Variables:
-          BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
-          TABLE_NAME: !Ref Table
-      Events:
-        ApiGET:
-          Type: Api
-          Properties:
-            Path: /invasion
-            Method: GET
-            RestApiId: !Ref Api
-        ApiPOSTadd:
-          Type: Api
-          Properties:
-            Path: /invasion/add
-            Method: POST
-            RestApiId: !Ref Api
-
-  InvasionLogGroup:
-    Type: AWS::Logs::LogGroup
-    DeletionPolicy: Delete
-    UpdateReplacePolicy: Delete
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${Invasion}
-      RetentionInDays: 30
-
-  Members:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: members.lambda_handler
-      Runtime: python3.11
-      CodeUri: src/members
-      Description: 'Implement APIs for company members'
-      MemorySize: 256
-      Timeout: 10
-      Policies: 
-        - DynamoDBCrudPolicy:
-            TableName: !Ref Table
-      Environment:
-        Variables:
-          TABLE_NAME: !Ref Table
-          TZ: !Ref Timezone
-      Events:
-        ApiGET:
-          Type: Api
-          Properties:
-            Path: /members
-            Method: GET
-            RestApiId: !Ref Api
-        ApiPOSTadd:
-          Type: Api
-          Properties:
-            Path: /members/add
-            Method: POST
-            RestApiId: !Ref Api
-
-  MembersLogGroup:
-    Type: AWS::Logs::LogGroup
-    DeletionPolicy: Delete
-    UpdateReplacePolicy: Delete
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${Members}
-      RetentionInDays: 30
-
   Bot:
     Type: AWS::Serverless::Function
     Properties:
       Handler: bot.lambda_handler
       Runtime: python3.11
       CodeUri: src/bot
-      Description: 'Test discord bot'
+      Description: 'Discord Invasion Bot'
       MemorySize: 256
       Timeout: 10
       Policies: 
@@ -268,7 +150,6 @@ Resources:
           TABLE_NAME: !Ref Table
           DISCORD_CMD: !Ref DiscordCmd
           BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
-      # ReservedConcurrentExecutions: 5
       Events:
         ApiPOSTdiscord:
           Type: Api
@@ -276,12 +157,6 @@ Resources:
             Path: /discord
             Method: POST
             RestApiId: !Ref Api
-        HttpPOSTdiscord:
-          Type: HttpApi
-          Properties:
-            Path: /discord
-            Method: POST
-            ApiId: !Ref HttpApi
 
   BotLogGroup:
     Type: AWS::Logs::LogGroup
@@ -290,17 +165,6 @@ Resources:
     Properties:
       LogGroupName: !Sub /aws/lambda/${Bot}
       RetentionInDays: 30
-
-  HttpApi:
-    Type: AWS::Serverless::HttpApi
-    Properties:
-      CorsConfiguration:
-        AllowOrigins:
-          - "*"
-        AllowMethods:
-          - POST
-        AllowHeaders:
-          - "*"
 
   Api:
     Type: AWS::Serverless::Api
@@ -315,366 +179,32 @@ Resources:
       DefinitionBody:
         openapi: "3.0.1"
         info:
-          title: "Invasions API from invasions"
+          title: "Discord Invasions API"
           version: "2024-05-12T23:32:55Z"
         paths:
-          /members/{player}:
-            get:
-              parameters:
-              - name: "player"
-                in: "path"
-                required: true
-                schema:
-                  type: "string"
-              x-amazon-apigateway-integration:
-                httpMethod: "POST"
-                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Members.Arn}/invocations"
-                responses:
-                  default:
-                    statusCode: "200"
-                passthroughBehavior: "when_no_match"
-                contentHandling: "CONVERT_TO_TEXT"
-                type: "aws_proxy"
-            delete:
-              parameters:
-              - name: "player"
-                in: "path"
-                required: true
-                schema:
-                  type: "string"
-              x-amazon-apigateway-integration:
-                httpMethod: "POST"
-                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Members.Arn}/invocations"
-                responses:
-                  default:
-                    statusCode: "200"
-                passthroughBehavior: "when_no_match"
-                contentHandling: "CONVERT_TO_TEXT"
-                type: "aws_proxy"
-          /invasions:
-            get:
-              x-amazon-apigateway-integration:
-                httpMethod: "POST"
-                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Invasion.Arn}/invocations"
-                responses:
-                  default:
-                    statusCode: "200"
-                passthroughBehavior: "when_no_match"
-                contentHandling: "CONVERT_TO_TEXT"
-                type: "aws_proxy"
-            options:
-              responses:
-                "200":
-                  description: "200 response"
-                  headers:
-                    Access-Control-Allow-Origin:
-                      schema:
-                        type: "string"
-                    Access-Control-Allow-Methods:
-                      schema:
-                        type: "string"
-                    Access-Control-Max-Age:
-                      schema:
-                        type: "string"
-                  content: {}
-              x-amazon-apigateway-integration:
-                responses:
-                  default:
-                    statusCode: "200"
-                    responseParameters:
-                      method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
-                      method.response.header.Access-Control-Allow-Origin: "'*'"
-                    responseTemplates:
-                      application/json: "{}\n"
-                requestTemplates:
-                  application/json: "{\n  \"statusCode\" : 200\n}\n"
-                passthroughBehavior: "when_no_match"
-                type: "mock"
-          /invasions/add:
+          /discord:
             post:
-              requestBody:
-                content:
-                  application/json:
-                    schema:
-                      $ref: "#/components/schemas/invasion"
-                required: true
-              x-amazon-apigateway-request-validator: "Validate body"
-              x-amazon-apigateway-integration:
-                httpMethod: "POST"
-                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Invasion.Arn}/invocations"
-                responses:
-                  default:
-                    statusCode: "200"
-                passthroughBehavior: "when_no_match"
-                contentHandling: "CONVERT_TO_TEXT"
-                type: "aws_proxy"
-            options:
               responses:
-                "200":
-                  description: "200 response"
-                  headers:
-                    Access-Control-Allow-Origin:
-                      schema:
-                        type: "string"
-                    Access-Control-Allow-Methods:
-                      schema:
-                        type: "string"
-                    Access-Control-Max-Age:
-                      schema:
-                        type: "string"
+                "401":
+                  description: "401 response"
                   content: {}
-              x-amazon-apigateway-integration:
-                responses:
-                  default:
-                    statusCode: "200"
-                    responseParameters:
-                      method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST'"
-                      method.response.header.Access-Control-Allow-Origin: "'*'"
-                    responseTemplates:
-                      application/json: "{}\n"
-                requestTemplates:
-                  application/json: "{\n  \"statusCode\" : 200\n}\n"
-                passthroughBehavior: "when_no_match"
-                type: "mock"
-          /csv/{invasion}:
-            get:
-              parameters:
-              - name: "invasion"
-                in: "path"
-                required: true
-                schema:
-                  type: "string"
-              x-amazon-apigateway-integration:
-                httpMethod: "POST"
-                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Report.Arn}/invocations"
-                passthroughBehavior: "when_no_match"
-                type: "aws_proxy"
-            options:
-              parameters:
-              - name: "invasion"
-                in: "path"
-                required: true
-                schema:
-                  type: "string"
-              responses:
-                "200":
-                  description: "200 response"
-                  headers:
-                    Access-Control-Allow-Origin:
-                      schema:
-                        type: "string"
-                    Access-Control-Allow-Methods:
-                      schema:
-                        type: "string"
-                    Access-Control-Max-Age:
-                      schema:
-                        type: "string"
-                  content: {}
-              x-amazon-apigateway-integration:
-                responses:
-                  default:
-                    statusCode: "200"
-                    responseParameters:
-                      method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
-                      method.response.header.Access-Control-Allow-Origin: "'*'"
-                    responseTemplates:
-                      application/json: "{}\n"
-                requestTemplates:
-                  application/json: "{\n  \"statusCode\" : 200\n}\n"
-                passthroughBehavior: "when_no_match"
-                type: "mock"
-          /members/add:
-            post:
-              requestBody:
-                content:
-                  application/json:
-                    schema:
-                      $ref: "#/components/schemas/member"
-                required: true
-              responses:
                 "200":
                   description: "200 response"
                   content: {}
-              x-amazon-apigateway-request-validator: "Validate body"
               x-amazon-apigateway-integration:
                 httpMethod: "POST"
-                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Members.Arn}/invocations"
+                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Bot.Arn}/invocations"
                 responses:
                   default:
                     statusCode: "200"
                 passthroughBehavior: "when_no_match"
                 contentHandling: "CONVERT_TO_TEXT"
                 type: "aws_proxy"
-          /ladder/{invasion}:
-            get:
-              parameters:
-              - name: "invasion"
-                in: "path"
-                required: true
-                schema:
-                  type: "string"
-              x-amazon-apigateway-integration:
-                httpMethod: "POST"
-                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Report.Arn}/invocations"
-                passthroughBehavior: "when_no_match"
-                type: "aws_proxy"
-            options:
-              parameters:
-              - name: "invasion"
-                in: "path"
-                required: true
-                schema:
-                  type: "string"
-              responses:
-                "200":
-                  description: "200 response"
-                  headers:
-                    Access-Control-Allow-Origin:
-                      schema:
-                        type: "string"
-                    Access-Control-Allow-Methods:
-                      schema:
-                        type: "string"
-                    Access-Control-Max-Age:
-                      schema:
-                        type: "string"
-                  content: {}
-              x-amazon-apigateway-integration:
-                responses:
-                  default:
-                    statusCode: "200"
-                    responseParameters:
-                      method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
-                      method.response.header.Access-Control-Allow-Origin: "'*'"
-                    responseTemplates:
-                      application/json: "{}\n"
-                requestTemplates:
-                  application/json: "{\n  \"statusCode\" : 200\n}\n"
-                passthroughBehavior: "when_no_match"
-                type: "mock"
-          /members:
-            get:
-              x-amazon-apigateway-integration:
-                httpMethod: "POST"
-                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Members.Arn}/invocations"
-                responses:
-                  default:
-                    statusCode: "200"
-                passthroughBehavior: "when_no_match"
-                contentHandling: "CONVERT_TO_TEXT"
-                type: "aws_proxy"
-          /month/{month}:
-            get:
-              parameters:
-              - name: "month"
-                in: "path"
-                required: true
-                schema:
-                  type: "string"
-              x-amazon-apigateway-integration:
-                httpMethod: "POST"
-                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Report.Arn}/invocations"
-                responses:
-                  default:
-                    statusCode: "200"
-                passthroughBehavior: "when_no_match"
-                contentHandling: "CONVERT_TO_TEXT"
-                type: "aws_proxy"
-          /summary/{invasion}:
-            get:
-              parameters:
-              - name: "invasion"
-                in: "path"
-                required: true
-                schema:
-                  type: "string"
-              x-amazon-apigateway-integration:
-                httpMethod: "POST"
-                uri: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Report.Arn}/invocations"
-                responses:
-                  default:
-                    statusCode: "200"
-                passthroughBehavior: "when_no_match"
-                contentHandling: "CONVERT_TO_TEXT"
-                type: "aws_proxy"
-        components:
-          schemas:
-            invasion:
-              title: "Invasion"
-              required:
-              - "day"
-              - "month"
-              - "settlement"
-              - "win"
-              - "year"
-              type: "object"
-              properties:
-                notes:
-                  type: "string"
-                month:
-                  maximum: 12
-                  minimum: 1
-                  type: "number"
-                year:
-                  maximum: 2100
-                  minimum: 2024
-                  type: "number"
-                win:
-                  type: "boolean"
-                day:
-                  maximum: 31
-                  minimum: 1
-                  type: "number"
-                settlement:
-                  type: "string"
-                  enum:
-                  - "bw"
-                  - "bs"
-                  - "ck"
-                  - "er"
-                  - "eg"
-                  - "ef"
-                  - "mb"
-                  - "md"
-                  - "rw"
-                  - "rs"
-                  - "wf"
-                  - "ww"
-            member:
-              title: "Member"
-              required:
-              - "faction"
-              - "player"
-              type: "object"
-              properties:
-                player:
-                  type: "string"
-                discord:
-                  type: "string"
-                start:
-                  maximum: 20301231
-                  minimum: 20240501
-                  type: "number"
-                notes:
-                  type: "string"
-                admin:
-                  type: "boolean"
-                faction:
-                  type: "string"
-                  enum:
-                  - "green"
-                  - "purple"
-                  - "yellow"
-        x-amazon-apigateway-request-validators:
-          Validate body:
-            validateRequestParameters: false
-            validateRequestBody: true
-
 
 Outputs:
   Bucket:
     Description: Invasion Bucket
     Value: !Ref InvasionBucket
 
-  Endpoint:
-    Value: !Sub https://${Api}.execute-api.${AWS::Region}.amazonaws.com/prod
+  InteractionsEndpointUrl:
+    Value: !Sub https://${Api}.execute-api.${AWS::Region}.amazonaws.com/prod/discord

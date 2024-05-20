@@ -1,4 +1,4 @@
-- name: iru
+- name: irus
   description: Manager company members and invasion stats
   options:
     - name: member
