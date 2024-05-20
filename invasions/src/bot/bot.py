@@ -44,6 +44,7 @@ def lambda_handler(event, context):
         body = json.loads(event['body'])
         if body["type"] == 1:
             data = ({'type': 1})
+
         elif body["type"] == 2 and body["data"]["name"] == discord_cmd:
             print(f'body: {body["data"]}')
             subcommand = body["data"]["options"][0]
@@ -51,17 +52,22 @@ def lambda_handler(event, context):
 
             if subcommand["name"] == "invasion":
                 content = bot_invasion.invasion_cmd(subcommand["options"][0], resolved)
+            elif subcommand["name"] == "report":
+                content = bot_reports.report_cmd(subcommand["options"][0], resolved)
             else:
                 content = f'Unexpected subcommand {subcommand["name"]}'
+                
         else:
             content = f'Unexpected interaction type {body["type"]}'
 
     except (BadSignatureError) as e:
         status = 401
+        print(f"Bad Signature: {e}")
         content = f"Bad Signature: {e}"
     
     except Exception as e:
         status = 401
+        print(f"Unexpected exception: {e}")
         content = f"Unexpected exception: {e}"
 
     finally:
@@ -81,9 +87,9 @@ def lambda_handler(event, context):
                 }
             }
 
-        print(f"data: {data}")
         return {
             "statusCode": status,
             "headers": headers,
             "body": json.dumps(data)
         }
+          

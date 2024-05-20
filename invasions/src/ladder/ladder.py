@@ -94,12 +94,13 @@ def generate_table(table_result, blocks_map):
         
         try:
 
+            i = int("".join(filter(str.isnumeric, cols[1])))
             # sometimes textextract treats icon as a column
             if col_indices == 9 or col_indices == 10:
                 # Name may flow into score, so be more aggresive filtering this value
                 f = filter(str.isnumeric,cols[4])
                 result = {
-                    'id': '{0:02d}'.format(int(cols[1])),
+                    'id': '{0:02d}'.format(i),
                     'name': cols[3].rstrip(),
                     'score': int("".join(f)),
                     'kills': int(cols[5].replace(',','')),
@@ -113,7 +114,7 @@ def generate_table(table_result, blocks_map):
             elif col_indices == 8:
                 f = filter(str.isnumeric,cols[3])
                 result = {
-                    'id': '{0:02d}'.format(int(cols[1])),
+                    'id': '{0:02d}'.format(i),
                     'name': cols[2].rstrip(),
                     'score': int("".join(f)),
                     'kills': int(cols[4].replace(', ', '')),

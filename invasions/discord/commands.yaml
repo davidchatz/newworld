@@ -171,23 +171,23 @@
       type: 2
       options:
         - name: month
-          description: Update summary for a month
+          description: Generate/update and fetch summary for a month
           type: 1
           options:
             - name: month
-              description: Month
+              description: Month (defaults to this month)
               type: 4
               min_value: 1
               max_value: 12
-              required: true
+              required: false
             - name: year
-              description: Year
+              description: Year (defaults to this year)
               type: 4
               min_value: 2024
               max_value: 2050
-              required: true
+              required: false
         - name: invasion
-          description: Get CSV for a specific invasion
+          description: Generate and fetch report for specific invasion
           type: 1
           options:
             - name: invasion
@@ -195,11 +195,23 @@
               type: 3
               required: true
         - name: member
-          description: Stats for a company member
+          description: Stats for a company member from latest monthly report
           type: 1
           options:
-            - name: member
-              description: Company member
-              type: 6
+            - name: player
+              description: New World player name
+              type: 3
               required: true
+            - name: month
+              description: Month (defaults to this month)
+              type: 4
+              min_value: 1
+              max_value: 12
+              required: false
+            - name: year
+              description: Year (defaults to this year)
+              type: 4
+              min_value: 2024
+              max_value: 2050
+              required: false
 
