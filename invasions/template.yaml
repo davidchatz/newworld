@@ -89,6 +89,8 @@ Resources:
       OnDemandThroughput:
         MaxReadRequestUnits: 5
         MaxWriteRequestUnits: 5
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
 
   Ladder:
     Type: AWS::Serverless::Function
