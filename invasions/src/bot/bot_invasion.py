@@ -16,23 +16,35 @@ table = dynamodb.Table(table_name)
 
 pool_mgr = urllib3.PoolManager()
 
-def invasion_list() -> str:
-    print(f'invasion_list:')
-    response = table.query(KeyConditionExpression=Key('invasion').eq('#invasion'),
+def invasion_list(options:list) -> str:
+    print(f'invasion_list: {options}')
+
+    now = datetime.now()
+    month = now.month
+    year = now.year
+
+    for o in options:
+        if o["name"] == "month":
+            month = int(o["value"])
+        elif o["name"] == "year":
+            year = int(o["value"])
+
+    zero_month = '{0:02d}'.format(month)
+    date = f'{year}{zero_month}'
+
+    response = table.query(KeyConditionExpression=Key('invasion').eq('#invasion') & Key('id').begins_with(date),
                            ProjectionExpression='id')
     print(response)
 
-    res = ''
+    msg = ''
     if not response.get('Items', None):
-        res = 'No invasions found'
+        msg = f'No invasions found for month of {date}'
     else:
-        res = response["Items"][0]["id"]
-        for i in response["Items"][1:]:
-            res += ", " + i["id"]
-        print(f'str: {res}')
-        return res
+        msg = f'# Invasion List for {date}\n'
+        for i in response["Items"]:
+            msg += f'- {i["id"]}\n'
     
-    return res
+    return msg
 
 
 # define function that takes an invasion name and creates a folder in bucket
@@ -140,7 +152,7 @@ def invasion_cmd(options:dict, resolved: dict) -> str:
     print(f'invasion_cmd: {options}')
     name = options['name']
     if name == 'list':
-        return invasion_list()
+        return invasion_list(options['options'])
     elif name == 'add':
         return invasion_add(options['options'])
     elif name == 'ladder':

@@ -19,8 +19,9 @@ Type `/irus` to see the latest set of commands and a brief description. Some com
 ## Membership
 
 By tracking membership the bot can then report on members participation in invasions.
-- `/irus member add` to add a new member or update a member. You must get the player name exactly the same, including case. The command will also update invasion results based on the starting date specified.
+- `/irus member add` to add a new member or update a member. You must get the player name exactly the same, including case. The command will also update the player's member in invasions on or after the starting date.
 - `/irus member remove` to remove a member who has left the company.
+- `/irus member list` will generate a CSV of all the current members to download from a link.
 
 ## Invasions
 
@@ -30,14 +31,32 @@ At the completion of an invasion you can upload screenshots of the ladder.
 
 ![ladder](../docs/ladder.png)
 
-- `/irus invasion list` will list all the registered invasions.
+- `/irus invasion list` will list all the registered invasions for the given month, defaulting to this month.
+
+![invasion-list](../docs/invasion-list.png)
 
 ## Reports
 
 Most reports are generated when you run this command, and if provided as a CSV you will need to click a link to download the file.
-- `/irus report invasion` to get the stats from a specific invasion, including which members attended.
-- `/irus report month` to generate a report across all the invasions for a given month, defaulting to this month.
+- `/irus report invasion` to get the stats from a specific invasion, including which members attended, as a CSV that can be downloaded from the link provided.
+
+![report invasion](../docs/report-invasion.png)
+
+Sample downloaded report:
+
+![report invasion csv](../docs/report-invasion-csv.png)
+
+- `/irus report month` to generate a report across all the invasions for a given month, defaulting to this month, as a CSV that can be downloaded from the link provided.
+
+![report month](../docs/report-month.png)
+
+Sample downloaded report:
+
+![report month csv](../docs/report-month-csv.png)
+
 - `/irus report member` to get a report about a specific member this month. Run after running `/irus report month` to get the latest results.
+
+![report member](../docs/report-member.png)
 
 ---
 

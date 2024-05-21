@@ -70,8 +70,21 @@
       type: 2
       options:
         - name: list
-          description: List all registered invasions
+          description: List all registered invasions (defaults to this month)
           type: 1
+          options:
+            - name: month
+              description: Month
+              type: 4
+              min_value: 1
+              max_value: 12
+              required: false
+            - name: year
+              description: Year
+              type: 4
+              min_value: 2024
+              max_value: 2050
+              required: false
         - name: add
           description: Add a new invasion (defaults to today)
           type: 1

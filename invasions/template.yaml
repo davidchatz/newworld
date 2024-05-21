@@ -150,6 +150,7 @@ Resources:
           TABLE_NAME: !Ref Table
           DISCORD_CMD: !Ref DiscordCmd
           BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+          TZ: !Ref Timezone
       Events:
         ApiPOSTdiscord:
           Type: Api
