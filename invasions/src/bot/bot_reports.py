@@ -100,11 +100,13 @@ def generate_month_report(month:str):
 
     body = 'month,name,invasions,sum_score,sum_kills,sum_assists,sum_deaths,sum_heals,sum_damage,avg_score,avg_kills,avg_assists,avg_deaths,avg_heals,avg_damage,avg_ranks,max_score,max_kills,max_assists,max_deaths,max_heals,max_damage,max_rank\n'
 
+    count = 0
+    participation = 0
     with table.batch_writer() as batch:
-        count = 0
         for r in report:
             if r["invasions"] > 0:
                 count += 1
+                participation += r["invasions"]
                 batch.put_item(Item=r)
                 body += f'{month},{r["id"]},{r["invasions"]},{r["sum_score"]},{r["sum_kills"]},{r["sum_assists"]},{r["sum_deaths"]},{r["sum_heals"]},{r["sum_damage"]},{r["avg_score"]},{r["avg_kills"]},{r["avg_assists"]},{r["avg_deaths"]},{r["avg_heals"]},{r["avg_damage"]},{r["avg_rank"]},{r["max_score"]},{r["max_kills"]},{r["max_assists"]},{r["max_deaths"]},{r["max_heals"]},{r["max_damage"]},{r["max_rank"]}\n'
 
@@ -113,7 +115,11 @@ def generate_month_report(month:str):
     s3_resource.Object(bucket_name, filename).put(Body=body)
 
     print(f'Report generated for month {month} for {count} active members across {len(invasions["Items"])} invasions')
-    return True, f'Report generated for {count} active members across {len(invasions["Items"])} invasions'
+
+    mesg = f'- Invasions: {len(invasions["Items"])}\n'
+    mesg += f'- Active Members (1 or more invasions): {count}\n'
+    mesg += f'- Participation (sum of members across invasions): {participation}'
+    return True, mesg
 
 
 def report_month(options:list) -> str:
@@ -138,7 +144,7 @@ def report_month(options:list) -> str:
         print(f'Generating presigned URL for {filename}')
         try:
             presigned = s3.generate_presigned_url('get_object', Params={'Bucket': bucket_name, 'Key': filename}, ExpiresIn=3600)
-            mesg = f'# {when} monthly stats\n{mesg}\nDownload the report (for 1 hour) from **[here]({presigned})**'
+            mesg = f'# {when} Monthly Stats\n{mesg}\n- Download the report (for 1 hour) from **[here]({presigned})**'
         except ClientError as e:
             print(e)
             mesg = f'Error generating presigned URL for {filename}: {e}'
