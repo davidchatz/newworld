@@ -156,6 +156,42 @@
               description: Screenshot
               type: 11
               required: true
+        - name: screenshots
+          description: Upload all ladder screen shots
+          type: 1
+          options:
+            - name: invasion
+              description: Invasion identifier
+              type: 3
+              required: true
+            - name: file1
+              description: Screenshot
+              type: 11
+              required: true
+            - name: file2
+              description: Screenshot
+              type: 11
+              required: true
+            - name: file3
+              description: Screenshot
+              type: 11
+              required: true
+            - name: file4
+              description: Screenshot
+              type: 11
+              required: true
+            - name: file5
+              description: Screenshot
+              type: 11
+              required: true
+            - name: file6
+              description: Screenshot
+              type: 11
+              required: true
+            - name: file7
+              description: Screenshot
+              type: 11
+              required: true
     - name: report
       description: Manage invasion reports
       type: 2

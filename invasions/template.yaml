@@ -37,6 +37,10 @@ Parameters:
     Default: irus
     Type: String
 
+  DiscordWebHookURL:
+    Default: "https://discord.com/api/v10/webhooks"
+    Type: String
+
 Resources:
 
   InvasionBucket:
@@ -128,6 +132,76 @@ Resources:
       LogGroupName: !Sub /aws/lambda/${Ladder}
       RetentionInDays: 30
 
+  Download:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: download.lambda_handler
+      Runtime: python3.11
+      CodeUri: src/download
+      Description: 'Download invasion screen shots from discord'
+      MemorySize: 256
+      Timeout: 10
+      Policies: 
+        - S3ReadPolicy:
+            BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+      Environment:
+        Variables:
+          BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+
+  DownloadLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${Download}
+      RetentionInDays: 30
+
+  DiscordConnection:
+    Type: AWS::Events::Connection
+    Properties:
+      Description: Connection to send async responses to Discord
+      # Discord does not require authentication, its embedded in the URL path, but eventbridge requires something
+      # to be defined.
+      AuthorizationType: API_KEY
+      AuthParameters:
+        ApiKeyAuthParameters:
+          ApiKeyName: foo
+          ApiKeyValue: bah
+
+  DownloadStepFunction:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionSubstitutions:
+        DownloadFunctionArn: !GetAtt Download.Arn
+        BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+        DiscordConnection: !GetAtt DiscordConnection.Arn
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref Download
+        - S3CrudPolicy:
+            BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+        # https://docs.aws.amazon.com/step-functions/latest/dg/connect-third-party-apis.html#connect-http-task-permissions
+        - Statement:
+          - Effect: Allow
+            Action:
+              - states:InvokeHTTPEndpoint
+            Resource: "*"
+            Condition:
+              "StringEquals":
+                "states:HTTPMethod": "POST"
+              "StringLike":
+                    "states:HTTPEndpoint": !Sub "${DiscordWebHookURL}/*"
+          - Effect: Allow
+            Action:
+              - events:RetrieveConnectionCredentials
+            Resource: !GetAtt DiscordConnection.Arn
+          - Effect: Allow
+            Action:
+              - secretsmanager:GetSecretValue
+              - secretsmanager:DescribeSecret
+            Resource: !Sub "arn:${AWS::Partition}:secretsmanager:*:*:secret:events!connection/*"
+      DefinitionUri: step/downloader.json
+
   Bot:
     Type: AWS::Serverless::Function
     Properties:
@@ -144,12 +218,17 @@ Resources:
             TableName: !Ref Table
         - S3CrudPolicy:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+        - StepFunctionsExecutionPolicy:
+            StateMachineName: !GetAtt DownloadStepFunction.Name
       Environment:
         Variables:
           PUBLIC_KEY_PATH: !Sub "${SsmPrefix}/${PublicKeyPath}"
+          APP_ID_PATH: !Sub "${SsmPrefix}/${AppIdPath}"
           TABLE_NAME: !Ref Table
           DISCORD_CMD: !Ref DiscordCmd
           BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+          DOWNLOADER_STEP_FUNC: !Ref DownloadStepFunction
+          WEBHOOK_URL: !Ref DiscordWebHookURL
           TZ: !Ref Timezone
       Events:
         ApiPOSTdiscord:

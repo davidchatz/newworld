@@ -4,6 +4,7 @@ from boto3.dynamodb.conditions import Key, Attr
 import os
 from datetime import datetime
 import urllib3
+import json
 
 # get bucket name of environment
 s3 = boto3.client('s3')
@@ -13,6 +14,11 @@ bucket_name = os.environ.get('BUCKET_NAME')
 dynamodb = boto3.resource('dynamodb')
 table_name = os.environ['TABLE_NAME']
 table = dynamodb.Table(table_name)
+
+# downloader step function
+state_machine = boto3.client('stepfunctions')
+step_function_arn = os.environ.get('DOWNLOADER_STEP_FUNC')
+webhook_url = os.environ.get('WEBHOOK_URL')
 
 pool_mgr = urllib3.PoolManager()
 
@@ -148,7 +154,41 @@ def invasion_ladder(options:list, resolved:dict) -> str:
     return f'Uploaded screenshot {filename}'
 
 
-def invasion_cmd(options:dict, resolved: dict) -> str:
+def invasion_screenshots(id: str, token: str, options:list, resolved:dict) -> str:
+    print(f'invasion_screenshots:\nid: {id}\ntoken: {token}\noptions: {options}\nresolved: {resolved}')
+
+    cmd = {
+        'post': f'{webhook_url}/{id}/{token}',
+        'invasion': 'tbd',
+        'files': []
+    }
+
+    for o in options:
+        if o["name"] == "invasion":
+            cmd['invasion'] = o["value"]
+        elif o["name"].startswith("file"):
+            cmd['files'].append({
+                "name": o["name"],
+                "attachment": o["value"]
+            })
+
+    for a in cmd['files']:
+        a['filename'] = resolved['attachments'][a['attachment']]['filename']
+        a['url'] = resolved['attachments'][a['attachment']]['url']
+
+    print(cmd)
+    try:
+        state_machine.start_execution(
+            stateMachineArn=step_function_arn,
+            input=json.dumps(cmd)
+        )
+    except ClientError as e:
+        return f'Failed to call downloader step function: {e}'
+
+    return f'In Progress: Downloading and processing screenshots'
+
+
+def invasion_cmd(id:str, token:str, options:dict, resolved: dict) -> str:
     print(f'invasion_cmd: {options}')
     name = options['name']
     if name == 'list':
@@ -157,6 +197,8 @@ def invasion_cmd(options:dict, resolved: dict) -> str:
         return invasion_add(options['options'])
     elif name == 'ladder':
         return invasion_ladder(options['options'],resolved)
+    elif name == 'screenshots':
+        return invasion_screenshots(id, token, options['options'],resolved)
     else:
         print(f'Invalid command {name}')
         return f'Invalid command {name}'

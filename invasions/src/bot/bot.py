@@ -1,10 +1,10 @@
 import json
 import boto3
 import os
-import pprint
 import bot_reports
 import bot_invasion
 import bot_member
+#import pprint
 
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
@@ -13,6 +13,9 @@ ssm = boto3.client('ssm')
 public_key_path = os.environ['PUBLIC_KEY_PATH']
 public_key = ssm.get_parameter(Name=public_key_path, WithDecryption=True)['Parameter']['Value']
 public_key_bytes = bytes.fromhex(public_key)
+
+app_id_path = os.environ['APP_ID_PATH']
+app_id = ssm.get_parameter(Name=app_id_path, WithDecryption=True)['Parameter']['Value']
 
 discord_cmd = os.environ['DISCORD_CMD']
 
@@ -52,7 +55,7 @@ def lambda_handler(event, context):
             resolved = body["data"]["resolved"] if "resolved" in body["data"] else None
 
             if subcommand["name"] == "invasion":
-                content = bot_invasion.invasion_cmd(subcommand["options"][0], resolved)
+                content = bot_invasion.invasion_cmd(app_id, body['token'], subcommand["options"][0], resolved)
             elif subcommand["name"] == "report":
                 content = bot_reports.report_cmd(subcommand["options"][0], resolved)
             elif subcommand["name"] == "member":
@@ -89,6 +92,8 @@ def lambda_handler(event, context):
                     'allowed_mentions': {}
                 }
             }
+            if content.startswith("In Progress"):
+                data['type'] = 5
 
         print(f"data: {json.dumps(data)}")
         return {
