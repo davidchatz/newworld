@@ -6,7 +6,7 @@
         "Type": "Task",
         "Parameters": {
           "Bucket": "${BucketName}",
-          "Key.$": "States.Format('{}/{}/', $.invasion, $.folder)"
+          "Key.$": "$.folder"
         },
         "Resource": "arn:aws:states:::aws-sdk:s3:headObject",
         "ResultPath": "$.CheckInvasionExists",
@@ -89,6 +89,7 @@
         "ItemSelector": {
           "invasion.$": "$.invasion",
           "filename.$": "$$.Map.Item.Value.filename",
+          "folder.$": "$.folder",
           "url.$": "$$.Map.Item.Value.url"
         },
         "ResultPath": "$.downloads",

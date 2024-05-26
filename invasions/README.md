@@ -154,6 +154,21 @@ If successful you should see a 20X return code.
 
 You should now be able to run the slash commands on your server.
 
+---
+
 ## Troubleshooting
 
 Discord does not provide useful error messages if something goes wrong. Instead you should review the **CloudWatch Logs** for the **Bot** lambda function. The logs it generates are verbose and should help to identify the issue.
+
+---
+
+## Resources
+
+Sites that have helped with the development of this bot:
+- https://discord.com/developers/docs/interactions/receiving-and-responding
+- https://docs.aws.amazon.com/textract/latest/dg/examples-export-table-csv.html
+- https://gemisis.medium.com/building-a-serverless-discord-bot-on-aws-5dc7d972c9c6
+    - https://github.com/GEMISIS/discord-bot-cdk-construct/
+- https://betterprogramming.pub/build-a-discord-bot-with-aws-lambda-api-gateway-cc1cff750292
+- https://github.com/ker0olos/aws-lambda-discord-bot
+- https://stackoverflow.com/questions/51716821/discord-bot-using-aws-lambda

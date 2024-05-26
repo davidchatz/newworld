@@ -174,13 +174,13 @@ def lambda_handler(event, context):
     folders = key.split('/')
 
     if len(folders) != 3:
-        print(f'Skipping {key} as it is not in the correct format, expecting (invasion)/ladder/(filename).')
+        print(f'Skipping {key} as it is not in the correct format, expecting ladders/(invasion)/(filename).')
         raise Exception(f'Skipping {key} as it is not in the correct format')
-    if folders[1] != 'ladder':
-        print(f'Skipping {key} as it is not in the correct format, expecting (invasion)/ladder/(filename).')
+    if folders[0] != 'ladders':
+        print(f'Skipping {key} as it is not in the correct format, expecting ladders/(invasion)/(filename).')
         raise Exception(f'Skipping {key} as it is not in the correct format')
 
-    invasion = folders[0]
+    invasion = folders[1]
     print(f'{bucket}/{key} (invasion: {invasion})')
 
     table = dynamodb.Table(table_name)
@@ -199,4 +199,4 @@ def lambda_handler(event, context):
     result = generate_table(table_blocks[0], blocks_map)
     insert_db(table, invasion, result, key)
 
-    return f"Updates applied for {invasion}"
+    return f"Updates applied for invasion {invasion}"

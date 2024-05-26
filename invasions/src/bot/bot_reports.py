@@ -39,7 +39,7 @@ def generate_month_report(month:str):
 
     report = []
     for member in members['Items']:
-        report.append({'invasion': f'#month#{month}', 'id': member['id'], 'invasions': Decimal(0),
+        report.append({'invasion': f'#month#{month}', 'id': member['id'], 'invasions': Decimal(0), 'ladders': Decimal(0),
                         'sum_score': 0, 'sum_kills': 0, 'sum_assists': 0, 'sum_deaths': 0, 'sum_heals': 0, 'sum_damage': 0,
                         'avg_score': Decimal(0.0), 'avg_kills': Decimal(0.0), 'avg_assists': Decimal(0.0), 'avg_deaths': Decimal(0.0), 'avg_heals': Decimal(0.0), 'avg_damage': Decimal(0.0), 'avg_rank': Decimal(0.0),
                         'max_score': Decimal(0.0), 'max_kills': Decimal(0.0), 'max_assists': Decimal(0.0), 'max_deaths': Decimal(0.0), 'max_heals': Decimal(0.0), 'max_damage': Decimal(0.0), 'max_rank': Decimal(100.0)
@@ -58,20 +58,24 @@ def generate_month_report(month:str):
             for r in report:
                 if r["id"] == row["name"]:
                     r["invasions"] += 1
-                    r["sum_score"] += row["score"]
-                    r["sum_kills"] += row["kills"]
-                    r["sum_assists"] += row["assists"]
-                    r["sum_deaths"] += row["deaths"]
-                    r["sum_heals"] += row["heals"]
-                    r["sum_damage"] += row["damage"]
-                    r["avg_rank"] += Decimal(row["id"])
-                    r["max_score"] = max(r["max_score"], row["score"])
-                    r["max_kills"] = max(r["max_kills"], row["kills"])
-                    r["max_assists"] = max(r["max_assists"], row["assists"])
-                    r["max_deaths"] = max(r["max_deaths"], row["deaths"])
-                    r["max_heals"] = max(r["max_heals"], row["heals"])
-                    r["max_damage"] = max(r["max_damage"], row["damage"])
-                    r["max_rank"] = min(r["max_rank"], Decimal(row["id"]))
+                    if 'ladder' not in row or row['ladder'] == True:
+                        r["ladders"] += 1
+                        r["sum_score"] += row["score"]
+                        r["sum_kills"] += row["kills"]
+                        r["sum_assists"] += row["assists"]
+                        r["sum_deaths"] += row["deaths"]
+                        r["sum_heals"] += row["heals"]
+                        r["sum_damage"] += row["damage"]
+                        r["avg_rank"] += Decimal(row["id"])
+                        r["max_score"] = max(r["max_score"], row["score"])
+                        r["max_kills"] = max(r["max_kills"], row["kills"])
+                        r["max_assists"] = max(r["max_assists"], row["assists"])
+                        r["max_deaths"] = max(r["max_deaths"], row["deaths"])
+                        r["max_heals"] = max(r["max_heals"], row["heals"])
+                        r["max_damage"] = max(r["max_damage"], row["damage"])
+                        r["max_rank"] = min(r["max_rank"], Decimal(row["id"]))
+                    else:
+                        print(f'Skipping stats for {row["name"]} from non-ladder invasion {invasion["id"]}')
                     found = True
                     break
 
@@ -80,25 +84,19 @@ def generate_month_report(month:str):
 
     # compute averages
     for r in report:
-        if r["invasions"] > 0:
-            r["avg_score"] = (r["sum_score"] / r["invasions"]).quantize(prec)
-            #r["avg_score"] = r["avg_score"].quantize(prec)
-            r["avg_kills"] = (r["sum_kills"] / r["invasions"]).quantize(prec)
-            #r["avg_kills"] = r["avg_kills"].quantize(prec)
-            r["avg_assists"] = (r["sum_assists"] / r["invasions"]).quantize(prec)
-            #r["avg_assists"] = r["avg_assists"].quantize(prec)
-            r["avg_deaths"] = (r["sum_deaths"] / r["invasions"]).quantize(prec)
-            #r["avg_deaths"] = r["avg_deaths"].quantize(prec)
-            r["avg_heals"] = (r["sum_heals"] / r["invasions"]).quantize(prec)
-            #r["avg_heals"] = r["avg_heals"].quantize(prec)
-            r["avg_damage"] = (r["sum_damage"] / r["invasions"]).quantize(prec)
-            #r["avg_damage"] = r["avg_damage"].quantize(prec)
-            r["avg_rank"] /= r["invasions"]
+        if r["ladders"] > 0:
+            r["avg_score"] = (r["sum_score"] / r["ladders"]).quantize(prec)
+            r["avg_kills"] = (r["sum_kills"] / r["ladders"]).quantize(prec)
+            r["avg_assists"] = (r["sum_assists"] / r["ladders"]).quantize(prec)
+            r["avg_deaths"] = (r["sum_deaths"] / r["ladders"]).quantize(prec)
+            r["avg_heals"] = (r["sum_heals"] / r["ladders"]).quantize(prec)
+            r["avg_damage"] = (r["sum_damage"] / r["ladders"]).quantize(prec)
+            r["avg_rank"] /= r["ladders"]
             r["avg_rank"] = r["avg_rank"].quantize(prec)
 
     print(f'computed report: {report}')
 
-    body = 'month,name,invasions,sum_score,sum_kills,sum_assists,sum_deaths,sum_heals,sum_damage,avg_score,avg_kills,avg_assists,avg_deaths,avg_heals,avg_damage,avg_ranks,max_score,max_kills,max_assists,max_deaths,max_heals,max_damage,max_rank\n'
+    body = 'month,name,invasions,ladders,sum_score,sum_kills,sum_assists,sum_deaths,sum_heals,sum_damage,avg_score,avg_kills,avg_assists,avg_deaths,avg_heals,avg_damage,avg_ranks,max_score,max_kills,max_assists,max_deaths,max_heals,max_damage,max_rank\n'
 
     count = 0
     participation = 0
@@ -106,9 +104,9 @@ def generate_month_report(month:str):
         for r in report:
             if r["invasions"] > 0:
                 count += 1
-                participation += r["invasions"]
+                participation += r["ladders"]
                 batch.put_item(Item=r)
-                body += f'{month},{r["id"]},{r["invasions"]},{r["sum_score"]},{r["sum_kills"]},{r["sum_assists"]},{r["sum_deaths"]},{r["sum_heals"]},{r["sum_damage"]},{r["avg_score"]},{r["avg_kills"]},{r["avg_assists"]},{r["avg_deaths"]},{r["avg_heals"]},{r["avg_damage"]},{r["avg_rank"]},{r["max_score"]},{r["max_kills"]},{r["max_assists"]},{r["max_deaths"]},{r["max_heals"]},{r["max_damage"]},{r["max_rank"]}\n'
+                body += f'{month},{r["id"]},{r["invasions"]},{r["ladders"]},{r["sum_score"]},{r["sum_kills"]},{r["sum_assists"]},{r["sum_deaths"]},{r["sum_heals"]},{r["sum_damage"]},{r["avg_score"]},{r["avg_kills"]},{r["avg_assists"]},{r["avg_deaths"]},{r["avg_heals"]},{r["avg_damage"]},{r["avg_rank"]},{r["max_score"]},{r["max_kills"]},{r["max_assists"]},{r["max_deaths"]},{r["max_heals"]},{r["max_damage"]},{r["max_rank"]}\n'
 
     filename = f'month/{month}.csv'
     print(f'Writing ladder to {bucket_name}/{filename}')
@@ -188,13 +186,13 @@ def report_invasion(options:list) -> str:
     for row in response["Items"]:
         body += '{id},{name},{score},{kills},{assists},{deaths},{heals},{damage},{member}\n'.format_map(row)
     
-    filename = f'{invasion}/{invasion}.csv'
-    print(f'Writing ladder to {bucket_name}/{filename}')
+    filename = f'reports/{invasion}/{invasion}.csv'
+    print(f'Writing invasion report to {bucket_name}/{filename}')
     s3_resource.Object(bucket_name, filename).put(Body=body)
 
     presigned = s3.generate_presigned_url('get_object', Params={'Bucket': bucket_name, 'Key': filename}, ExpiresIn=3600)
 
-    mesg += f'\nLadder can be downloaded (for 1 hour) from **[here]({presigned})**'
+    mesg += f'\Invasion stats can be downloaded (for 1 hour) from **[here]({presigned})**'
     return mesg
 
 

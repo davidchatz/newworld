@@ -24,10 +24,10 @@ def lambda_handler(event, context):
     invasion = event["invasion"]
     filename = event["filename"]
     url = event["url"]
-    target = invasion + '/ladder/' + filename
+    target = event["folder"] + filename
     data = f'Uploaded {filename} to {target}'
 
-    print(f'Downloading file {filename} from {url} to {target}')
+    print(f'Downloading file {filename} from {url} to {target} for invasion {invasion}')
 
     try:
         s3.upload_fileobj(pool_mgr.request('GET', url, preload_content=False), bucket_name, target)

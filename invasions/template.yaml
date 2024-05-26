@@ -121,6 +121,8 @@ Resources:
             Filter:
               S3Key:
                 Rules:
+                  - Name: prefix
+                    Value: "ladders/"
                   - Name: suffix
                     Value: .png
 
@@ -130,6 +132,47 @@ Resources:
     UpdateReplacePolicy: Delete
     Properties:
       LogGroupName: !Sub /aws/lambda/${Ladder}
+      RetentionInDays: 30
+
+  Board:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: board.lambda_handler
+      Runtime: python3.11
+      CodeUri: src/board
+      Description: 'Scan invasion roster screen shots'
+      MemorySize: 256
+      Timeout: 10
+      Policies: 
+        - TextractPolicy: {}
+        - S3ReadPolicy:
+            BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Table
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref Table
+      Events:
+        ScanLadder:
+          Type: S3
+          Properties:
+            Bucket: !Ref InvasionBucket
+            Events:
+              - s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: "boards/"
+                  - Name: suffix
+                    Value: .png
+
+  BoardLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${Board}
       RetentionInDays: 30
 
   Download:

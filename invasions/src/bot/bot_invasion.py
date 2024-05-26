@@ -55,11 +55,11 @@ def invasion_list(options:list) -> str:
 
 # define function that takes an invasion name and creates a folder in bucket
 def create_folder(invasion_name):
-    print(f'create_folder: {bucket_name}/{invasion_name}')
-    s3.put_object(Bucket=bucket_name, Key=(invasion_name + '/'))
-    s3.put_object(Bucket=bucket_name, Key=(invasion_name + '/ladder/'))
-    s3.put_object(Bucket=bucket_name, Key=(invasion_name + '/all/'))
-    print('Created folder for ' + invasion_name)
+    print(f'create_folder: {bucket_name}/ladders/{invasion_name} and {bucket_name}/all/{invasion_name}')
+    s3.put_object(Bucket=bucket_name, Key=('ladders/' + invasion_name + '/'))
+    s3.put_object(Bucket=bucket_name, Key=('boards/' + invasion_name + '/'))
+    s3.put_object(Bucket=bucket_name, Key=('all/' + invasion_name + '/'))
+    print('Created folder for invasion ' + invasion_name)
 
 
 def register_invasion(day:int, month:int, year:int, settlement:str, win:bool, notes:str = None) -> str:
@@ -134,12 +134,12 @@ def invasion_ladder(options:list, resolved:dict) -> str:
     # content_type = resolved['attachment']['content_type']
     filename = resolved['attachments'][attachment]['filename']
     url = resolved['attachments'][attachment]['url']
-    target = invasion + '/ladder/' + filename
+    target = 'ladders/' + invasion + filename
 
     print(f'Checking {invasion} exists')
     # Check this invasion exists
     try:
-        s3.head_object(Bucket=bucket_name, Key=invasion + '/ladder/')
+        s3.head_object(Bucket=bucket_name, Key='ladders/' + invasion)
     except ClientError as e:
         if e.response['Error']['Code'] == '404':
             return f'Invasion {invasion} does not exist'
@@ -160,7 +160,7 @@ def invasion_screenshots(id: str, token: str, options:list, resolved:dict, folde
     cmd = {
         'post': f'{webhook_url}/{id}/{token}',
         'invasion': 'tbd',
-        'folder': folder,
+        'folder': 'tbd',
         'files': []
     }
 
@@ -172,6 +172,8 @@ def invasion_screenshots(id: str, token: str, options:list, resolved:dict, folde
                 "name": o["name"],
                 "attachment": o["value"]
             })
+
+    cmd['folder'] = folder + '/' + cmd['invasion'] + '/'
 
     for a in cmd['files']:
         a['filename'] = resolved['attachments'][a['attachment']]['filename']
@@ -206,7 +208,7 @@ def invasion_cmd(id:str, token:str, options:dict, resolved: dict) -> str:
     elif name == 'ladder':
         return invasion_ladder(options['options'], resolved)
     elif name == 'screenshots':
-        return invasion_screenshots(id, token, options['options'], resolved, 'ladder')
+        return invasion_screenshots(id, token, options['options'], resolved, 'ladders')
     elif name == 'all':
         return invasion_all(id, token, options['options'],resolved)
     else:

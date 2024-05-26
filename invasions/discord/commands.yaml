@@ -172,6 +172,69 @@
               description: Notes
               type: 3
               required: false
+        - name: board
+          description: Add a new invasion and uploaded a war board screen shot
+          type: 1
+          options:
+            - name: settlement
+              description: Settlement
+              type: 3
+              required: true
+              choices:
+                - name: "Brightwood"
+                  value: "bw"
+                - name: "Brimstone Sands"
+                  value: "bs"
+                - name: "Cutlass Keys"
+                  value: "ck"
+                - name: "Ebonscale Reach"
+                  value: "er"
+                - name: "Edengrove"
+                  value: "eg"
+                - name: "Everfall"
+                  value: "ef"
+                - name: "Monarchs Bluff"
+                  value: "mb"
+                - name: "Mourningdale"
+                  value: "md"
+                - name: "Reekwater"
+                  value: "rw"
+                - name: "Restless Shore"
+                  value: "rs"
+                - name: "Weavers Fen"
+                  value: "wf"
+                - name: "Windsward"
+                  value: "ww"
+            - name: win
+              description: Invasion result
+              type: 5
+              required: true
+            - name: board
+              description: Sreenshot of war board / roster
+              type: 11
+              required: true
+            - name: day
+              description: Day
+              type: 4
+              min_value: 1
+              max_value: 31
+              required: false
+            - name: month
+              description: Month
+              type: 4
+              min_value: 1
+              max_value: 12
+              required: false
+            - name: year
+              description: Year
+              type: 4
+              min_value: 2024
+              max_value: 2050
+              required: false
+            - name: notes
+              description: Notes
+              type: 3
+              required: false
         - name: add
           description: Add a new invasion (defaults to today)
           type: 1
