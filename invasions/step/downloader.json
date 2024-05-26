@@ -6,7 +6,7 @@
         "Type": "Task",
         "Parameters": {
           "Bucket": "${BucketName}",
-          "Key.$": "States.Format('{}/ladder/', $.invasion)"
+          "Key.$": "States.Format('{}/{}/', $.invasion, $.folder)"
         },
         "Resource": "arn:aws:states:::aws-sdk:s3:headObject",
         "ResultPath": "$.CheckInvasionExists",

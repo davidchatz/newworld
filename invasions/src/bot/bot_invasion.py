@@ -58,7 +58,7 @@ def create_folder(invasion_name):
     print(f'create_folder: {bucket_name}/{invasion_name}')
     s3.put_object(Bucket=bucket_name, Key=(invasion_name + '/'))
     s3.put_object(Bucket=bucket_name, Key=(invasion_name + '/ladder/'))
-    s3.put_object(Bucket=bucket_name, Key=(invasion_name + '/discord/'))
+    s3.put_object(Bucket=bucket_name, Key=(invasion_name + '/all/'))
     print('Created folder for ' + invasion_name)
 
 
@@ -154,12 +154,13 @@ def invasion_ladder(options:list, resolved:dict) -> str:
     return f'Uploaded screenshot {filename}'
 
 
-def invasion_screenshots(id: str, token: str, options:list, resolved:dict) -> str:
+def invasion_screenshots(id: str, token: str, options:list, resolved:dict, folder:str) -> str:
     print(f'invasion_screenshots:\nid: {id}\ntoken: {token}\noptions: {options}\nresolved: {resolved}')
 
     cmd = {
         'post': f'{webhook_url}/{id}/{token}',
         'invasion': 'tbd',
+        'folder': folder,
         'files': []
     }
 
@@ -188,6 +189,13 @@ def invasion_screenshots(id: str, token: str, options:list, resolved:dict) -> st
     return f'In Progress: Downloading and processing screenshots'
 
 
+def invasion_all(id: str, token: str, options:list, resolved:dict) -> str:
+    print(f'invasion_all:\nid: {id}\ntoken: {token}\noptions: {options}\nresolved: {resolved}')
+
+    invasion_add(options['options'])
+    return invasion_screenshots(id, token, options, resolved, 'all')
+
+
 def invasion_cmd(id:str, token:str, options:dict, resolved: dict) -> str:
     print(f'invasion_cmd: {options}')
     name = options['name']
@@ -196,9 +204,11 @@ def invasion_cmd(id:str, token:str, options:dict, resolved: dict) -> str:
     elif name == 'add':
         return invasion_add(options['options'])
     elif name == 'ladder':
-        return invasion_ladder(options['options'],resolved)
+        return invasion_ladder(options['options'], resolved)
     elif name == 'screenshots':
-        return invasion_screenshots(id, token, options['options'],resolved)
+        return invasion_screenshots(id, token, options['options'], resolved, 'ladder')
+    elif name == 'all':
+        return invasion_all(id, token, options['options'],resolved)
     else:
         print(f'Invalid command {name}')
         return f'Invalid command {name}'

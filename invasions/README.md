@@ -27,6 +27,7 @@ By tracking membership the bot can then report on members participation in invas
 
 At the completion of an invasion you can upload screenshots of the ladder.
 - `/irus invasion add` to register the invasion, including the settlement. This will output a name for the invasion that will be the *date-settlement*. You will need to use this name with other commands.
+- `/irus invasion screenshots` to upload all 7 screenshots of the ladder in one command.
 - `/irus invasion ladder` to upload a screenshot. Enter the invasion name  and drag the screenshot to upload it. Use the up arrow to repeat this command until all the screenshots are loaded, typically 7 times.
 
 ![ladder](../docs/ladder.png)

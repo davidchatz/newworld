@@ -108,7 +108,10 @@ def generate_table(table_result, blocks_map):
                     'assists': int(cols[7].replace(',','')),
                     'heals': int(cols[8].replace(',','')),
                     'damage': int(cols[9].replace(',','')),
-                    'member': False
+                    # Are they listed as a company member, this is updated in insert_db
+                    'member': False,
+                    # Are these stats from a ladder screenshot import
+                    'ladder': True
                 }
                 rec.append(result)
             elif col_indices == 8:
@@ -122,7 +125,8 @@ def generate_table(table_result, blocks_map):
                     'assists': int(cols[6].replace(', ', '')),
                     'heals': int(cols[7].replace(', ', '')),
                     'damage': int(cols[8].replace(',','')),
-                    'member': False
+                    'member': False,
+                    'ladder': True
                 }
                 rec.append(result)
             else:
@@ -144,7 +148,7 @@ def insert_db(table, invasion, result, key):
         for item in result:
             item['invasion'] = f'#ladder#{invasion}'
 
-            # check if member and flag if they are
+            # Check if current member and flag if they are
             member = table.get_item(Key={'invasion': '#member', 'id': item["name"]})
             if 'Item' in member:
                 print(f'Matched member {item["name"]} to position {item["id"]}')

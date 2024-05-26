@@ -142,7 +142,7 @@ Resources:
       MemorySize: 256
       Timeout: 10
       Policies: 
-        - S3ReadPolicy:
+        - S3CrudPolicy:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
       Environment:
         Variables:
