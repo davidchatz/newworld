@@ -245,6 +245,40 @@ Resources:
             Resource: !Sub "arn:${AWS::Partition}:secretsmanager:*:*:secret:events!connection/*"
       DefinitionUri: step/downloader.json
 
+  BoardStepFunction:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionSubstitutions:
+        DownloadFunctionArn: !GetAtt Board.Arn
+        BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+        DiscordConnection: !GetAtt DiscordConnection.Arn
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref Board
+        - S3CrudPolicy:
+            BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+        # https://docs.aws.amazon.com/step-functions/latest/dg/connect-third-party-apis.html#connect-http-task-permissions
+        - Statement:
+          - Effect: Allow
+            Action:
+              - states:InvokeHTTPEndpoint
+            Resource: "*"
+            Condition:
+              "StringEquals":
+                "states:HTTPMethod": "POST"
+              "StringLike":
+                    "states:HTTPEndpoint": !Sub "${DiscordWebHookURL}/*"
+          - Effect: Allow
+            Action:
+              - events:RetrieveConnectionCredentials
+            Resource: !GetAtt DiscordConnection.Arn
+          - Effect: Allow
+            Action:
+              - secretsmanager:GetSecretValue
+              - secretsmanager:DescribeSecret
+            Resource: !Sub "arn:${AWS::Partition}:secretsmanager:*:*:secret:events!connection/*"
+      DefinitionUri: step/board.json
+
   Bot:
     Type: AWS::Serverless::Function
     Properties:
