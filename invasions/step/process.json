@@ -1,58 +1,43 @@
 {
   "Comment": "A description of my state machine",
-  "StartAt": "RegisterInvasion",
+  "StartAt": "CheckInvasionRegistration",
   "States": {
-    "RegisterInvasion": {
+    "CheckInvasionRegistration": {
       "Type": "Task",
-      "Resource": "arn:aws:states:::dynamodb:putItem",
+      "Resource": "arn:aws:states:::dynamodb:getItem",
       "Parameters": {
-        "TableName": "MyDynamoDBTable",
-        "Item": {
-          "Column": {
-            "S": "MyEntry"
+        "TableName": "${TableName}",
+        "Key": {
+          "invasion": {
+            "S": "#invasion"
+          },
+          "id": {
+            "S.$": "$.invasion"
           }
         }
       },
-      "Next": "PostInvasionRegistered",
+      "Next": "Choice",
+      "ResultPath": "$.CheckInvasionRegistration",
+      "OutputPath": "$.Item",
       "Catch": [
         {
           "ErrorEquals": [
             "States.ALL"
           ],
-          "Comment": "Do not proceed if we cannot register the invasion",
-          "ResultPath": "$.Error",
           "Next": "ErrorInvasionRegistration"
         }
       ]
     },
-    "PostInvasionRegistered": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::http:invoke",
-      "Parameters": {
-        "ApiEndpoint.$": "$.post",
-        "Method": "POST",
-        "RequestBody": {
-          "content.$": "States.Format('Invasion {} registered, next download file(s)', $.invasion)"
-        },
-        "Headers": {
-          "Content-Type": "application/json"
-        },
-        "Authentication": {
-          "ConnectionArn": "arn:aws:events:ap-southeast-2:211125713090:connection/DiscordConnection-3oaWRYg0t5Yg/40ef1331-25ef-4c21-a40e-5fc96cabe7e9"
-        }
-      },
-      "Retry": [
+    "Choice": {
+      "Type": "Choice",
+      "Choices": [
         {
-          "ErrorEquals": [
-            "States.ALL"
-          ],
-          "BackoffRate": 2,
-          "IntervalSeconds": 1,
-          "MaxAttempts": 3,
-          "JitterStrategy": "FULL"
+          "Variable": "$.CheckInvasionRegistration.Item",
+          "IsPresent": true,
+          "Next": "FileIterator"
         }
       ],
-      "Next": "FileIterator"
+      "Default": "ErrorInvasionRegistration"
     },
     "ErrorInvasionRegistration": {
       "Type": "Task",
@@ -67,7 +52,7 @@
           "Content-Type": "application/json"
         },
         "Authentication": {
-          "ConnectionArn": "arn:aws:events:ap-southeast-2:211125713090:connection/DiscordConnection-3oaWRYg0t5Yg/40ef1331-25ef-4c21-a40e-5fc96cabe7e9"
+          "ConnectionArn": "${DiscordConnection}"
         }
       },
       "Retry": [
@@ -137,7 +122,7 @@
                 "Content-Type": "application/json"
               },
               "Authentication": {
-                "ConnectionArn": "arn:aws:events:ap-southeast-2:211125713090:connection/DiscordConnection-3oaWRYg0t5Yg/40ef1331-25ef-4c21-a40e-5fc96cabe7e9"
+                "ConnectionArn": "${DiscordConnection}"
               }
             },
             "Retry": [
@@ -169,7 +154,7 @@
                 "Content-Type": "application/json"
               },
               "Authentication": {
-                "ConnectionArn": "arn:aws:events:ap-southeast-2:211125713090:connection/DiscordConnection-3oaWRYg0t5Yg/40ef1331-25ef-4c21-a40e-5fc96cabe7e9"
+                "ConnectionArn": "${DiscordConnection}"
               }
             },
             "Retry": [
@@ -195,8 +180,8 @@
               },
               {
                 "Variable": "$.process",
-                "StringEquals": "Board",
-                "Next": "ProcessBoard"
+                "StringEquals": "Roster",
+                "Next": "ProcessRoster"
               }
             ],
             "Default": "ErrorUnknownProcess"
@@ -214,7 +199,7 @@
                 "Content-Type": "application/json"
               },
               "Authentication": {
-                "ConnectionArn": "arn:aws:events:ap-southeast-2:211125713090:connection/DiscordConnection-3oaWRYg0t5Yg/40ef1331-25ef-4c21-a40e-5fc96cabe7e9"
+                "ConnectionArn": "${DiscordConnection}"
               }
             },
             "Retry": [
@@ -277,7 +262,7 @@
                 "Content-Type": "application/json"
               },
               "Authentication": {
-                "ConnectionArn": "arn:aws:events:ap-southeast-2:211125713090:connection/DiscordConnection-3oaWRYg0t5Yg/40ef1331-25ef-4c21-a40e-5fc96cabe7e9"
+                "ConnectionArn": "${DiscordConnection}"
               }
             },
             "Retry": [
@@ -296,7 +281,7 @@
           "FailProcessing": {
             "Type": "Fail"
           },
-          "ProcessBoard": {
+          "ProcessRoster": {
             "Type": "Task",
             "Resource": "arn:aws:states:::lambda:invoke",
             "OutputPath": "$.Payload",
@@ -366,7 +351,7 @@
           "Content-Type": "application/json"
         },
         "Authentication": {
-          "ConnectionArn": "arn:aws:events:ap-southeast-2:211125713090:connection/DiscordConnection-3oaWRYg0t5Yg/40ef1331-25ef-4c21-a40e-5fc96cabe7e9"
+          "ConnectionArn": "${DiscordConnection}"
         }
       },
       "Retry": [
@@ -429,7 +414,7 @@
           "Content-Type": "application/json"
         },
         "Authentication": {
-          "ConnectionArn": "arn:aws:events:ap-southeast-2:211125713090:connection/DiscordConnection-3oaWRYg0t5Yg/40ef1331-25ef-4c21-a40e-5fc96cabe7e9"
+          "ConnectionArn": "${DiscordConnection}"
         }
       },
       "Retry": [
@@ -458,7 +443,7 @@
           "Content-Type": "application/json"
         },
         "Authentication": {
-          "ConnectionArn": "arn:aws:events:ap-southeast-2:211125713090:connection/DiscordConnection-3oaWRYg0t5Yg/40ef1331-25ef-4c21-a40e-5fc96cabe7e9"
+          "ConnectionArn": "${DiscordConnection}"
         }
       },
       "Retry": [
@@ -521,7 +506,7 @@
           "Content-Type": "application/json"
         },
         "Authentication": {
-          "ConnectionArn": "arn:aws:events:ap-southeast-2:211125713090:connection/DiscordConnection-3oaWRYg0t5Yg/40ef1331-25ef-4c21-a40e-5fc96cabe7e9"
+          "ConnectionArn": "${DiscordConnection}"
         }
       },
       "Retry": [
@@ -550,7 +535,7 @@
           "Content-Type": "application/json"
         },
         "Authentication": {
-          "ConnectionArn": "arn:aws:events:ap-southeast-2:211125713090:connection/DiscordConnection-3oaWRYg0t5Yg/40ef1331-25ef-4c21-a40e-5fc96cabe7e9"
+          "ConnectionArn": "${DiscordConnection}"
         }
       },
       "Retry": [
@@ -582,7 +567,7 @@
           "Content-Type": "application/json"
         },
         "Authentication": {
-          "ConnectionArn": "arn:aws:events:ap-southeast-2:211125713090:connection/DiscordConnection-3oaWRYg0t5Yg/40ef1331-25ef-4c21-a40e-5fc96cabe7e9"
+          "ConnectionArn": "${DiscordConnection}"
         }
       },
       "Retry": [

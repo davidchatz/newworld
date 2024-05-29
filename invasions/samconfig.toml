@@ -4,7 +4,7 @@ version = 0.1
 [default.global]
 [default.global.parameters]
 stack_name = "invasions"
-profile = "newworld"
+profile = "testnewworld"
 
 [default.build.parameters]
 cached = true

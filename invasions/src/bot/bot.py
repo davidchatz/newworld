@@ -56,6 +56,10 @@ def lambda_handler(event, context):
 
             if subcommand["name"] == "invasion":
                 content = bot_invasion.invasion_cmd(app_id, body['token'], subcommand["options"][0], resolved)
+            elif subcommand["name"] == "ladders":
+                content = bot_invasion.invasion_all(app_id, body['token'], subcommand["options"][0], resolved, 'Ladder')
+            elif subcommand["name"] == "roster":
+                content = bot_invasion.invasion_all(app_id, body['token'], subcommand["options"][0], resolved, 'Roster')
             elif subcommand["name"] == "report":
                 content = bot_reports.report_cmd(subcommand["options"][0], resolved)
             elif subcommand["name"] == "member":

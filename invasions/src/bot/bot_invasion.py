@@ -1,14 +1,9 @@
 import boto3
 from botocore.exceptions import ClientError
-from boto3.dynamodb.conditions import Key, Attr
+from boto3.dynamodb.conditions import Key
 import os
 from datetime import datetime
-import urllib3
 import json
-
-# get bucket name of environment
-s3 = boto3.client('s3')
-bucket_name = os.environ.get('BUCKET_NAME')
 
 # table details
 dynamodb = boto3.resource('dynamodb')
@@ -17,10 +12,8 @@ table = dynamodb.Table(table_name)
 
 # downloader step function
 state_machine = boto3.client('stepfunctions')
-step_function_arn = os.environ.get('DOWNLOADER_STEP_FUNC')
+step_function_arn = os.environ.get('PROCESS_STEP_FUNC')
 webhook_url = os.environ.get('WEBHOOK_URL')
-
-pool_mgr = urllib3.PoolManager()
 
 def invasion_list(options:list) -> str:
     print(f'invasion_list: {options}')
@@ -53,15 +46,6 @@ def invasion_list(options:list) -> str:
     return msg
 
 
-# define function that takes an invasion name and creates a folder in bucket
-def create_folder(invasion_name):
-    print(f'create_folder: {bucket_name}/ladders/{invasion_name} and {bucket_name}/all/{invasion_name}')
-    s3.put_object(Bucket=bucket_name, Key=('ladders/' + invasion_name + '/'))
-    s3.put_object(Bucket=bucket_name, Key=('boards/' + invasion_name + '/'))
-    s3.put_object(Bucket=bucket_name, Key=('all/' + invasion_name + '/'))
-    print('Created folder for invasion ' + invasion_name)
-
-
 def register_invasion(day:int, month:int, year:int, settlement:str, win:bool, notes:str = None) -> str:
     print(f'register_invasion: {day}, {month}, {year}, {settlement}, {win}, {notes}')
 
@@ -69,8 +53,6 @@ def register_invasion(day:int, month:int, year:int, settlement:str, win:bool, no
     zero_day = '{0:02d}'.format(day)
     date = f'{year}{zero_month}{zero_day}'
     folder = date + '-' + settlement
-
-    create_folder(folder)
 
     print(f'Add #invasion object for {folder}')
     item = {
@@ -87,7 +69,7 @@ def register_invasion(day:int, month:int, year:int, settlement:str, win:bool, no
         item['notes'] = notes
     table.put_item(Item=item)
 
-    return f'Created folders for {folder}'
+    return item
 
 
 def invasion_add(options:list) -> str:
@@ -113,55 +95,26 @@ def invasion_add(options:list) -> str:
         elif o["name"] == "notes":
             notes = o["value"]
 
-    return register_invasion(day=day,
-                            month=month,
-                            year=year,
-                            settlement=settlement,
-                            win=win,
-                            notes=notes)
+    item = register_invasion(day=day,
+                             month=month,
+                             year=year,
+                             settlement=settlement,
+                             win=win,
+                             notes=notes)
+
+    return f'Registered invasion {item['id']}'
 
 
-def invasion_ladder(options:list, resolved:dict) -> str:
-    print(f'invasion_ladder: {options}')
-
-    for o in options:
-        if o["name"] == "invasion":
-            invasion = o["value"]
-        elif o["name"] == "file":
-            attachment = o["value"]
-
-    print(f'resolved: {resolved["attachments"][attachment]}')
-    # content_type = resolved['attachment']['content_type']
-    filename = resolved['attachments'][attachment]['filename']
-    url = resolved['attachments'][attachment]['url']
-    target = 'ladders/' + invasion + filename
-
-    print(f'Checking {invasion} exists')
-    # Check this invasion exists
-    try:
-        s3.head_object(Bucket=bucket_name, Key='ladders/' + invasion)
-    except ClientError as e:
-        if e.response['Error']['Code'] == '404':
-            return f'Invasion {invasion} does not exist'
-
-    print(f'Downloading file {filename} from {url}')
-
-    try:
-        s3.upload_fileobj(pool_mgr.request('GET', url, preload_content=False), bucket_name, target)
-    except Exception as e:
-        return f'Error uploading {filename} to {target}: {e}'
-
-    return f'Uploaded screenshot {filename}'
-
-
-def invasion_screenshots(id: str, token: str, options:list, resolved:dict, folder:str) -> str:
+def invasion_screenshots(id: str, token: str, options:list, resolved:dict, folder:str, process:str) -> str:
     print(f'invasion_screenshots:\nid: {id}\ntoken: {token}\noptions: {options}\nresolved: {resolved}')
 
     cmd = {
         'post': f'{webhook_url}/{id}/{token}',
         'invasion': 'tbd',
         'folder': 'tbd',
-        'files': []
+        'files': [],
+        'process': process,
+        'month': 'tbd'
     }
 
     for o in options:
@@ -173,7 +126,14 @@ def invasion_screenshots(id: str, token: str, options:list, resolved:dict, folde
                 "attachment": o["value"]
             })
 
-    cmd['folder'] = folder + '/' + cmd['invasion'] + '/'
+    if process == "Ladder" or process == "Download":
+        cmd['folder'] = 'ladders/' + cmd['invasion'] + '/'
+    elif process == "Roster":
+        cmd['folder'] = 'boards/' + cmd['invasion'] + '/'
+    else:
+        raise Exception('invasion_screenshots: Unknown process')
+
+    cmd['month'] = cmd['invasion'][:6]
 
     for a in cmd['files']:
         a['filename'] = resolved['attachments'][a['attachment']]['filename']
@@ -188,14 +148,15 @@ def invasion_screenshots(id: str, token: str, options:list, resolved:dict, folde
     except ClientError as e:
         return f'Failed to call downloader step function: {e}'
 
-    return f'In Progress: Downloading and processing screenshots'
+    return f'In Progress: Downloading and processing screenshot(s)'
 
 
-def invasion_all(id: str, token: str, options:list, resolved:dict) -> str:
-    print(f'invasion_all:\nid: {id}\ntoken: {token}\noptions: {options}\nresolved: {resolved}')
+def invasion_all(id: str, token: str, options:list, resolved:dict, process:str) -> str:
+    print(f'invasion_all:\nid: {id}\ntoken: {token}\noptions: {options}\nresolved: {resolved}\nprocess: {process}')
 
-    invasion_add(options['options'])
-    return invasion_screenshots(id, token, options, resolved, 'all')
+    item = invasion_add(options['options'])
+    invasion_screenshots(id, token, options['options'], resolved, process)
+    return f'In Progress: Registered invasion {item['id']}, next download file(s)'
 
 
 def invasion_cmd(id:str, token:str, options:dict, resolved: dict) -> str:
@@ -206,11 +167,11 @@ def invasion_cmd(id:str, token:str, options:dict, resolved: dict) -> str:
     elif name == 'add':
         return invasion_add(options['options'])
     elif name == 'ladder':
-        return invasion_ladder(options['options'], resolved)
+        return invasion_screenshots(id, token, options['options'], resolved, 'Download')
     elif name == 'screenshots':
-        return invasion_screenshots(id, token, options['options'], resolved, 'ladders')
-    elif name == 'all':
-        return invasion_all(id, token, options['options'],resolved)
+        return invasion_screenshots(id, token, options['options'], resolved, 'Ladder')
+    elif name == 'roster':
+        return invasion_screenshots(id, token, options['options'], resolved, 'Roster')
     else:
         print(f'Invalid command {name}')
         return f'Invalid command {name}'
