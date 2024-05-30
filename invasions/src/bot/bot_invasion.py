@@ -134,12 +134,12 @@ def invasion_ladder(options:list, resolved:dict) -> str:
     # content_type = resolved['attachment']['content_type']
     filename = resolved['attachments'][attachment]['filename']
     url = resolved['attachments'][attachment]['url']
-    target = 'ladders/' + invasion + filename
+    target = 'ladders/' + invasion + '/' + filename
 
     print(f'Checking {invasion} exists')
     # Check this invasion exists
     try:
-        s3.head_object(Bucket=bucket_name, Key='ladders/' + invasion)
+        s3.head_object(Bucket=bucket_name, Key='ladders/' + invasion + '/')
     except ClientError as e:
         if e.response['Error']['Code'] == '404':
             return f'Invasion {invasion} does not exist'
