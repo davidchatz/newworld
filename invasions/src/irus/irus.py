@@ -21,22 +21,12 @@ state_machine = boto3.client('stepfunctions')
 step_function_arn = os.environ.get('PROCESS_STEP_FUNC')
 webhook_url = os.environ.get('WEBHOOK_URL')
 
+
 # precision to use for Decimals
 prec = Decimal("1.0")
 
 
-def invasion_list(options:list) -> str:
-    print(f'invasion_list: {options}')
-
-    now = datetime.now()
-    month = now.month
-    year = now.year
-
-    for o in options:
-        if o["name"] == "month":
-            month = int(o["value"])
-        elif o["name"] == "year":
-            year = int(o["value"])
+def invasion_list(month:int, year:int) -> str:
 
     zero_month = '{0:02d}'.format(month)
     date = f'{year}{zero_month}'
@@ -56,8 +46,8 @@ def invasion_list(options:list) -> str:
     return msg
 
 
-def register_invasion(day:int, month:int, year:int, settlement:str, win:bool, notes:str = None) -> str:
-    print(f'register_invasion: {day}, {month}, {year}, {settlement}, {win}, {notes}')
+def invasion_add(day:int, month:int, year:int, settlement:str, win:bool, notes:str = None) -> str:
+    print(f'invasion_add: {day}, {month}, {year}, {settlement}, {win}, {notes}')
 
     zero_month = '{0:02d}'.format(month)
     zero_day = '{0:02d}'.format(day)
@@ -82,72 +72,23 @@ def register_invasion(day:int, month:int, year:int, settlement:str, win:bool, no
     return item
 
 
-def invasion_add(options:list) -> str:
-    print(f'invasion_add: {options}')
-
-    notes=None
-    now = datetime.now()
-    day = now.day
-    month = now.month
-    year = now.year
-
-    for o in options:
-        if o["name"] == "day":
-            day = int(o["value"])
-        elif o["name"] == "month":
-            month = int(o["value"])
-        elif o["name"] == "year":
-            year = int(o["value"])
-        elif o["name"] == "settlement":
-            settlement = o["value"]
-        elif o["name"] == "win":
-            win = bool(["value"])
-        elif o["name"] == "notes":
-            notes = o["value"]
-
-    item = register_invasion(day=day,
-                             month=month,
-                             year=year,
-                             settlement=settlement,
-                             win=win,
-                             notes=notes)
-
-    return f'Registered invasion {item['id']}'
-
-
-def invasion_screenshots(id: str, token: str, options:list, resolved:dict, folder:str, process:str) -> str:
-    print(f'invasion_screenshots:\nid: {id}\ntoken: {token}\noptions: {options}\nresolved: {resolved}')
+def invasion_download(id: str, token: str, invasion:str, month:str, files:list, process:str) -> str:
 
     cmd = {
         'post': f'{webhook_url}/{id}/{token}',
-        'invasion': 'tbd',
+        'invasion': invasion,
         'folder': 'tbd',
-        'files': [],
+        'files': files,
         'process': process,
-        'month': 'tbd'
+        'month': month
     }
-
-    for o in options:
-        if o["name"] == "invasion":
-            cmd['invasion'] = o["value"]
-        elif o["name"].startswith("file"):
-            cmd['files'].append({
-                "name": o["name"],
-                "attachment": o["value"]
-            })
 
     if process == "Ladder" or process == "Download":
         cmd['folder'] = 'ladders/' + cmd['invasion'] + '/'
     elif process == "Roster":
         cmd['folder'] = 'boards/' + cmd['invasion'] + '/'
     else:
-        raise Exception('invasion_screenshots: Unknown process')
-
-    cmd['month'] = cmd['invasion'][:6]
-
-    for a in cmd['files']:
-        a['filename'] = resolved['attachments'][a['attachment']]['filename']
-        a['url'] = resolved['attachments'][a['attachment']]['url']
+        raise Exception('invasion_download: Unknown process')
 
     print(cmd)
     try:
@@ -161,22 +102,13 @@ def invasion_screenshots(id: str, token: str, options:list, resolved:dict, folde
     return f'In Progress: Downloading and processing screenshot(s)'
 
 
-def invasion_all(id: str, token: str, options:list, resolved:dict, process:str) -> str:
-    print(f'invasion_all:\nid: {id}\ntoken: {token}\noptions: {options}\nresolved: {resolved}\nprocess: {process}')
+#
+# Member Commands
+#
 
-    item = invasion_add(options['options'])
-    invasion_screenshots(id, token, options['options'], resolved, process)
-    return f'In Progress: Registered invasion {item['id']}, next download file(s)'
+def member_list(day:int, month:int, year:int) -> str:
+    print(f'member list: {date}')
 
-
-
-def member_list() -> str:
-    print(f'member list:')
-
-    now = datetime.now()
-    month = now.month
-    year = now.year
-    day = now.day
     zero_month = '{0:02d}'.format(month)
     zero_day = '{0:02d}'.format(day)
     date = f'{year}{zero_month}{zero_day}'
@@ -206,6 +138,7 @@ def member_list() -> str:
             mesg = f'Error generating presigned URL for {filename}: {e}'
 
     return mesg
+
 
 def register_member(player:str, day:int, month:int, year:int, faction:str, discord:str, admin:bool, notes:str) -> str:
     print(f'register_member: {player} {day} {month} {year} {faction} {discord}')
@@ -291,57 +224,8 @@ def update_invasions(player:str, day:int, month:int, year:int) -> str:
     return mesg
 
 
-def member_add(options:list) -> str:
-    print(f'member add: {options}')
-
-    now = datetime.now()
-    month = now.month
-    year = now.year
-    day = now.day
-    admin = False
-    notes = None
-    discord = None
-
-    for o in options:
-        if o["name"] == "player":
-            player = o["value"]
-        elif o["name"] == "day":
-            day = o["value"]
-        elif o["name"] == "month":
-            month = o["value"]
-        elif o["name"] == "year":
-            year = o["value"]
-        elif o["name"] == "faction":
-            faction = o["value"]
-        elif o["name"] == "discord":
-            discord = o["value"]
-        elif o["name"] == "admin":
-            admin = bool(o["value"])
-        elif o["name"] == "notes":
-            notes = o["value"]
-
-    mesg = register_member(player=player,
-                           day=day,
-                           month=month,
-                           year=year,
-                           faction=faction,
-                           discord=discord,
-                           admin=admin,
-                           notes=notes)
-    
-    mesg += update_invasions(player=player,
-                             day=day,
-                             month=month,
-                             year=year)
-
-    return mesg
-
-def member_remove(options:list) -> str:
-    print(f'member remove: {options}')
-
-    for o in options:
-        if o["name"] == "player":
-            player = o["value"]
+def member_remove(player:str) -> str:
+    print(f'member remove: {player}')
 
     timestamp = datetime.today().strftime('%Y%m%d%H%M%S')
 
@@ -463,18 +347,8 @@ def generate_month_report(month:str):
     return True, mesg
 
 
-def report_month(options:list) -> str:
-    print(f'report_month: {options}')
-
-    now = datetime.now()
-    month = now.month
-    year = now.year
-
-    for o in options:
-        if o["name"] == "month":
-            month = o["value"]
-        elif o["name"] == "year":
-            year = o["value"]
+def report_month(month: int, year: int) -> str:
+    print(f'report_month: {month} {year}')
 
     when = f'{year}' + '{0:02d}'.format(month)
     success, mesg = generate_month_report(when)
@@ -493,16 +367,8 @@ def report_month(options:list) -> str:
     return mesg
 
 
-def report_invasion(options:list) -> str:
-    print(f'report_invasion: {options}')
-
-    invasion = None
-    for o in options:
-        if o["name"] == "invasion":
-            invasion = o["value"]
-
-    if not invasion:
-        return 'Missing invasion from request'
+def report_invasion(invasion:str) -> str:
+    print(f'report_invasion: {invasion}')
 
     response = table.query(KeyConditionExpression=Key('invasion').eq(f'#ladder#{invasion}'))            
 
@@ -539,24 +405,12 @@ def report_invasion(options:list) -> str:
     return mesg
 
 
-def report_member(options:list) -> str:
-    print(f'report_member: {options}')
+def report_member(player:str, month:int, year:int) -> str:
+    print(f'report_member: {player} {month} {year}')
 
-    now = datetime.now()
-    month = now.month
-    year = now.year
-
-    for o in options:
-        if o["name"] == "player":
-            player = o["value"]
-        elif o["name"] == "month":
-            month = o["value"]
-        elif o["name"] == "year":
-            year = o["value"]
-
-    month = f'{year}' + '{0:02d}'.format(month)
-    response = table.get_item(Key={'invasion': f'#month#{month}', 'id': player})
-    mesg = f'No data found for player {player} in month {month}'
+    date = f'{year}' + '{0:02d}'.format(month)
+    response = table.get_item(Key={'invasion': f'#month#{date}', 'id': player})
+    mesg = f'No data found for player {player} in month {date}'
 
     if 'Item' in response:
         item = response['Item']

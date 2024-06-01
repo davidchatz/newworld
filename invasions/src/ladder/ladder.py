@@ -179,6 +179,9 @@ def lambda_handler(event, context):
     if folders[0] != 'ladders':
         print(f'Skipping {key} as it is not in the correct format, expecting ladders/(invasion)/(filename).')
         raise Exception(f'Skipping {key} as it is not in the correct format')
+    if key[-4:] != '.png':
+        print(f'Skippng {key} as it is not a PNG file')
+        raise Exception(f'Skipping {key} as it is not a PNG file')
 
     invasion = folders[1]
     print(f'{bucket}/{key} (invasion: {invasion})')
@@ -199,4 +202,4 @@ def lambda_handler(event, context):
     result = generate_table(table_blocks[0], blocks_map)
     insert_db(table, invasion, result, key)
 
-    return f"Updates applied for invasion {invasion}"
+    return f"Ladder scanned and stats updated for invasion {invasion}"

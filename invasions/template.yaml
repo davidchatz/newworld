@@ -13,8 +13,8 @@ Parameters:
     Default: Australia/Sydney
 
   SsmPrefix:
+    Default: /chatzdevinvasion
     # Default: /chatzinvasionstats
-    Default: /chatzinvasionhttp
     Type: String
 
   PublicKeyPath:
@@ -30,7 +30,7 @@ Parameters:
     Type: String
 
   ServerIdPath:
-    Default: chatzdev/serverid
+    Default: serverid
     Type: String
 
   DiscordCmd:
@@ -46,18 +46,6 @@ Globals:
   Function:
     Runtime: python3.11
     Timeout: 10
-    Layers:
-      - !Ref InvasionLayer
-    Environment:
-      Variables:
-        PUBLIC_KEY_PATH: !Sub "${SsmPrefix}/${PublicKeyPath}"
-        APP_ID_PATH: !Sub "${SsmPrefix}/${AppIdPath}"
-        TABLE_NAME: !Ref Table
-        DISCORD_CMD: !Ref DiscordCmd
-        BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
-        PROCESS_STEP_FUNC: !Ref ProcessStepFunction
-        WEBHOOK_URL: !Ref DiscordWebHookURL
-        TZ: !Ref Timezone
 
 Resources:
 
@@ -111,10 +99,10 @@ Resources:
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
 
-  InvasionLayer:
+  IrusLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      ContentUri: src/layer
+      ContentUri: src/irus
       CompatibleRuntimes:
         - python3.11
     Metadata:
@@ -136,6 +124,14 @@ Resources:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
         - DynamoDBCrudPolicy:
             TableName: !Ref Table
+      Layers:
+        - !Ref IrusLayer
+      Environment:
+        Variables:
+          APP_ID_PATH: !Sub "${SsmPrefix}/${AppIdPath}"
+          TABLE_NAME: !Ref Table
+          BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+          TZ: !Ref Timezone
       Events:
         ScanLadder:
           Type: S3
@@ -222,6 +218,14 @@ Resources:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
         - DynamoDBCrudPolicy:
             TableName: !Ref Table
+      Layers:
+        - !Ref IrusLayer
+      Environment:
+        Variables:
+          APP_ID_PATH: !Sub "${SsmPrefix}/${AppIdPath}"
+          TABLE_NAME: !Ref Table
+          BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+          TZ: !Ref Timezone
       Events:
         ScanLadder:
           Type: S3
@@ -251,7 +255,7 @@ Resources:
       Handler: download.lambda_handler
       Runtime: python3.11
       CodeUri: src/download
-      Description: 'Download invasion screen shots from discord'
+      Description: 'Download screen shots from discord'
       MemorySize: 256
       Timeout: 10
       Policies: 
@@ -278,45 +282,48 @@ Resources:
           ApiKeyName: foo
           ApiKeyValue: bah
 
-  DownloadStepFunction:
-    Type: AWS::Serverless::StateMachine
-    Properties:
-      DefinitionSubstitutions:
-        DownloadFunctionArn: !GetAtt Download.Arn
-        BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
-        DiscordConnection: !GetAtt DiscordConnection.Arn
-      Policies:
-        - LambdaInvokePolicy:
-            FunctionName: !Ref Download
-        - S3CrudPolicy:
-            BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
-        # https://docs.aws.amazon.com/step-functions/latest/dg/connect-third-party-apis.html#connect-http-task-permissions
-        - Statement:
-          - Effect: Allow
-            Action:
-              - states:InvokeHTTPEndpoint
-            Resource: "*"
-            Condition:
-              "StringEquals":
-                "states:HTTPMethod": "POST"
-              "StringLike":
-                    "states:HTTPEndpoint": !Sub "${DiscordWebHookURL}/*"
-          - Effect: Allow
-            Action:
-              - events:RetrieveConnectionCredentials
-            Resource: !GetAtt DiscordConnection.Arn
-          - Effect: Allow
-            Action:
-              - secretsmanager:GetSecretValue
-              - secretsmanager:DescribeSecret
-            Resource: !Sub "arn:${AWS::Partition}:secretsmanager:*:*:secret:events!connection/*"
-      DefinitionUri: step/downloader.json
+  # DownloadStepFunction:
+  #   Type: AWS::Serverless::StateMachine
+  #   Properties:
+  #     DefinitionSubstitutions:
+  #       DownloadFunctionArn: !GetAtt Download.Arn
+  #       BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+  #       DiscordConnection: !GetAtt DiscordConnection.Arn
+  #     Policies:
+  #       - LambdaInvokePolicy:
+  #           FunctionName: !Ref Download
+  #       - S3CrudPolicy:
+  #           BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+  #       # https://docs.aws.amazon.com/step-functions/latest/dg/connect-third-party-apis.html#connect-http-task-permissions
+  #       - Statement:
+  #         - Effect: Allow
+  #           Action:
+  #             - states:InvokeHTTPEndpoint
+  #           Resource: "*"
+  #           Condition:
+  #             "StringEquals":
+  #               "states:HTTPMethod": "POST"
+  #             "StringLike":
+  #                   "states:HTTPEndpoint": !Sub "${DiscordWebHookURL}/*"
+  #         - Effect: Allow
+  #           Action:
+  #             - events:RetrieveConnectionCredentials
+  #           Resource: !GetAtt DiscordConnection.Arn
+  #         - Effect: Allow
+  #           Action:
+  #             - secretsmanager:GetSecretValue
+  #             - secretsmanager:DescribeSecret
+  #           Resource: !Sub "arn:${AWS::Partition}:secretsmanager:*:*:secret:events!connection/*"
+  #     DefinitionUri: step/downloader.json
 
   ProcessStepFunction:
     Type: AWS::Serverless::StateMachine
     Properties:
       DefinitionSubstitutions:
         DownloadFunctionArn: !GetAtt Download.Arn
+        InvasionFunctionArn: !GetAtt Invasion.Arn
+        MonthFunctionArn: !GetAtt Month.Arn
+        BoardFunctionArn: !GetAtt Board.Arn
         BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
         DiscordConnection: !GetAtt DiscordConnection.Arn
         TableName: !Ref Table
@@ -364,7 +371,19 @@ Resources:
         - S3CrudPolicy:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
         - StepFunctionsExecutionPolicy:
-            StateMachineName: !GetAtt DownloadStepFunction.Name
+            StateMachineName: !GetAtt ProcessStepFunction.Name
+      Layers:
+        - !Ref IrusLayer
+      Environment:
+        Variables:
+          PUBLIC_KEY_PATH: !Sub "${SsmPrefix}/${PublicKeyPath}"
+          APP_ID_PATH: !Sub "${SsmPrefix}/${AppIdPath}"
+          TABLE_NAME: !Ref Table
+          DISCORD_CMD: !Ref DiscordCmd
+          BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+          PROCESS_STEP_FUNC: !Ref ProcessStepFunction
+          WEBHOOK_URL: !Ref DiscordWebHookURL
+          TZ: !Ref Timezone
       Events:
         ApiPOSTdiscord:
           Type: Api

@@ -1,13 +1,17 @@
-import json
 import boto3
+import json
 import os
-import bot_reports
-import bot_invasion
-import bot_member
+import irus
 #import pprint
-
+from datetime import datetime
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
+
+
+#
+# Authenticate Requests
+# Raises exception if it fails
+#
 
 ssm = boto3.client('ssm')
 public_key_path = os.environ['PUBLIC_KEY_PATH']
@@ -28,11 +32,259 @@ def verify_signature(event):
     verify_key = VerifyKey(public_key_bytes)
     verify_key.verify(f'{auth_ts}{body}'.encode(), bytes.fromhex(auth_sig))
 
+#
+# Invasion Commands
+#
+
+def invasion_list_cmd(options:list) -> str:
+    now = datetime.now()
+    month = now.month
+    year = now.year
+
+    for o in options:
+        if o["name"] == "month":
+            month = int(o["value"])
+        elif o["name"] == "year":
+            year = int(o["value"])
+
+    return irus.invasion_list(month, year)
+
+
+def invasion_add_cmd(options:list) -> str:
+    print(f'invasion_add: {options}')
+
+    notes=None
+    now = datetime.now()
+    day = now.day
+    month = now.month
+    year = now.year
+
+    for o in options:
+        if o["name"] == "day":
+            day = int(o["value"])
+        elif o["name"] == "month":
+            month = int(o["value"])
+        elif o["name"] == "year":
+            year = int(o["value"])
+        elif o["name"] == "settlement":
+            settlement = o["value"]
+        elif o["name"] == "win":
+            win = bool(["value"])
+        elif o["name"] == "notes":
+            notes = o["value"]
+
+    item = irus.invasion_add(day=day,
+                             month=month,
+                             year=year,
+                             settlement=settlement,
+                             win=win,
+                             notes=notes)
+    
+    return f'Registered invasion {item["id"]}'
+
+
+def invasion_download_cmd(id: str, token: str, options:list, resolved:dict, folder:str, process:str) -> str:
+    print(f'invasion_download_cmd:\nid: {id}\ntoken: {token}\noptions: {options}\nresolved: {resolved}')
+
+    invasion = None
+    month = None
+    files = []
+
+    for o in options:
+        if o["name"] == "invasion":
+            invasion = o["value"]
+        elif o["name"].startswith("file"):
+            files.append({
+                "name": o["name"],
+                "attachment": o["value"]
+            })
+
+    if not (process == "Ladder" or process == "Download" or process == "Roster"):
+        raise Exception('invasion_download_cmd: Unknown process')
+    if not invasion:
+        raise Exception(f'invasion_download_cmd: No invasion specified')
+
+    month = invasion[:6]
+    if not month.isnumeric():
+        raise Exception(f'invasion_download_cmd: Invasion {invasion} should start with datestamp')
+
+    for a in files:
+        a['filename'] = resolved['attachments'][a['attachment']]['filename']
+        a['url'] = resolved['attachments'][a['attachment']]['url']
+
+    return irus.invasion_download(id=id,
+                                  token=token,
+                                  invasion=invasion,
+                                  month=month,
+                                  files=files,
+                                  process=process)
+
+
+
+def invasion_cmd(id:str, token:str, options:dict, resolved: dict) -> str:
+    print(f'invasion_cmd: {options}')
+    name = options['name']
+    if name == 'list':
+        return invasion_list_cmd(options['options'])
+    elif name == 'add':
+        return invasion_add_cmd(options['options'])
+    elif name == 'ladder':
+        return invasion_download_cmd(id, token, options['options'], resolved, 'Download')
+    elif name == 'screenshots':
+        return invasion_download_cmd(id, token, options['options'], resolved, 'Ladder')
+    elif name == 'roster':
+        return invasion_download_cmd(id, token, options['options'], resolved, 'Roster')
+    else:
+        print(f'Invalid command {name}')
+        return f'Invalid command {name}'
+
+#
+# Member Commands
+#
+
+def member_list_cmd() -> str:
+
+    now = datetime.now()
+    return irus.member_list(now.day, now.month, now.year)
+
+
+def member_add_cmd(options:list) -> str:
+
+    now = datetime.now()
+    month = now.month
+    year = now.year
+    day = now.day
+    admin = False
+    notes = None
+    discord = None
+
+    for o in options:
+        if o["name"] == "player":
+            player = o["value"]
+        elif o["name"] == "day":
+            day = o["value"]
+        elif o["name"] == "month":
+            month = o["value"]
+        elif o["name"] == "year":
+            year = o["value"]
+        elif o["name"] == "faction":
+            faction = o["value"]
+        elif o["name"] == "discord":
+            discord = o["value"]
+        elif o["name"] == "admin":
+            admin = bool(o["value"])
+        elif o["name"] == "notes":
+            notes = o["value"]
+
+    mesg = irus.register_member(player=player,
+                                day=day,
+                                month=month,
+                                year=year,
+                                faction=faction,
+                                discord=discord,
+                                admin=admin,
+                                notes=notes)
+    
+    mesg += irus.update_invasions(player=player,
+                                  day=day,
+                                  month=month,
+                                  year=year)
+
+    return mesg
+
+
+def member_remove_cmd(options:list) -> str:
+
+    for o in options:
+        if o["name"] == "player":
+            player = o["value"]
+
+    return irus.member_remove(player)
+
+
+def member_cmd(options:dict, resolved: dict) -> str:
+    print(f'member_cmd: {options}')
+
+    name = options['name']
+    if name == 'list':
+        return member_list_cmd()
+    elif name == 'add':
+        return member_add_cmd(options['options'])
+    elif name == 'remove':
+        return member_remove_cmd(options['options'])
+    else:
+        print(f'Invalid command {name}')
+        return f'Invalid command {name}'
+
+#
+# Report Commands
+#
+
+def report_month_cmd(options:list) -> str:
+
+    now = datetime.now()
+    month = now.month
+    year = now.year
+
+    for o in options:
+        if o["name"] == "month":
+            month = o["value"]
+        elif o["name"] == "year":
+            year = o["value"]
+
+    return irus.remote_month(month, year)
+
+
+def report_invasion_cmd(options:list) -> str:
+
+    invasion = None
+    for o in options:
+        if o["name"] == "invasion":
+            invasion = o["value"]
+
+    if not invasion:
+        return 'Missing invasion from request'
+    
+    return irus.report_invasion(invasion)
+
+
+def report_member_cmd(options:list) -> str:
+
+    now = datetime.now()
+    month = now.month
+    year = now.year
+
+    for o in options:
+        if o["name"] == "player":
+            player = o["value"]
+        elif o["name"] == "month":
+            month = o["value"]
+        elif o["name"] == "year":
+            year = o["value"]
+
+    return irus.report_member(player, month, year)
+
+
+def report_cmd(options:dict, resolved: dict) -> str:
+    print(f'report_cmd: {options}')
+
+    name = options['name']
+    if name == 'month':
+        return report_month_cmd(options['options'])
+    elif name == 'invasion':
+        return report_invasion_cmd(options['options'])
+    elif name == 'member':
+        return report_member_cmd(options['options'])
+    else:
+        print(f'Invalid command {name}')
+        return f'Invalid command {name}'
+
+#
+# Command switch and package results as required by Discord
+#
 
 def lambda_handler(event, context):
     print(f"event {event}") # debug print
-
-    # response = bot_result.Result()
 
     status = 200
     headers = {
@@ -43,7 +295,7 @@ def lambda_handler(event, context):
 
     try: 
         verify_signature(event)
-        print("Signature verified") # debug print
+        print("Signature verified")
 
         body = json.loads(event['body'])
         if body["type"] == 1:
@@ -55,15 +307,19 @@ def lambda_handler(event, context):
             resolved = body["data"]["resolved"] if "resolved" in body["data"] else None
 
             if subcommand["name"] == "invasion":
-                content = bot_invasion.invasion_cmd(app_id, body['token'], subcommand["options"][0], resolved)
+                content = invasion_cmd(app_id, body['token'], subcommand["options"][0], resolved)
             elif subcommand["name"] == "ladders":
-                content = bot_invasion.invasion_all(app_id, body['token'], subcommand["options"][0], resolved, 'Ladder')
+                item = invasion_add_cmd(subcommand["options"][0]["options"])
+                invasion_download_cmd(app_id, body['token'], subcommand["options"][0], resolved, 'Ladder')
+                content = f'In Progress: Registered invasion {item["id"]}, next download file(s)'
             elif subcommand["name"] == "roster":
-                content = bot_invasion.invasion_all(app_id, body['token'], subcommand["options"][0], resolved, 'Roster')
+                item = invasion_add_cmd(subcommand["options"][0]["options"])
+                content = invasion_download_cmd(app_id, body['token'], subcommand["options"][0], resolved, 'Roster')
+                content = f'In Progress: Registered invasion {item["id"]}, next download file(s)'
             elif subcommand["name"] == "report":
-                content = bot_reports.report_cmd(subcommand["options"][0], resolved)
+                content = report_cmd(subcommand["options"][0], resolved)
             elif subcommand["name"] == "member":
-                content = bot_member.member_cmd(subcommand["options"][0], resolved)
+                content = member_cmd(subcommand["options"][0], resolved)
             else:
                 content = f'Unexpected subcommand {subcommand["name"]}'
 

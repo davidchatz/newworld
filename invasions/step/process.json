@@ -82,7 +82,7 @@
             "OutputPath": "$.Payload",
             "Parameters": {
               "Payload.$": "$",
-              "FunctionName": "arn:aws:lambda:ap-southeast-2:211125713090:function:invasions-Board-BdETY5A0LsvD"
+              "FunctionName": "$(BoardFunctionArn}"
             },
             "Retry": [
               {
@@ -221,7 +221,7 @@
             "OutputPath": "$.Payload",
             "Parameters": {
               "Payload.$": "$",
-              "FunctionName": "arn:aws:lambda:ap-southeast-2:211125713090:function:invasions-Ladder-zYGwamCFCqxJ:$LATEST"
+              "FunctionName": "${LadderFunctionArn}"
             },
             "Retry": [
               {
@@ -287,7 +287,7 @@
             "OutputPath": "$.Payload",
             "Parameters": {
               "Payload.$": "$",
-              "FunctionName": "arn:aws:lambda:ap-southeast-2:211125713090:function:invasions-Board-BdETY5A0LsvD:$LATEST"
+              "FunctionName": "${BoardFunctionArn}"
             },
             "Retry": [
               {
@@ -373,7 +373,7 @@
       "OutputPath": "$.Payload",
       "Parameters": {
         "Payload.$": "$",
-        "FunctionName": "arn:aws:lambda:ap-southeast-2:211125713090:function:invasions-Bot-EU64e2mZ2MsO:$LATEST"
+        "FunctionName": "${InvasionFunctionArn}"
       },
       "Retry": [
         {
@@ -465,7 +465,7 @@
       "OutputPath": "$.Payload",
       "Parameters": {
         "Payload.$": "$",
-        "FunctionName": "arn:aws:lambda:ap-southeast-2:211125713090:function:invasions-Bot-EU64e2mZ2MsO:$LATEST"
+        "FunctionName": "${InvasionFunctionArn}"
       },
       "Retry": [
         {

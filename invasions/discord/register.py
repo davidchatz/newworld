@@ -7,7 +7,8 @@ import pprint
 import argparse
 
 DEFAULT_PROFILE='testnewworld'
-DEFAULT_PREFIX='chatzinvasionstats'
+DEFAULT_PREFIX='chatzdevinvasion'
+#DEFAULT_PREFIX='chatzinvasionstats'
 
 def dump_response(resp, verbose:bool):
     print(f'Status: {resp.status}')
@@ -47,7 +48,7 @@ def main():
     prefix = args.prefix
 
     APP_ID = get_param(prefix, 'appid', profile)
-    SERVER_ID = get_param(prefix, 'invasionsrusstats/serverid', profile)
+    SERVER_ID = get_param(prefix, 'serverid', profile)
     BOT_TOKEN = get_param(prefix, 'bottoken', profile)
 
     url = f'https://discord.com/api/v10/applications/{APP_ID}/guilds/{SERVER_ID}/commands'
