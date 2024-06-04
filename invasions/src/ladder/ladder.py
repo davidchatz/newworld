@@ -149,12 +149,29 @@ def insert_db(table, invasion, result, key):
             item['invasion'] = f'#ladder#{invasion}'
 
             # Check if current member and flag if they are
+            item['member'] = False
             member = table.get_item(Key={'invasion': '#member', 'id': item["name"]})
             if 'Item' in member:
                 print(f'Matched member {item["name"]} to position {item["id"]}')
                 item['member'] = True
+            # If the name has a capital 'O' try searching for the name with the number '0'
             else:
-                item['member'] = False
+                alt = item["name"].replace('O','0')
+                if alt != item["name"]:
+                    member = table.get_item(Key={'invasion': '#member', 'id': alt})
+                    if 'Item' in member:
+                        print(f'Matched member (alt 1) {alt} to position {item["id"]}')
+                        item['member'] = True
+                        item['name'] = alt
+                    # Lastly try replace '0' with 'O'
+                    else:
+                        alt = item["name"].replace('0','O')
+                        if alt != item["name"]:
+                            member = table.get_item(Key={'invasion': '#member', 'id': alt})
+                            if 'Item' in member:
+                                print(f'Matched member (alt 2) {alt} to position {item["id"]}')
+                                item['member'] = True
+                                item['name'] = alt
 
         # Add ladder results from scan
         with table.batch_writer() as batch:
