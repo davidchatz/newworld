@@ -139,6 +139,34 @@ def generate_table(table_result, blocks_map):
     print(f'generate_table rec: {rec}')
     return rec
 
+def match_member(name:str):
+
+    member = False
+    alt = name
+
+    member = table.get_item(Key={'invasion': '#member', 'id': name})
+    if 'Item' in member:
+        member = True
+    # If the name has a capital 'O' try searching for the name with the number '0'
+    else:
+        alt = name.replace('O','0')
+        if alt != name:
+            member = table.get_item(Key={'invasion': '#member', 'id': alt})
+            if 'Item' in member:
+                print(f'Matched {name} to member (alt 1) {alt}')
+                member = True
+            # Lastly try replace '0' with 'O'
+            else:
+                alt = name.replace('0','O')
+                if alt != name:
+                    member = table.get_item(Key={'invasion': '#member', 'id': alt})
+                    if 'Item' in member:
+                        print(f'Matched {name} member (alt 2) {alt}')
+                        member = True
+
+    return member, alt
+
+
 def insert_db(table, invasion, result, key):
 
     try:
@@ -149,10 +177,11 @@ def insert_db(table, invasion, result, key):
             item['invasion'] = f'#ladder#{invasion}'
 
             # Check if current member and flag if they are
-            member = table.get_item(Key={'invasion': '#member', 'id': item["name"]})
-            if 'Item' in member:
-                print(f'Matched member {item["name"]} to position {item["id"]}')
+            member, alt = match_member(item["name"])
+            if member:
+                print(f'Matched member {alt} to position {item["id"]}')
                 item['member'] = True
+                item['name'] = alt
             else:
                 item['member'] = False
 
