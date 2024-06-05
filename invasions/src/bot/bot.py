@@ -1,12 +1,11 @@
 import boto3
 import json
 import os
-import irus
 #import pprint
 from datetime import datetime
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
-
+from irus import Invasion, InvasionList
 
 #
 # Authenticate Requests
@@ -47,7 +46,7 @@ def invasion_list_cmd(options:list) -> str:
         elif o["name"] == "year":
             year = int(o["value"])
 
-    return irus.invasion_list(month, year)
+    return str(InvasionList(month, year))
 
 
 def invasion_add_cmd(options:list) -> str:
@@ -73,14 +72,14 @@ def invasion_add_cmd(options:list) -> str:
         elif o["name"] == "notes":
             notes = o["value"]
 
-    item = irus.invasion_add(day=day,
-                             month=month,
-                             year=year,
-                             settlement=settlement,
-                             win=win,
-                             notes=notes)
+    item = Invasion.from_user(day=day,
+                              month=month,
+                              year=year,
+                              settlement=settlement,
+                              win=win,
+                              notes=notes)
     
-    return f'Registered invasion {item["id"]}'
+    return str(item)
 
 
 def invasion_download_cmd(id: str, token: str, options:list, resolved:dict, folder:str, process:str) -> str:
@@ -112,7 +111,7 @@ def invasion_download_cmd(id: str, token: str, options:list, resolved:dict, fold
         a['filename'] = resolved['attachments'][a['attachment']]['filename']
         a['url'] = resolved['attachments'][a['attachment']]['url']
 
-    return irus.invasion_download(id=id,
+    return layer.invasion_download(id=id,
                                   token=token,
                                   invasion=invasion,
                                   month=month,
@@ -145,7 +144,7 @@ def invasion_cmd(id:str, token:str, options:dict, resolved: dict) -> str:
 def member_list_cmd() -> str:
 
     now = datetime.now()
-    return irus.member_list(now.day, now.month, now.year)
+    return layer.member_list(now.day, now.month, now.year)
 
 
 def member_add_cmd(options:list) -> str:
@@ -176,7 +175,7 @@ def member_add_cmd(options:list) -> str:
         elif o["name"] == "notes":
             notes = o["value"]
 
-    mesg = irus.register_member(player=player,
+    mesg = layer.register_member(player=player,
                                 day=day,
                                 month=month,
                                 year=year,
@@ -185,7 +184,7 @@ def member_add_cmd(options:list) -> str:
                                 admin=admin,
                                 notes=notes)
     
-    mesg += irus.update_invasions(player=player,
+    mesg += layer.update_invasions(player=player,
                                   day=day,
                                   month=month,
                                   year=year)
@@ -199,7 +198,7 @@ def member_remove_cmd(options:list) -> str:
         if o["name"] == "player":
             player = o["value"]
 
-    return irus.member_remove(player)
+    return layer.member_remove(player)
 
 
 def member_cmd(options:dict, resolved: dict) -> str:
@@ -232,7 +231,7 @@ def report_month_cmd(options:list) -> str:
         elif o["name"] == "year":
             year = o["value"]
 
-    return irus.remote_month(month, year)
+    return layer.remote_month(month, year)
 
 
 def report_invasion_cmd(options:list) -> str:
@@ -245,7 +244,7 @@ def report_invasion_cmd(options:list) -> str:
     if not invasion:
         return 'Missing invasion from request'
     
-    return irus.report_invasion(invasion)
+    return layer.report_invasion(invasion)
 
 
 def report_member_cmd(options:list) -> str:
@@ -262,7 +261,7 @@ def report_member_cmd(options:list) -> str:
         elif o["name"] == "year":
             year = o["value"]
 
-    return irus.report_member(player, month, year)
+    return layer.report_member(player, month, year)
 
 
 def report_cmd(options:dict, resolved: dict) -> str:

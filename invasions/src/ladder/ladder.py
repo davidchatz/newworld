@@ -2,6 +2,7 @@ import boto3
 from botocore.exceptions import ClientError
 import os
 import urllib
+import irus
 
 textract = boto3.client('textract')
 dynamodb = boto3.resource('dynamodb')
@@ -139,31 +140,7 @@ def generate_table(table_result, blocks_map):
     print(f'generate_table rec: {rec}')
     return rec
 
-def member_fetch(name:str) -> dict:
 
-    member = None
-
-    record = table.get_item(Key={'invasion': '#member', 'id': name})
-    if 'Item' in record:
-        member = record['Item']
-    # If the name has a capital 'O' try searching for the name with the number '0'
-    else:
-        alt = name.replace('O','0')
-        if alt != name:
-            record = table.get_item(Key={'invasion': '#member', 'id': alt})
-            if 'Item' in record:
-                print(f'Matched {name} to member (alt 1) {alt}')
-                member = record['Item']
-            # Lastly try replace '0' with 'O'
-            else:
-                alt = name.replace('0','O')
-                if alt != name:
-                    record = table.get_item(Key={'invasion': '#member', 'id': alt})
-                    if 'Item' in record:
-                        print(f'Matched {name} member (alt 2) {alt}')
-                        member = record['Item']
-
-    return member
 
 
 def insert_db(table, invasion, result, key):
@@ -176,9 +153,9 @@ def insert_db(table, invasion, result, key):
             item['invasion'] = f'#ladder#{invasion}'
 
             # Check if current member and flag if they are
-            member = member_fetch(item["name"])
+            member = layer.member_fetch(item["name"])
             if member:
-                print(f'Matched member {alt} to position {item["id"]}')
+                print(f'Matched member {member['id']} to position {item["id"]}')
                 item['member'] = True
                 item['name'] = member['id']
             else:

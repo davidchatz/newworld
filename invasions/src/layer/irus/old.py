@@ -246,6 +246,32 @@ def member_remove(player:str) -> str:
     return mesg
 
 
+def member_fetch(name:str) -> dict:
+
+    member = None
+
+    record = table.get_item(Key={'invasion': '#member', 'id': name})
+    if 'Item' in record:
+        member = record['Item']
+    # If the name has a capital 'O' try searching for the name with the number '0'
+    else:
+        alt = name.replace('O','0')
+        if alt != name:
+            record = table.get_item(Key={'invasion': '#member', 'id': alt})
+            if 'Item' in record:
+                print(f'Matched {name} to member (alt 1) {alt}')
+                member = record['Item']
+            # Lastly try replace '0' with 'O'
+            else:
+                alt = name.replace('0','O')
+                if alt != name:
+                    record = table.get_item(Key={'invasion': '#member', 'id': alt})
+                    if 'Item' in record:
+                        print(f'Matched {name} member (alt 2) {alt}')
+                        member = record['Item']
+
+    return member
+
 
 def generate_month_report(month:str):
     print(f'generate_month_report for {month}')

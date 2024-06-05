@@ -102,9 +102,10 @@ Resources:
   IrusLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      ContentUri: src/irus
+      ContentUri: src/layer
       CompatibleRuntimes:
         - python3.11
+      RetentionPolicy: Delete
     Metadata:
       BuildMethod: python3.11
       BuildArchitecture: x86_64  
