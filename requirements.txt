@@ -3,3 +3,5 @@ botocore
 pynacl
 pyyaml
 urllib3
+pytest
+

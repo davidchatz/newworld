@@ -3,5 +3,7 @@
 .DS_Store
 dist
 node_modules
+__pycache__
 
+src/old
 invasions/tmp
