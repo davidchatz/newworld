@@ -24,10 +24,10 @@ def generate_month_report(month:str):
     print(f'generate_month_report for {month}')
 
     invasions = table.query(KeyConditionExpression=Key('invasion').eq(f'#invasion') & Key('id').begins_with(month),
-                            ProjectionExpression='id')            
+                            ProjectionExpression='id,win')      
 
     members = table.query(KeyConditionExpression=Key('invasion').eq(f'#member'),
-                            ProjectionExpression='id')
+                            ProjectionExpression='id,salary')
         
     if not invasions.get('Items', None):
         print(f'No invasions found for {month}')
@@ -39,13 +39,13 @@ def generate_month_report(month:str):
 
     report = []
     for member in members['Items']:
-        report.append({'invasion': f'#month#{month}', 'id': member['id'], 'invasions': Decimal(0), 'ladders': Decimal(0),
+        report.append({'invasion': f'#month#{month}', 'id': member['id'], 'salary': member['salary'], 'invasions': Decimal(0), 'ladders': Decimal(0), 'wins': Decimal(0),
                         'sum_score': 0, 'sum_kills': 0, 'sum_assists': 0, 'sum_deaths': 0, 'sum_heals': 0, 'sum_damage': 0,
                         'avg_score': Decimal(0.0), 'avg_kills': Decimal(0.0), 'avg_assists': Decimal(0.0), 'avg_deaths': Decimal(0.0), 'avg_heals': Decimal(0.0), 'avg_damage': Decimal(0.0), 'avg_rank': Decimal(0.0),
                         'max_score': Decimal(0.0), 'max_kills': Decimal(0.0), 'max_assists': Decimal(0.0), 'max_deaths': Decimal(0.0), 'max_heals': Decimal(0.0), 'max_damage': Decimal(0.0), 'max_rank': Decimal(100.0)
                     })
 
-    for invasion in invasions["Items"]:
+    for invasion in invasions["Items"]: 
         ladder = table.query(KeyConditionExpression=Key('invasion').eq(f'#ladder#{invasion["id"]}'),
                                 FilterExpression=Attr('member').eq(True))
         
@@ -58,6 +58,8 @@ def generate_month_report(month:str):
             for r in report:
                 if r["id"] == row["name"]:
                     r["invasions"] += 1
+                    if invasion["win"] == True:
+                        r["wins"] += 1
                     if 'ladder' not in row or row['ladder'] == True:
                         r["ladders"] += 1
                         r["sum_score"] += row["score"]
@@ -96,7 +98,7 @@ def generate_month_report(month:str):
 
     print(f'computed report: {report}')
 
-    body = 'month,name,invasions,ladders,sum_score,sum_kills,sum_assists,sum_deaths,sum_heals,sum_damage,avg_score,avg_kills,avg_assists,avg_deaths,avg_heals,avg_damage,avg_ranks,max_score,max_kills,max_assists,max_deaths,max_heals,max_damage,max_rank\n'
+    body = 'month,name,salary,invasions,ladders,wins,sum_score,sum_kills,sum_assists,sum_deaths,sum_heals,sum_damage,avg_score,avg_kills,avg_assists,avg_deaths,avg_heals,avg_damage,avg_ranks,max_score,max_kills,max_assists,max_deaths,max_heals,max_damage,max_rank\n'
 
     count = 0
     participation = 0
@@ -104,9 +106,9 @@ def generate_month_report(month:str):
         for r in report:
             if r["invasions"] > 0:
                 count += 1
-                participation += r["ladders"]
+                participation += r["wins"]
                 batch.put_item(Item=r)
-                body += f'{month},{r["id"]},{r["invasions"]},{r["ladders"]},{r["sum_score"]},{r["sum_kills"]},{r["sum_assists"]},{r["sum_deaths"]},{r["sum_heals"]},{r["sum_damage"]},{r["avg_score"]},{r["avg_kills"]},{r["avg_assists"]},{r["avg_deaths"]},{r["avg_heals"]},{r["avg_damage"]},{r["avg_rank"]},{r["max_score"]},{r["max_kills"]},{r["max_assists"]},{r["max_deaths"]},{r["max_heals"]},{r["max_damage"]},{r["max_rank"]}\n'
+                body += f'{month},{r["id"]},{r["salary"]},{r["invasions"]},{r["ladders"]},{r["wins"]},{r["sum_score"]},{r["sum_kills"]},{r["sum_assists"]},{r["sum_deaths"]},{r["sum_heals"]},{r["sum_damage"]},{r["avg_score"]},{r["avg_kills"]},{r["avg_assists"]},{r["avg_deaths"]},{r["avg_heals"]},{r["avg_damage"]},{r["avg_rank"]},{r["max_score"]},{r["max_kills"]},{r["max_assists"]},{r["max_deaths"]},{r["max_heals"]},{r["max_damage"]},{r["max_rank"]}\n'
 
     filename = f'month/{month}.csv'
     print(f'Writing ladder to {bucket_name}/{filename}')
@@ -116,7 +118,7 @@ def generate_month_report(month:str):
 
     mesg = f'- Invasions: {len(invasions["Items"])}\n'
     mesg += f'- Active Members (1 or more invasions): {count}\n'
-    mesg += f'- Participation (sum of members across invasions): {participation}'
+    mesg += f'- Participation (sum of members across invasions won): {participation}'
     return True, mesg
 
 
@@ -218,7 +220,6 @@ def report_member(options:list) -> str:
     if 'Item' in response:
         item = response['Item']
         mesg = f'# Player {player} stats for {month}\n'
-        mesg += 'Invasions: {invasions}\n'.format_map(item)
         mesg += 'Sum / Max / Average\n'
         mesg += '- Score: {sum_score} / {max_score} / {avg_score}\n'.format_map(item)
         mesg += '- Kills: {sum_kills} / {max_kills} / {avg_kills}\n'.format_map(item)
@@ -226,7 +227,32 @@ def report_member(options:list) -> str:
         mesg += '- Deaths: {sum_deaths} / {max_deaths} / {avg_deaths}\n'.format_map(item)
         mesg += '- Heals: {sum_heals} / {max_heals} / {avg_heals}\n'.format_map(item)
         mesg += '- Damage: {sum_damage} / {max_damage} / {avg_damage}\n'.format_map(item)
-        
+
+        mesg += 'Invasions: {invasions}\n'.format_map(item)
+        mesg += 'Wins: {wins}\n'.format_map(item)
+
+        if item['invasions'] > 0:
+            invasions = table.query(KeyConditionExpression=Key('invasion').eq(f'#invasion') & Key('id').begins_with(month),
+                                    ProjectionExpression='id,win')
+            
+            if not invasions.get('Items', None):
+                print(f'No invasions found for {month}, expected at least {item["invasions"]}')
+                mesg += f'No invasions found for {month}?'
+
+            mesg += "Invasion / Rank / Result\n"
+            for invasion in invasions["Items"]: 
+                ladder = table.query(KeyConditionExpression=Key('invasion').eq(f'#ladder#{invasion["id"]}'),
+                                        FilterExpression=Attr('name').eq(player))
+                
+                if not ladder.get('Items', None):
+                    print(f'{player} not found in ladder for {invasion["id"]}')
+                    continue
+
+                if invasion["win"]:
+                    mesg += f'- {invasion["id"]} / {ladder["Items"][0]["id"]} / Win\n'
+                else:
+                    mesg += f'- {invasion["id"]} / {ladder["Items"][0]["id"]} / Loss\n'
+
     return mesg
 
 

@@ -52,7 +52,7 @@ def member_list() -> str:
 
     return mesg
 
-def register_member(player:str, day:int, month:int, year:int, faction:str, discord:str, admin:bool, notes:str) -> str:
+def register_member(player:str, day:int, month:int, year:int, faction:str, discord:str, admin:bool, salary: bool, notes:str) -> str:
     print(f'register_member: {player} {day} {month} {year} {faction} {discord}')
 
     zero_month = '{0:02d}'.format(month)
@@ -82,7 +82,8 @@ def register_member(player:str, day:int, month:int, year:int, faction:str, disco
         'faction': faction,
         'admin': admin,
         'event': timestamp,
-        'start': start
+        'start': start,
+        'salary': salary
     }
 
     if discord:
@@ -146,6 +147,7 @@ def member_add(options:list) -> str:
     admin = False
     notes = None
     discord = None
+    salary = True
 
     for o in options:
         if o["name"] == "player":
@@ -164,6 +166,8 @@ def member_add(options:list) -> str:
             admin = bool(o["value"])
         elif o["name"] == "notes":
             notes = o["value"]
+        elif o["name"] == "salary":
+            notes = o["value"]        
 
     mesg = register_member(player=player,
                            day=day,
@@ -172,6 +176,7 @@ def member_add(options:list) -> str:
                            faction=faction,
                            discord=discord,
                            admin=admin,
+                           salary=salary,
                            notes=notes)
     
     mesg += update_invasions(player=player,
