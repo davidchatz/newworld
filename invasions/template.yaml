@@ -41,11 +41,35 @@ Parameters:
     Default: "https://discord.com/api/v10/webhooks"
     Type: String
 
+  LogLevel:
+    Type: String
+    AllowedValues:
+      - DEBUG
+      - INFO
+      - WARNING
+      - ERROR
+      - CRITICAL
+    Default: INFO
+
+# Mappings:
+  
+  # https://docs.powertools.aws.dev/lambda/python/latest/#local-development
+  # LambdaPowerTools:
+  #   ap-southeast-1:
+  #     ARN: arn:aws:lambda:ap-southeast-1:017000801446:layer:AWSLambdaPowertoolsPythonV2:71
+  #   ap-southeast-2:
+  #     ARN: arn:aws:lambda:ap-southeast-2:017000801446:layer:AWSLambdaPowertoolsPythonV2:71
+
+
 Globals:
 
   Function:
     Runtime: python3.11
     Timeout: 10
+    Layers:
+      # - !FindInMap [ "LambdaPowerTools", !Ref "AWS::Region", "ARN" ]
+      - !GetAtt AwsLambdaPowertoolsPythonLayer.Outputs.LayerVersionArn
+      - !Ref IrusLayer
 
 Resources:
 
@@ -99,6 +123,16 @@ Resources:
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
 
+  # https://docs.powertools.aws.dev/lambda/python/latest/#sar
+  AwsLambdaPowertoolsPythonLayer:
+    Type: AWS::Serverless::Application
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      Location:
+        ApplicationId: arn:aws:serverlessrepo:eu-west-1:057560766410:applications/aws-lambda-powertools-python-layer
+        SemanticVersion: 2.0.0 # change to latest semantic version available in SAR
+
   IrusLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -125,10 +159,10 @@ Resources:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
         - DynamoDBCrudPolicy:
             TableName: !Ref Table
-      Layers:
-        - !Ref IrusLayer
       Environment:
         Variables:
+          POWERTOOLS_SERVICE_NAME: Ladder
+          POWERTOOLS_LOG_LEVEL: !Ref LogLevel
           APP_ID_PATH: !Sub "${SsmPrefix}/${AppIdPath}"
           TABLE_NAME: !Ref Table
           BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
@@ -165,6 +199,10 @@ Resources:
       Description: 'Scan invasion screen shots'
       MemorySize: 256
       Timeout: 10
+      Environment:
+        Variables:
+          POWERTOOLS_SERVICE_NAME: Invasion
+          POWERTOOLS_LOG_LEVEL: !Ref LogLevel
       Policies: 
         - TextractPolicy: {}
         - S3CrudPolicy:
@@ -189,6 +227,10 @@ Resources:
       Description: 'Scan invasion screen shots'
       MemorySize: 256
       Timeout: 10
+      Environment:
+        Variables:
+          POWERTOOLS_SERVICE_NAME: Month
+          POWERTOOLS_LOG_LEVEL: !Ref LogLevel
       Policies: 
         - TextractPolicy: {}
         - S3CrudPolicy:
@@ -219,10 +261,10 @@ Resources:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
         - DynamoDBCrudPolicy:
             TableName: !Ref Table
-      Layers:
-        - !Ref IrusLayer
       Environment:
         Variables:
+          POWERTOOLS_SERVICE_NAME: Board
+          POWERTOOLS_LOG_LEVEL: !Ref LogLevel
           APP_ID_PATH: !Sub "${SsmPrefix}/${AppIdPath}"
           TABLE_NAME: !Ref Table
           BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
@@ -259,6 +301,10 @@ Resources:
       Description: 'Download screen shots from discord'
       MemorySize: 256
       Timeout: 10
+      Environment:
+        Variables:
+          POWERTOOLS_SERVICE_NAME: Download
+          POWERTOOLS_LOG_LEVEL: !Ref LogLevel
       Policies: 
         - S3CrudPolicy:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
@@ -373,10 +419,10 @@ Resources:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
         - StepFunctionsExecutionPolicy:
             StateMachineName: !GetAtt ProcessStepFunction.Name
-      Layers:
-        - !Ref IrusLayer
       Environment:
         Variables:
+          POWERTOOLS_SERVICE_NAME: Bot
+          POWERTOOLS_LOG_LEVEL: !Ref LogLevel
           PUBLIC_KEY_PATH: !Sub "${SsmPrefix}/${PublicKeyPath}"
           APP_ID_PATH: !Sub "${SsmPrefix}/${AppIdPath}"
           TABLE_NAME: !Ref Table

@@ -1,6 +1,7 @@
 from boto3.dynamodb.conditions import Key
 from dataclasses import dataclass
-from .env import table
+from aws_lambda_powertools import Logger
+from .env import table, logger
 
 @dataclass(kw_only=True)
 class Invasion:
@@ -16,14 +17,14 @@ class Invasion:
 
     @classmethod
     def from_user(cls, day:int, month:int, year:int, settlement:str, win:bool, notes:str = None):
-        print(f'Invasion constructor: {day}, {month}, {year}, {settlement}, {win}, {notes}')
+        logger.info(f'Invasion.from_user: {day}, {month}, {year}, {settlement}, {win}, {notes}')
 
         zero_month = '{0:02d}'.format(month)
         zero_day = '{0:02d}'.format(day)
         date = f'{year}{zero_month}{zero_day}'
         name = date + '-' + settlement
 
-        print(f'Add #invasion object for {name}')
+        logger.info(f'Add #invasion object for {name}')
         item = {
             'invasion': f'#invasion',
             'id': name,
@@ -42,6 +43,7 @@ class Invasion:
 
     @classmethod
     def from_table(cls, name:str):
+        logger.info(f'Invasion.from_table: {name}')
         response = table.get_item(Key={'invasion': '#invasion', 'id': name})
         if 'Items' in response:
             item = response['Items']
@@ -59,6 +61,7 @@ class Invasion:
 
     @classmethod
     def from_table_item(cls, item:dict):
+        logger.info(f'Invasion.from_table_item: {item}')
         return cls(name = item['id'],
                     settlement = item['settlement'],
                     win = item['win'],

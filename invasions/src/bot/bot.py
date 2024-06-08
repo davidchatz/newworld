@@ -5,7 +5,9 @@ import os
 from datetime import datetime
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
-from irus import Invasion, InvasionList
+from aws_lambda_powertools import Logger
+from aws_lambda_powertools.utilities.typing import LambdaContext
+from irus import Invasion, InvasionList, Member, MemberList, LadderRank, logger
 
 #
 # Authenticate Requests
@@ -50,7 +52,7 @@ def invasion_list_cmd(options:list) -> str:
 
 
 def invasion_add_cmd(options:list) -> str:
-    print(f'invasion_add: {options}')
+    logger.info(f'invasion_add: {options}')
 
     notes=None
     now = datetime.now()
@@ -83,7 +85,7 @@ def invasion_add_cmd(options:list) -> str:
 
 
 def invasion_download_cmd(id: str, token: str, options:list, resolved:dict, folder:str, process:str) -> str:
-    print(f'invasion_download_cmd:\nid: {id}\ntoken: {token}\noptions: {options}\nresolved: {resolved}')
+    logger.info(f'invasion_download_cmd:\nid: {id}\ntoken: {token}\noptions: {options}\nresolved: {resolved}')
 
     invasion = None
     month = None
@@ -111,17 +113,18 @@ def invasion_download_cmd(id: str, token: str, options:list, resolved:dict, fold
         a['filename'] = resolved['attachments'][a['attachment']]['filename']
         a['url'] = resolved['attachments'][a['attachment']]['url']
 
-    return layer.invasion_download(id=id,
-                                  token=token,
-                                  invasion=invasion,
-                                  month=month,
-                                  files=files,
-                                  process=process)
+    logger.error('Not implemented')
+    # return layer.invasion_download(id=id,
+    #                               token=token,
+    #                               invasion=invasion,
+    #                               month=month,
+    #                               files=files,
+    #                               process=process)
 
 
 
 def invasion_cmd(id:str, token:str, options:dict, resolved: dict) -> str:
-    print(f'invasion_cmd: {options}')
+    logger.info(f'invasion_cmd: {options}')
     name = options['name']
     if name == 'list':
         return invasion_list_cmd(options['options'])
@@ -134,7 +137,7 @@ def invasion_cmd(id:str, token:str, options:dict, resolved: dict) -> str:
     elif name == 'roster':
         return invasion_download_cmd(id, token, options['options'], resolved, 'Roster')
     else:
-        print(f'Invalid command {name}')
+        logger.error(f'Invalid command {name}')
         return f'Invalid command {name}'
 
 #
@@ -142,9 +145,31 @@ def invasion_cmd(id:str, token:str, options:dict, resolved: dict) -> str:
 #
 
 def member_list_cmd() -> str:
-
     now = datetime.now()
-    return layer.member_list(now.day, now.month, now.year)
+    members = MemberList(now.day, now.month, now.year)
+    return str(members)
+
+
+def update_invasions(member: Member) -> str:
+    logger.info(f'Ladder.update_invasions: {member}')
+    invasionlist = InvasionList.from_start(member.start)
+    logger.debug(f'Invasions on or after {invasionlist.date}: {str(invasionlist)}')
+
+    if invasionlist.count() == 0:
+        mesg = f'\nNo invasions found to update\n'
+    else:
+        mesg = f'\n## Member flag updated in these invasions:\n'
+        for i in invasionlist.invasions:
+            try:
+                ladder = LadderRank.from_invasion_for_member(i, member)
+                logger.debug(f'LadderRank.from_invasion_for_member: {ladder}')
+                mesg += f'- {i.name} rank {ladder.rank}\n'
+                ladder.update_membership(True)
+            except ValueError:
+                pass
+
+    logger.info(mesg)
+    return mesg
 
 
 def member_add_cmd(options:list) -> str:
@@ -156,6 +181,7 @@ def member_add_cmd(options:list) -> str:
     admin = False
     notes = None
     discord = None
+    salary = True
 
     for o in options:
         if o["name"] == "player":
@@ -174,35 +200,37 @@ def member_add_cmd(options:list) -> str:
             admin = bool(o["value"])
         elif o["name"] == "notes":
             notes = o["value"]
+        elif o["name"] == "salary":
+            salary = bool(o["value"])
 
-    mesg = layer.register_member(player=player,
+    member = Member.from_user(player=player,
                                 day=day,
                                 month=month,
                                 year=year,
                                 faction=faction,
                                 discord=discord,
                                 admin=admin,
+                                salary=salary,
                                 notes=notes)
-    
-    mesg += layer.update_invasions(player=player,
-                                  day=day,
-                                  month=month,
-                                  year=year)
+    mesg = str(member)
+    mesg += update_invasions(member)
 
     return mesg
 
 
 def member_remove_cmd(options:list) -> str:
 
+    player = None
     for o in options:
         if o["name"] == "player":
             player = o["value"]
 
-    return layer.member_remove(player)
+    member = Member.from_table(player)
+    return member.remove()
 
 
 def member_cmd(options:dict, resolved: dict) -> str:
-    print(f'member_cmd: {options}')
+    logger.info(f'member_cmd: {options}')
 
     name = options['name']
     if name == 'list':
@@ -212,7 +240,7 @@ def member_cmd(options:dict, resolved: dict) -> str:
     elif name == 'remove':
         return member_remove_cmd(options['options'])
     else:
-        print(f'Invalid command {name}')
+        logger.error(f'Invalid command {name}')
         return f'Invalid command {name}'
 
 #
@@ -231,7 +259,9 @@ def report_month_cmd(options:list) -> str:
         elif o["name"] == "year":
             year = o["value"]
 
-    return layer.remote_month(month, year)
+    logger.error('Not implemented')
+    return 'Not implemented'
+    # return layer.remote_month(month, year)
 
 
 def report_invasion_cmd(options:list) -> str:
@@ -243,8 +273,10 @@ def report_invasion_cmd(options:list) -> str:
 
     if not invasion:
         return 'Missing invasion from request'
-    
-    return layer.report_invasion(invasion)
+
+    logger.error('Not implemented')
+    return 'Not implemented'
+    # return layer.report_invasion(invasion)
 
 
 def report_member_cmd(options:list) -> str:
@@ -261,11 +293,13 @@ def report_member_cmd(options:list) -> str:
         elif o["name"] == "year":
             year = o["value"]
 
-    return layer.report_member(player, month, year)
+    logger.error('Not implemented')
+    return 'Not implemented'
+    # return layer.report_member(player, month, year)
 
 
 def report_cmd(options:dict, resolved: dict) -> str:
-    print(f'report_cmd: {options}')
+    logger.info(f'report_cmd: {options}')
 
     name = options['name']
     if name == 'month':
@@ -275,15 +309,15 @@ def report_cmd(options:dict, resolved: dict) -> str:
     elif name == 'member':
         return report_member_cmd(options['options'])
     else:
-        print(f'Invalid command {name}')
+        logger.error(f'Invalid command {name}')
         return f'Invalid command {name}'
 
 #
 # Command switch and package results as required by Discord
 #
 
-def lambda_handler(event, context):
-    print(f"event {event}") # debug print
+@logger.inject_lambda_context(log_event=True)
+def lambda_handler(event: dict, context: LambdaContext):
 
     status = 200
     headers = {
@@ -294,14 +328,14 @@ def lambda_handler(event, context):
 
     try: 
         verify_signature(event)
-        print("Signature verified")
+        logger.debug("Signature verified")
 
         body = json.loads(event['body'])
         if body["type"] == 1:
             data = ({'type': 1})
 
         elif body["type"] == 2 and body["data"]["name"] == discord_cmd:
-            print(f'body: {body["data"]}')
+            logger.debug(f'body: {body["data"]}')
             subcommand = body["data"]["options"][0]
             resolved = body["data"]["resolved"] if "resolved" in body["data"] else None
 
@@ -327,19 +361,16 @@ def lambda_handler(event, context):
 
     except (BadSignatureError) as e:
         status = 401
-        print(f"Bad Signature: {e}")
+        logger.info(f"Bad Signature: {e}")
         content = f"Bad Signature: {e}"
     
     except Exception as e:
         status = 401
-        print(f"Unexpected exception: {e}")
+        logger.error(f"Unexpected exception: {e}")
         content = f"Unexpected exception: {e}"
 
     finally:
-        # print(f"response: {response}")
-        # print(f"response.result: {response.result}")
-        # pprint.pprint(f"response {response}")
-        # return response.result
+        logger.debug(f"content: {content}")
     
         if data is None:
             data = {
@@ -354,7 +385,7 @@ def lambda_handler(event, context):
             if content.startswith("In Progress"):
                 data['type'] = 5
 
-        print(f"data: {json.dumps(data)}")
+        logger.info(f"data: {json.dumps(data)}")
         return {
             "statusCode": status,
             "headers": headers,

@@ -1,5 +1,6 @@
 import os
 import boto3
+from aws_lambda_powertools import Logger
 
 # get bucket name of environment
 s3 = boto3.client('s3')
@@ -15,3 +16,6 @@ table = dynamodb.Table(table_name)
 state_machine = boto3.client('stepfunctions')
 step_function_arn = os.environ.get('PROCESS_STEP_FUNC')
 webhook_url = os.environ.get('WEBHOOK_URL')
+
+# setup logging
+logger = Logger()
