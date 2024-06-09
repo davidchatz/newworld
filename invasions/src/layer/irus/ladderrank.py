@@ -1,5 +1,6 @@
 from boto3.dynamodb.conditions import Key, Attr
 from dataclasses import dataclass
+from decimal import Decimal
 from .environ import table, logger
 from .invasion import Invasion
 from .member import Member
@@ -26,12 +27,12 @@ class LadderRank:
         self.rank = item['id']
         self.member = bool(item['member'])
         self.player = item['player']
-        self.score = item['score']
-        self.kills = item['kills']
-        self.deaths = item['deaths']
-        self.assists = item['assists']
-        self.heals = item['heals']
-        self.damage = item['damage']
+        self.score = int(item['score'])
+        self.kills = int(item['kills'])
+        self.deaths = int(item['deaths'])
+        self.assists = int['assists']
+        self.heals = int['heals']
+        self.damage = int['damage']
         self.ladder = bool(item['ladder'])
 
    

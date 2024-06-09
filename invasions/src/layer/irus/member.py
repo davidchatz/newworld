@@ -3,16 +3,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from .environ import table, logger
 
-@dataclass
-class Member:
 
-    start: int
-    player: str
-    faction: str
-    admin: bool
-    salary: bool
-    discord: str
-    notes: str
+class Member:
 
     def __init__(self, item: dict):
         self.start = int(item['start'])

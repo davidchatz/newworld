@@ -7,17 +7,17 @@ from aws_lambda_powertools import Logger
 from .environ import table, logger
 
 
-@dataclass(kw_only=True)
 class Invasion:
 
-    name: str
-    settlement: str
-    win: bool
-    date: int
-    year: int
-    month: int
-    day: int
-    notes: str
+    def __init__(self, name:str, settlement:str, win:bool, date:int, year:int, month:int, day:int, notes:str = None):
+        self.name = name
+        self.settlement = settlement
+        self.win = bool(win)
+        self.date = Decimal(date)
+        self.year = Decimal(year)
+        self.month = Decimal(month)
+        self.day = Decimal(day)
+        self.notes = notes
 
     def key(self):
         return {'invasion': '#invasion', 'id': self.name}

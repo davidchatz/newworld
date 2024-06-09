@@ -198,6 +198,13 @@ function _deploy()
 
 function _test()
 {
+    _header "Cleanup table"
+    TABLE=$(aws cloudformation describe-stacks \
+            $OPTIONS \
+            --stack-name $STACK_NAME \
+            --query 'Stacks[].Outputs[?OutputKey==`Table`].{id:OutputValue}' \
+            --output text)
+    _run ./src/layer/tests/delete_items.py $PROFILE $TABLE
     _header "Test deployment"
     _walk pytest
 }

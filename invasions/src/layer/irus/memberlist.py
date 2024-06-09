@@ -5,10 +5,10 @@ from .environ import table, logger
 
 class MemberList:
 
-    members: list[Member]
-
     def __init__(self, day: int, month: int, year:int):
         logger.info(f'MemberList.__init__ {day}/{month}/{year}')
+
+        self.members = []
 
         zero_month = '{0:02d}'.format(month)
         zero_day = '{0:02d}'.format(day)
@@ -22,7 +22,7 @@ class MemberList:
         else:
             items = response["Items"]
             for i in items:
-                members += Member(i)
+                self.members.append(Member(i))
 
 
     def __str__(self) -> str:
