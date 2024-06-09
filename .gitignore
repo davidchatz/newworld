@@ -7,3 +7,6 @@ __pycache__
 
 src/old
 invasions/tmp
+invasions/src/old
+samconfig.toml
+.env

@@ -1,7 +1,7 @@
 from boto3.dynamodb.conditions import Key, Attr
 from dataclasses import dataclass
 from .invasion import Invasion
-from .env import table, logger
+from .environ import table, logger
 
 class InvasionList:
 

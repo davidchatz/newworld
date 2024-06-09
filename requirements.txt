@@ -1,7 +1,8 @@
 boto3
 botocore
+aws-lambda-powertools
 pynacl
 pyyaml
 urllib3
 pytest
-
+pytest-dotenv

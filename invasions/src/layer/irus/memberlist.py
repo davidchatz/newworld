@@ -1,7 +1,7 @@
 from boto3.dynamodb.conditions import Key
 from dataclasses import dataclass
 from .member import Member
-from .env import table, logger
+from .environ import table, logger
 
 class MemberList:
 

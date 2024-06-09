@@ -487,5 +487,11 @@ Outputs:
     Description: Invasion Bucket
     Value: !Ref InvasionBucket
 
+  Table:
+    Value: !Ref Table
+
+  StepFunctionArn:
+    Value: !Ref ProcessStepFunction
+
   InteractionsEndpointUrl:
     Value: !Sub https://${Api}.execute-api.${AWS::Region}.amazonaws.com/prod/discord

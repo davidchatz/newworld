@@ -1,6 +1,6 @@
 from boto3.dynamodb.conditions import Key, Attr
 from dataclasses import dataclass
-from .env import table, logger
+from .environ import table, logger
 from .invasion import Invasion
 from .member import Member
 

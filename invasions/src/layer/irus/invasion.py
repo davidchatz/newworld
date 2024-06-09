@@ -1,7 +1,11 @@
+import os
+import boto3
 from boto3.dynamodb.conditions import Key
+from decimal import Decimal
 from dataclasses import dataclass
 from aws_lambda_powertools import Logger
-from .env import table, logger
+from .environ import table, logger
+
 
 @dataclass(kw_only=True)
 class Invasion:
@@ -15,6 +19,9 @@ class Invasion:
     day: int
     notes: str
 
+    def key(self):
+        return {'invasion': '#invasion', 'id': self.name}
+    
     @classmethod
     def from_user(cls, day:int, month:int, year:int, settlement:str, win:bool, notes:str = None):
         logger.info(f'Invasion.from_user: {day}, {month}, {year}, {settlement}, {win}, {notes}')
@@ -28,25 +35,29 @@ class Invasion:
         item = {
             'invasion': f'#invasion',
             'id': name,
-            'settlememt': settlement,
+            'settlement': settlement,
             'win': win,
-            'date': int(date),
+            'date': Decimal(date),
             'year': year,
             'month': month,
             'day': day
         }
         if notes:
             item['notes'] = notes
+        
+        logger.debug(item)
+        logger.debug(table)
         table.put_item(Item=item)
 
-        return cls(name = name, settlement = settlement, win = win, date = date, year = year, month = month, day = day, notes = notes)
+        return cls(name = name, settlement = settlement, win = win, date = Decimal(date), year = year, month = month, day = day, notes = notes)
 
     @classmethod
     def from_table(cls, name:str):
         logger.info(f'Invasion.from_table: {name}')
         response = table.get_item(Key={'invasion': '#invasion', 'id': name})
-        if 'Items' in response:
-            item = response['Items']
+        logger.debug(response)
+        if 'Item' in response:
+            item = response['Item']
             return cls(name = item['id'],
                        settlement = item['settlement'],
                        win = item['win'],
@@ -84,3 +95,7 @@ class Invasion:
             msg += f'Notes: {self.notes}\n'
         return msg
     
+
+    def delete_from_table(self):
+        logger.info(f'Delete {self.name} from table')
+        table.delete_item(Key=self.key())
