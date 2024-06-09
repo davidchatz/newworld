@@ -42,7 +42,7 @@ def test_invasion_from_user_name(invasion_from_user):
     assert invasion_from_user.date == Decimal('20240501')
     assert invasion_from_user.key() == {'invasion': '#invasion', 'id': '20240501-ww'}
 
-    response = table.get_item(Key={"invasion": "#invasion", "id": "20240501-ww"})
+    response = table.get_item(Key=invasion_from_user.key())
     assert 'Item' in response
     assert 'date' in response['Item']
     assert int(response['Item']['date']) == 20240501

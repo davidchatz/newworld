@@ -15,9 +15,11 @@ class Member:
         self.discord = item['discord'] if 'discord' in item else None
         self.notes = item['notes'] if 'notes' in item else None
 
-
+    def key(self) -> str:
+        return {'invasion': '#member', 'id': self.player}
+    
     @classmethod
-    def from_user(cls, player:str, day:int, month:int, year:int, faction:str, discord:str, admin:bool, salary:bool, notes:str):
+    def from_user(cls, player:str, day:int, month:int, year:int, faction:str, admin:bool, salary:bool, discord:str = None, notes:str = None):
         logger.info(f'Member.from_user {player}')
 
         zero_month = '{0:02d}'.format(month)
@@ -100,7 +102,7 @@ class Member:
             'player': self.player
         }
 
-        response = table.delete_item(Key={'invasion': f'#member', 'id': self.player}, ReturnValues='ALL_OLD')
+        response = table.delete_item(Key=self.key(), ReturnValues='ALL_OLD')
         if 'Attributes' in response:
             mesg = f'# Removed member {self.player}'
             table.put_item(Item=item)
