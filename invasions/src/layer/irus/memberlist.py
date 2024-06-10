@@ -5,20 +5,16 @@ from .environ import table, logger
 
 class MemberList:
 
-    def __init__(self, day: int, month: int, year:int):
-        logger.info(f'MemberList.__init__ {day}/{month}/{year}')
+    def __init__(self):
+        logger.info(f'MemberList.__init__')
 
         self.members = []
-
-        zero_month = '{0:02d}'.format(month)
-        zero_day = '{0:02d}'.format(day)
-        date = f'{year}{zero_month}{zero_day}'
 
         response = table.query(KeyConditionExpression=Key('invasion').eq('#member'))
         logger.debug(response)
 
         if not response.get('Items', None):
-            logger.info(f'No members found for date {date}')
+            logger.info(f'No members found')
         else:
             items = response["Items"]
             for i in items:
@@ -28,9 +24,20 @@ class MemberList:
     def __str__(self) -> str:
         body = f"player,faction,start\n"
         for m in self.members:
-            body += '- {player},{faction},{start}\n'.format_map(m)
+            body += '{player},{faction},{start}\n'.format_map(m)
         return body
 
+    def markdown(self) -> str:
+        body = f"# {len(self.members)} Members\n"
+        for m in self.members:
+            body += '- {player} ({faction}) started {start}\n'.format_map(m)
+        return body
+
+    def count(self) -> int:
+        return len(self.members)
+    
+    def get(self,index:int) -> Member:
+        return self.members[index]
 
         #     filename = f'members/{date}.csv'
         #     logger.info(f'Writing member list to {bucket_name}/{filename}')

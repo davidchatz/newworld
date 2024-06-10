@@ -233,6 +233,12 @@ case $1 in
         _test
         ;;
 
+    install)
+        _build
+        _deploy
+        _test
+        ;;
+
     cleanup)
         _delete
         ;;

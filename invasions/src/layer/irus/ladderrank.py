@@ -5,21 +5,7 @@ from .environ import table, logger
 from .invasion import Invasion
 from .member import Member
 
-@dataclass(kw_only=True)
 class LadderRank:
-
-    invasion: Invasion
-    rank: int
-    member: bool
-    player: str
-    score: int
-    kills: int
-    deaths: int
-    assists: int
-    heals: int
-    damage: int
-    member: bool
-    ladder: bool
 
     def __init__(self, invasion: Invasion, item: dict):
         logger.info(f'LadderRank.__init__: {invasion} {item}')

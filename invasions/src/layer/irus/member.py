@@ -76,7 +76,7 @@ class Member:
 
         if 'Item' not in member:
             logger.info(f'Member {player} not found in table')
-            raise ValueError(f'Member {player} not found in table')
+            raise ValueError(f'No member found called {player}')
 
         return cls(member['Item'])
 

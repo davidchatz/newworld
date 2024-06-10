@@ -24,3 +24,19 @@ logger.debug(f'step function arn: {step_function_arn}')
 
 webhook_url = os.environ.get('WEBHOOK_URL')
 logger.debug(f'webhook url: {webhook_url}')
+
+
+class Secrets:
+
+    public_key : str = None
+    public_key_bytes : bytes = None
+    app_id : str = None
+
+    def __init__(self):
+        ssm = boto3.client('ssm')
+        self.public_key_path = os.environ['PUBLIC_KEY_PATH']
+        self.public_key = ssm.get_parameter(Name=self.public_key_path, WithDecryption=True)['Parameter']['Value']
+        self.public_key_bytes = bytes.fromhex(self.public_key)
+        app_id_path = os.environ['APP_ID_PATH']
+        self.app_id = ssm.get_parameter(Name=app_id_path, WithDecryption=True)['Parameter']['Value']
+

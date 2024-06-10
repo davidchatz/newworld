@@ -1,28 +1,21 @@
-import boto3
 import json
 import os
 #import pprint
 from datetime import datetime
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
-from aws_lambda_powertools import Logger
 from aws_lambda_powertools.utilities.typing import LambdaContext
-from irus import Invasion, InvasionList, Member, MemberList, LadderRank, logger
+from irus import Invasion, InvasionList, Member, MemberList, LadderRank, Secrets, Files, Process, logger
+
+
+discord_cmd = os.environ['DISCORD_CMD']
 
 #
 # Authenticate Requests
-# Raises exception if it fails
+# Verify raises exception if it fails
 #
-
-ssm = boto3.client('ssm')
-public_key_path = os.environ['PUBLIC_KEY_PATH']
-public_key = ssm.get_parameter(Name=public_key_path, WithDecryption=True)['Parameter']['Value']
-public_key_bytes = bytes.fromhex(public_key)
-
-app_id_path = os.environ['APP_ID_PATH']
-app_id = ssm.get_parameter(Name=app_id_path, WithDecryption=True)['Parameter']['Value']
-
-discord_cmd = os.environ['DISCORD_CMD']
+secrets = Secrets()
+process = Process()
 
 def verify_signature(event):
     body = event['body']
@@ -30,7 +23,7 @@ def verify_signature(event):
     auth_ts  = event['headers'].get('x-signature-timestamp')
 
     # message = auth_ts.encode() + body.encode()
-    verify_key = VerifyKey(public_key_bytes)
+    verify_key = VerifyKey(secrets.public_key_bytes)
     verify_key.verify(f'{auth_ts}{body}'.encode(), bytes.fromhex(auth_sig))
 
 #
@@ -48,10 +41,10 @@ def invasion_list_cmd(options:list) -> str:
         elif o["name"] == "year":
             year = int(o["value"])
 
-    return str(InvasionList(month, year))
+    return InvasionList.from_month(month=month, year=year).markdown()
 
 
-def invasion_add_cmd(options:list) -> str:
+def invasion_add_cmd(options:list) -> Invasion:
     logger.info(f'invasion_add: {options}')
 
     notes=None
@@ -81,46 +74,25 @@ def invasion_add_cmd(options:list) -> str:
                               win=win,
                               notes=notes)
     
-    return str(item)
+    return item.markdown()
 
 
-def invasion_download_cmd(id: str, token: str, options:list, resolved:dict, folder:str, process:str) -> str:
+def invasion_download_cmd(id: str, token: str, options:list, resolved:dict, process:str) -> str:
     logger.info(f'invasion_download_cmd:\nid: {id}\ntoken: {token}\noptions: {options}\nresolved: {resolved}')
 
     invasion = None
-    month = None
     files = []
 
-    for o in options:
-        if o["name"] == "invasion":
-            invasion = o["value"]
-        elif o["name"].startswith("file"):
-            files.append({
-                "name": o["name"],
-                "attachment": o["value"]
-            })
+    try:
+        for o in options:
+            if o["name"] == "invasion":
+                invasion = Invasion.from_table(o["value"])
+    except ValueError as e:
+        logger.info(e)
+        return str(e)
 
-    if not (process == "Ladder" or process == "Download" or process == "Roster"):
-        raise Exception('invasion_download_cmd: Unknown process')
-    if not invasion:
-        raise Exception(f'invasion_download_cmd: No invasion specified')
-
-    month = invasion[:6]
-    if not month.isnumeric():
-        raise Exception(f'invasion_download_cmd: Invasion {invasion} should start with datestamp')
-
-    for a in files:
-        a['filename'] = resolved['attachments'][a['attachment']]['filename']
-        a['url'] = resolved['attachments'][a['attachment']]['url']
-
-    logger.error('Not implemented')
-    # return layer.invasion_download(id=id,
-    #                               token=token,
-    #                               invasion=invasion,
-    #                               month=month,
-    #                               files=files,
-    #                               process=process)
-
+    files = Files(options, resolved)
+    return process.start(id, token, invasion, files, process)
 
 
 def invasion_cmd(id:str, token:str, options:dict, resolved: dict) -> str:
@@ -129,7 +101,7 @@ def invasion_cmd(id:str, token:str, options:dict, resolved: dict) -> str:
     if name == 'list':
         return invasion_list_cmd(options['options'])
     elif name == 'add':
-        return invasion_add_cmd(options['options'])
+        return str(invasion_add_cmd(options['options']))
     elif name == 'ladder':
         return invasion_download_cmd(id, token, options['options'], resolved, 'Download')
     elif name == 'screenshots':
@@ -145,9 +117,7 @@ def invasion_cmd(id:str, token:str, options:dict, resolved: dict) -> str:
 #
 
 def member_list_cmd() -> str:
-    now = datetime.now()
-    members = MemberList(now.day, now.month, now.year)
-    return str(members)
+    return MemberList().markdown()
 
 
 def update_invasions(member: Member) -> str:
@@ -225,7 +195,10 @@ def member_remove_cmd(options:list) -> str:
         if o["name"] == "player":
             player = o["value"]
 
-    member = Member.from_table(player)
+    try:
+        member = Member.from_table(player)
+    except ValueError:
+        return f'Member {player} not found'
     return member.remove()
 
 
@@ -340,15 +313,15 @@ def lambda_handler(event: dict, context: LambdaContext):
             resolved = body["data"]["resolved"] if "resolved" in body["data"] else None
 
             if subcommand["name"] == "invasion":
-                content = invasion_cmd(app_id, body['token'], subcommand["options"][0], resolved)
+                content = invasion_cmd(secrets.app_id, body['token'], subcommand["options"][0], resolved)
             elif subcommand["name"] == "ladders":
-                item = invasion_add_cmd(subcommand["options"][0]["options"])
-                invasion_download_cmd(app_id, body['token'], subcommand["options"][0], resolved, 'Ladder')
-                content = f'In Progress: Registered invasion {item["id"]}, next download file(s)'
+                invasion = invasion_add_cmd(subcommand["options"][0]["options"])
+                invasion_download_cmd(secrets.app_id, body['token'], subcommand["options"][0], resolved, 'Ladder')
+                content = f'In Progress: Registered invasion {invasion.name}, next download file(s)'
             elif subcommand["name"] == "roster":
-                item = invasion_add_cmd(subcommand["options"][0]["options"])
-                content = invasion_download_cmd(app_id, body['token'], subcommand["options"][0], resolved, 'Roster')
-                content = f'In Progress: Registered invasion {item["id"]}, next download file(s)'
+                invasion = invasion_add_cmd(subcommand["options"][0]["options"])
+                invasion_download_cmd(secrets.app_id, body['token'], subcommand["options"][0], resolved, 'Roster')
+                content = f'In Progress: Registered invasion {invasion.name}, next download file(s)'
             elif subcommand["name"] == "report":
                 content = report_cmd(subcommand["options"][0], resolved)
             elif subcommand["name"] == "member":

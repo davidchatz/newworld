@@ -1,10 +1,8 @@
 from boto3.dynamodb.conditions import Key, Attr
-from dataclasses import dataclass
 from decimal import Decimal
 from .invasion import Invasion
 from .environ import table, logger
 
-@dataclass
 class InvasionList:
 
     def __init__(self, items:list, start:int):
@@ -40,15 +38,25 @@ class InvasionList:
         return cls(response['Items'] if 'Items' in response else [], start)
 
 
-    def __str__(self):
+    def __str__(self) -> str:
         msg = ''
-        if len(self.invasions) == 0:
-            msg = f'No invasions found from {self.start}'
-        else:
-            msg = f'# Invasion List from {self.start}\n'
-            for i in self.invasions:
-                msg += f'- {i.name()}\n'
+        if len(self.invasions) > 0:
+            msg += self.invasions[0].name
+            for i in self.invasions[1:]:
+                msg += f',{i.name}'
+            msg += '\n'
         
+        return msg
+    
+
+    def markdown(self) -> str:
+        msg = f'# Invasions from {self.start}\n'
+        if len(self.invasions) == 0:
+            msg += '*No invasions found*\n'
+        else:
+            for i in self.invasions:
+                msg += f'- {i.name}\n'
+
         return msg
 
 

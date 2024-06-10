@@ -2,8 +2,6 @@ import os
 import boto3
 import boto3.session
 import pytest
-from decimal import Decimal
-from datetime import datetime
 from aws_lambda_powertools import Logger
 from ..irus import Member
 
@@ -58,3 +56,9 @@ def test_member_remove():
     member.remove()
     response = table.get_item(Key=key)
     assert 'Item' not in response
+
+
+def test_member_from_table_not_found():
+    with pytest.raises(ValueError) as excinfo:
+        member = Member.from_table('karen')
+    assert str(excinfo.value) == "No member found called karen"
