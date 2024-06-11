@@ -1,0 +1,95 @@
+{
+  "Comment": "Deadhand timer for process step function",
+  "StartAt": "ProcessStepFunction",
+  "States": {
+    "ProcessStepFunction": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::states:startExecution.sync:2",
+      "Parameters": {
+        "StateMachineArn": "${ProcessStepFunc}",
+        "Input": {
+          "post.$": "$.post",
+          "invasion.$": "$.invasion",
+          "folder.$": "$.folder",
+          "files.$": "$.files",
+          "process.$": "$.process",
+          "month.$": "$.month",
+          "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id"
+        }
+      },
+      "TimeoutSeconds": 300,
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.Timeout"
+          ],
+          "Comment": "Process Timeout",
+          "Next": "NotifyDiscordOfTimeout",
+          "ResultPath": "$.ProcessTimeout"
+        },
+        {
+          "ErrorEquals": [
+            "States.TaskFailed"
+          ],
+          "Next": "NotifyDiscordOfFailure",
+          "Comment": "Process Failed",
+          "ResultPath": "$.ProcessFailed"
+        }
+      ],
+      "End": true,
+      "ResultPath": "$.ProcessOutput"
+    },
+    "NotifyDiscordOfFailure": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::http:invoke",
+      "Parameters": {
+        "Method": "POST",
+        "Authentication": {
+          "ConnectionArn": "${DiscordConnection}"
+        },
+        "ApiEndpoint.$": "$.post",
+        "RequestBody": {
+          "content": "*Processing failed, check logs for errors.*"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "BackoffRate": 2,
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "End": true
+    },
+    "NotifyDiscordOfTimeout": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::http:invoke",
+      "Parameters": {
+        "Method": "POST",
+        "Authentication": {
+          "ConnectionArn": "${DiscordConnection}"
+        },
+        "ApiEndpoint.$": "$.post",
+        "RequestBody": {
+          "content": "*Processing timed out, check logs for errors*"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "BackoffRate": 2,
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "End": true
+    }
+  }
+}

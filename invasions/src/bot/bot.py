@@ -77,22 +77,25 @@ def invasion_add_cmd(options:list) -> Invasion:
     return item.markdown()
 
 
-def invasion_download_cmd(id: str, token: str, options:list, resolved:dict, process:str) -> str:
-    logger.info(f'invasion_download_cmd:\nid: {id}\ntoken: {token}\noptions: {options}\nresolved: {resolved}')
+def invasion_download_cmd(id: str, token: str, options:list, resolved:dict, method:str) -> str:
+    logger.info(f'invasion_download_cmd:\nid: {id}\ntoken: {token}\noptions: {options}\nresolved: {resolved}\nmethod: {method}')
 
     invasion = None
-    files = []
+    files = Files()
 
     try:
         for o in options:
             if o["name"] == "invasion":
                 invasion = Invasion.from_table(o["value"])
+            elif o["name"].startswith("file"):
+                files.append(name = o["name"], attachment = o["value"])
     except ValueError as e:
         logger.info(e)
         return str(e)
 
-    files = Files(options, resolved)
-    return process.start(id, token, invasion, files, process)
+    files.update(resolved['attachments'])
+
+    return process.start(id, token, invasion, files, method)
 
 
 def invasion_cmd(id:str, token:str, options:dict, resolved: dict) -> str:
@@ -123,7 +126,7 @@ def member_list_cmd() -> str:
 def update_invasions(member: Member) -> str:
     logger.info(f'Ladder.update_invasions: {member}')
     invasionlist = InvasionList.from_start(member.start)
-    logger.debug(f'Invasions on or after {invasionlist.date}: {str(invasionlist)}')
+    logger.debug(f'Invasions on or after {invasionlist.start}: {str(invasionlist)}')
 
     if invasionlist.count() == 0:
         mesg = f'\nNo invasions found to update\n'

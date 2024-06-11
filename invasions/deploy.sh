@@ -167,10 +167,16 @@ function _update_env()
             --query 'Stacks[].Outputs[?OutputKey==`Table`].{id:OutputValue}' \
             --output text)
 
-    STEP=$(aws cloudformation describe-stacks \
+    DEAD_HAND_STEP=$(aws cloudformation describe-stacks \
             $OPTIONS \
             --stack-name $STACK_NAME \
-            --query 'Stacks[].Outputs[?OutputKey==`StepFunctionArn`].{id:OutputValue}' \
+            --query 'Stacks[].Outputs[?OutputKey==`DeadHandStepFunctionArn`].{id:OutputValue}' \
+            --output text)
+
+    PROCESS_STEP=$(aws cloudformation describe-stacks \
+            $OPTIONS \
+            --stack-name $STACK_NAME \
+            --query 'Stacks[].Outputs[?OutputKey==`ProcessStepFunctionArn`].{id:OutputValue}' \
             --output text)
 
     URL=$(aws cloudformation describe-stacks \
@@ -182,7 +188,8 @@ function _update_env()
     cat << EOF > .env
 BUCKET_NAME=$BUCKET
 TABLE_NAME=$TABLE
-PROCESS_STEP_FUNC=$STEP
+DEAD_HAND_STEP_FUNC=$DEAD_HAND_STEP
+PROCESS_STEP_FUNC=$PROCESS_STEP
 WEBHOOK_URL=$URL
 PROFILE=$PROFILE
 POWERTOOLS_LOG_LEVEL=info

@@ -10,21 +10,27 @@ state_machine = boto3.client('stepfunctions')
 
 class Files:
 
-    def __init__(self, options:list, resolved:dict):
+    def __init__(self):
         self.files : list = []
 
-        for o in options:
-            if o["name"].startswith("file"):
-                self.files.append({
-                    "name": o["name"],
-                    "attachment": o["value"]
-                })
+    def append(self, name:str, attachment:str):
+        logger.debug(f'Files.append: {name} {attachment}')
+        self.files.append({
+            "name": name,
+            "attachment": attachment
+        })
 
+    def update(self, attachments:dict):
+        logger.debug(f'Attachments: {attachments}')
         for a in self.files:
-            a['filename'] = resolved['attachments'][a['attachment']]['filename']
-            a['url'] = resolved['attachments'][a['attachment']]['url']
-        
+            a['filename'] = attachments[a['attachment']]['filename']
+            a['url'] = attachments[a['attachment']]['url']
         logger.debug(f'Files: {self.files}')
+        for a in self.files:
+            if 'filename' not in a:
+                logger.warning(f'Missing filename for {a.name}')
+                raise ValueError(f'Missing filename for {a.name}')
+
 
     def get(self) -> list:
         return self.files
@@ -38,6 +44,9 @@ class Process:
     def __init__(self):
         self.step_function_arn = os.environ.get('PROCESS_STEP_FUNC')
         self.webhook_url = os.environ.get('WEBHOOK_URL')
+        if not self.step_function_arn or not self.webhook_url:
+            logger.warning(f'Environment not defined {self.step_function_arn} {self.webhook_url}')
+            raise ValueError(f'Environment not defined {self.step_function_arn} {self.webhook_url}')
 
 
     def start(self, id: str, token: str, invasion: Invasion, files: Files, process: str) -> str:
@@ -60,7 +69,7 @@ class Process:
         else:
             raise ValueError(f'invasion_screenshots: Unknown process {process}')
 
-        logger.debug(f'cmd: {cmd}')
+        logger.info(f'starting process with: {cmd}')
 
         try:
             state_machine.start_execution(
