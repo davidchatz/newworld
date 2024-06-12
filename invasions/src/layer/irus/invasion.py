@@ -1,6 +1,10 @@
-from .environ import table, logger
+from .environ import IrusResources
 
-class Invasion:
+resources = IrusResources()
+logger = resources.logger
+table = resources.table
+
+class IrusInvasion:
 
     settlement_map = {
         "bw": "Brightwood",
@@ -61,7 +65,6 @@ class Invasion:
             item['notes'] = notes
         
         logger.debug(item)
-        logger.debug(table)
         table.put_item(Item=item)
 
         return cls(name = name, settlement = settlement, win = win, date = int(date), year = year, month = month, day = day, notes = notes)

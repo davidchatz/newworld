@@ -1,10 +1,13 @@
 from boto3.dynamodb.conditions import Key
 from dataclasses import dataclass
 from datetime import datetime
-from .environ import table, logger
+from .environ import IrusResources
 
+resources = IrusResources()
+logger = resources.logger
+table = resources.table
 
-class Member:
+class IrusMember:
 
     def __init__(self, item: dict):
         self.start = int(item['start'])

@@ -1,11 +1,14 @@
-import boto3
-import os
 import urllib3
 import json
+from irus import IrusResources
+
+resources = IrusResources()
+s3 = resources.s3
+bucket_name = resources.bucket_name
 
 # get bucket name of environment
-s3 = boto3.client('s3')
-bucket_name = os.environ.get('BUCKET_NAME')
+# s3 = boto3.client('s3')
+# bucket_name = os.environ.get('BUCKET_NAME')
 
 pool_mgr = urllib3.PoolManager()
 
@@ -33,7 +36,7 @@ def lambda_handler(event, context):
         s3.upload_fileobj(pool_mgr.request('GET', url, preload_content=False), bucket_name, target)
     except Exception as e:
         status = 400
-        data = f'Error uploading {filename} to {target}: {e}'
+        data = f'Error downloading {filename} to {target}: {e}'
 
     finally:
         return {

@@ -2,31 +2,50 @@ import os
 import boto3
 from aws_lambda_powertools import Logger
 
-# setup logging
-logger = Logger()
+class IrusResources:
 
-# get bucket name of environment
-s3 = boto3.client('s3')
-s3_resource = boto3.resource('s3')
-bucket_name = os.environ.get('BUCKET_NAME')
-logger.debug(f'bucket name: {bucket_name}')
+    logger = None
+    s3 = None
+    s3_resource = None
+    bucket_name = None
+    dynamodb = None
+    table_name = None
+    table = None
+    state_machine = None
+    step_function_arn = None
+    textract = None
+    webhook_url = None
 
-# table details
-dynamodb = boto3.resource('dynamodb')
-table_name = os.environ['TABLE_NAME']
-table = dynamodb.Table(table_name)
-logger.debug(f'table name: {table_name}')
+    def __init__(self):
 
-# downloader step function
-state_machine = boto3.client('stepfunctions')
-step_function_arn = os.environ.get('PROCESS_STEP_FUNC')
-logger.debug(f'step function arn: {step_function_arn}')
+        if not self.webhook_url:
+            self.logger = Logger()
 
-webhook_url = os.environ.get('WEBHOOK_URL')
-logger.debug(f'webhook url: {webhook_url}')
+            # get bucket name of environment
+            self.s3 = boto3.client('s3')
+            self.s3_resource = boto3.resource('s3')
+            self.bucket_name = os.environ.get('BUCKET_NAME')
+            self.logger.debug(f'bucket name: {self.bucket_name}')
+
+            # table details
+            self.dynamodb = boto3.resource('dynamodb')
+            self.table_name = os.environ['TABLE_NAME']
+            self.table = self.dynamodb.Table(self.table_name)
+            self.logger.debug(f'table name: {self.table_name}')
+
+            # downloader step function
+            self.state_machine = boto3.client('stepfunctions')
+            self.step_function_arn = os.environ.get('PROCESS_STEP_FUNC')
+            self.logger.debug(f'step function arn: {self.step_function_arn}')
+
+            # textract to scan images
+            self.textract = boto3.client('textract')
+
+            self.webhook_url = os.environ.get('WEBHOOK_URL')
+            self.logger.debug(f'webhook url: {self.webhook_url}')
 
 
-class Secrets:
+class IrusSecrets:
 
     public_key : str = None
     public_key_bytes : bytes = None

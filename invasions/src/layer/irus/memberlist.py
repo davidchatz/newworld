@@ -1,9 +1,13 @@
 from boto3.dynamodb.conditions import Key
 from dataclasses import dataclass
-from .member import Member
-from .environ import table, logger
+from .member import IrusMember
+from .environ import IrusResources
 
-class MemberList:
+resources = IrusResources()
+logger = resources.logger
+table = resources.table
+
+class IrusMemberList:
 
     def __init__(self):
         logger.info(f'MemberList.__init__')
@@ -18,7 +22,7 @@ class MemberList:
         else:
             items = response["Items"]
             for i in items:
-                self.members.append(Member(i))
+                self.members.append(IrusMember(i))
 
 
     def __str__(self) -> str:
@@ -36,8 +40,14 @@ class MemberList:
     def count(self) -> int:
         return len(self.members)
     
-    def get(self,index:int) -> Member:
+    def get(self,index:int) -> IrusMember:
         return self.members[index]
+    
+    def is_member(self, player:str) -> bool:
+        for m in self.members:
+            if m.player == player:
+                return True
+        return False
 
         #     filename = f'members/{date}.csv'
         #     logger.info(f'Writing member list to {bucket_name}/{filename}')

@@ -6,7 +6,7 @@
       "Type": "Task",
       "Resource": "arn:aws:states:::dynamodb:getItem",
       "Parameters": {
-        "TableName": "${TableName}",
+        "TableName": "invasions-Table-1KHB8TJ0DA58Y",
         "Key": {
           "invasion": {
             "S": "#invasion"
@@ -18,15 +18,18 @@
       },
       "Next": "Choice",
       "ResultPath": "$.CheckInvasionRegistration",
-      "OutputPath": "$.Item",
       "Catch": [
         {
           "ErrorEquals": [
             "States.ALL"
           ],
-          "Next": "ErrorInvasionRegistration"
+          "Next": "ErrorInvasionRegistration",
+          "ResultPath": "$.Error"
         }
-      ]
+      ],
+      "ResultSelector": {
+        "Item.$": "$.Item"
+      }
     },
     "Choice": {
       "Type": "Choice",
@@ -79,10 +82,9 @@
           "DownloadFileToS3": {
             "Type": "Task",
             "Resource": "arn:aws:states:::lambda:invoke",
-            "OutputPath": "$.Payload",
             "Parameters": {
               "Payload.$": "$",
-              "FunctionName": "$(BoardFunctionArn}"
+              "FunctionName": "${DownloadFunctionArn}"
             },
             "Retry": [
               {
@@ -107,7 +109,8 @@
                 "Next": "ErrorDownloadingFile",
                 "ResultPath": "$.Error"
               }
-            ]
+            ],
+            "ResultPath": "$.DownloadFileToS3"
           },
           "ErrorDownloadingFile": {
             "Type": "Task",
@@ -136,7 +139,8 @@
                 "JitterStrategy": "FULL"
               }
             ],
-            "Next": "FailDownloadingFile"
+            "Next": "FailDownloadingFile",
+            "ResultPath": "$.Error"
           },
           "FailDownloadingFile": {
             "Type": "Fail"
@@ -168,7 +172,8 @@
                 "JitterStrategy": "FULL"
               }
             ],
-            "Next": "SelectProcess"
+            "Next": "SelectProcess",
+            "ResultPath": "$.PostFileDownloaded"
           },
           "SelectProcess": {
             "Type": "Choice",
@@ -213,12 +218,12 @@
                 "JitterStrategy": "FULL"
               }
             ],
-            "Next": "FailProcessing"
+            "Next": "FailProcessing",
+            "ResultPath": "$.Error"
           },
           "ProcessLadder": {
             "Type": "Task",
             "Resource": "arn:aws:states:::lambda:invoke",
-            "OutputPath": "$.Payload",
             "Parameters": {
               "Payload.$": "$",
               "FunctionName": "${LadderFunctionArn}"
@@ -276,7 +281,8 @@
                 "JitterStrategy": "FULL"
               }
             ],
-            "Next": "FailProcessing"
+            "Next": "FailProcessing",
+            "ResultPath": "$.Error"
           },
           "FailProcessing": {
             "Type": "Fail"
@@ -284,7 +290,6 @@
           "ProcessRoster": {
             "Type": "Task",
             "Resource": "arn:aws:states:::lambda:invoke",
-            "OutputPath": "$.Payload",
             "Parameters": {
               "Payload.$": "$",
               "FunctionName": "${BoardFunctionArn}"
@@ -320,6 +325,7 @@
       "Next": "FileProcessed",
       "ItemsPath": "$.files",
       "ItemSelector": {
+        "post.$": "$.post",
         "invasion.$": "$.invasion",
         "filename.$": "$$.Map.Item.Value.filename",
         "folder.$": "$.folder",
@@ -370,7 +376,6 @@
     "UpdateInvasionStats": {
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
-      "OutputPath": "$.Payload",
       "Parameters": {
         "Payload.$": "$",
         "FunctionName": "${InvasionFunctionArn}"
@@ -462,7 +467,6 @@
     "UpdateMonthlyStats": {
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
-      "OutputPath": "$.Payload",
       "Parameters": {
         "Payload.$": "$",
         "FunctionName": "${InvasionFunctionArn}"

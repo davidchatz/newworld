@@ -105,9 +105,7 @@ def invasion_cmd(id:str, token:str, options:dict, resolved: dict) -> str:
         return invasion_list_cmd(options['options'])
     elif name == 'add':
         return str(invasion_add_cmd(options['options']))
-    elif name == 'ladder':
-        return invasion_download_cmd(id, token, options['options'], resolved, 'Download')
-    elif name == 'screenshots':
+    elif name == 'ladder' or name == 'screenshots':
         return invasion_download_cmd(id, token, options['options'], resolved, 'Ladder')
     elif name == 'roster':
         return invasion_download_cmd(id, token, options['options'], resolved, 'Roster')

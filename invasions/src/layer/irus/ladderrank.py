@@ -1,13 +1,17 @@
 from boto3.dynamodb.conditions import Key, Attr
 from dataclasses import dataclass
 from decimal import Decimal
-from .environ import table, logger
-from .invasion import Invasion
-from .member import Member
+from .invasion import IrusInvasion
+from .member import IrusMember
+from .environ import IrusResources
 
-class LadderRank:
+resources = IrusResources()
+logger = resources.logger
+table = resources.table
 
-    def __init__(self, invasion: Invasion, item: dict):
+class IrusLadderRank:
+
+    def __init__(self, invasion: IrusInvasion, item: dict):
         logger.info(f'LadderRank.__init__: {invasion} {item}')
         self.invasion = invasion
         self.rank = item['id']
@@ -42,7 +46,7 @@ class LadderRank:
         }
 
     @classmethod
-    def from_invasion_for_member(cls, invasion: Invasion, member: Member):
+    def from_invasion_for_member(cls, invasion: IrusInvasion, member: IrusMember):
         logger.info(f'LadderRank.from_invasion_for_member: {invasion} {member}')
         ladders = table.query(KeyConditionExpression=Key('invasion').eq(f'#ladder#{invasion.name}'),
                                 ProjectionExpression='id, #n, #r',

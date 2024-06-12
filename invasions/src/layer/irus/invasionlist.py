@@ -1,15 +1,19 @@
 from boto3.dynamodb.conditions import Key, Attr
 from decimal import Decimal
-from .invasion import Invasion
-from .environ import table, logger
+from .invasion import IrusInvasion
+from .environ import IrusResources
 
-class InvasionList:
+resources = IrusResources()
+logger = resources.logger
+table = resources.table
+
+class IrusInvasionList:
 
     def __init__(self, items:list, start:int):
         self.invasions = []
         self.start = Decimal(start)
         for i in items:
-            self.invasions.append(Invasion.from_table_item(i))
+            self.invasions.append(IrusInvasion.from_table_item(i))
 
     @classmethod
     def from_month(cls, month:int, year:int):
@@ -63,5 +67,5 @@ class InvasionList:
     def count(self) -> int:
         return len(self.invasions)
     
-    def get(self, index:int) -> Invasion:
+    def get(self, index:int) -> IrusInvasion:
         return self.invasions[index]

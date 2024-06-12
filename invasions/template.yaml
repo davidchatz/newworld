@@ -363,6 +363,7 @@ Resources:
   #           Resource: !Sub "arn:${AWS::Partition}:secretsmanager:*:*:secret:events!connection/*"
   #     DefinitionUri: step/downloader.json
 
+
   ProcessStepFunction:
     Type: AWS::Serverless::StateMachine
     Properties:
@@ -377,8 +378,16 @@ Resources:
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref Download
+        - DynamoDBReadPolicy:
+            TableName: !Ref Table
         - S3CrudPolicy:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+        - Statement:
+          - Effect: Allow
+            Action:
+              - "cloudwatch:*"
+              - "logs:*"
+            Resource: "*"
         # https://docs.aws.amazon.com/step-functions/latest/dg/connect-third-party-apis.html#connect-http-task-permissions
         - Statement:
           - Effect: Allow
@@ -399,7 +408,82 @@ Resources:
               - secretsmanager:GetSecretValue
               - secretsmanager:DescribeSecret
             Resource: !Sub "arn:${AWS::Partition}:secretsmanager:*:*:secret:events!connection/*"
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt ProcessStateMachineLogGroup.Arn
       DefinitionUri: step/process.json
+
+  ProcessStateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Join [ "/", [ "stepfunctions", !Ref AWS::StackName, "processStateMachine"]]
+      RetentionInDays: 30
+
+  DeadHandStepFunction:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionSubstitutions:
+        ProcessStepFunc: !Ref ProcessStepFunction
+        DiscordConnection: !GetAtt DiscordConnection.Arn
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action:
+              - states:StartExecution
+            Resource: !GetAtt ProcessStepFunction.Arn
+          - Effect: Allow
+            Action:
+              - states:DescribeExecution
+              - states:StopExecution
+            Resource: "*"
+        - Statement:
+          - Effect: Allow
+            Action:
+            - events:PutTargets
+            - events:PutRule
+            - events:DescribeRule
+            Resource: !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/StepFunctionsGetEventsForStepFunctionsExecutionRule
+          - Effect: Allow
+            Action:
+              - "cloudwatch:*"
+              - "logs:*"
+            Resource: "*"
+          # https://docs.aws.amazon.com/step-functions/latest/dg/connect-third-party-apis.html#connect-http-task-permissions
+        - Statement:
+          - Effect: Allow
+            Action:
+              - states:InvokeHTTPEndpoint
+            Resource: "*"
+            Condition:
+              "StringEquals":
+                "states:HTTPMethod": "POST"
+              "StringLike":
+                    "states:HTTPEndpoint": !Sub "${DiscordWebHookURL}/*"
+          - Effect: Allow
+            Action:
+              - events:RetrieveConnectionCredentials
+            Resource: !GetAtt DiscordConnection.Arn
+          - Effect: Allow
+            Action:
+              - secretsmanager:GetSecretValue
+              - secretsmanager:DescribeSecret
+            Resource: !Sub "arn:${AWS::Partition}:secretsmanager:*:*:secret:events!connection/*"
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt DeadHandStateMachineLogGroup.Arn
+      DefinitionUri: step/deadhand.json
+
+  DeadHandStateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Join [ "/", [ "stepfunctions", !Ref AWS::StackName, "deadhandStateMachine"]]
+      RetentionInDays: 30
 
   Bot:
     Type: AWS::Serverless::Function
@@ -418,7 +502,7 @@ Resources:
         - S3CrudPolicy:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
         - StepFunctionsExecutionPolicy:
-            StateMachineName: !GetAtt ProcessStepFunction.Name
+            StateMachineName: !GetAtt DeadHandStepFunction.Name
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: Bot
@@ -428,7 +512,7 @@ Resources:
           TABLE_NAME: !Ref Table
           DISCORD_CMD: !Ref DiscordCmd
           BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
-          PROCESS_STEP_FUNC: !Ref ProcessStepFunction
+          PROCESS_STEP_FUNC: !Ref DeadHandStepFunction
           WEBHOOK_URL: !Ref DiscordWebHookURL
           TZ: !Ref Timezone
       Events:
@@ -490,7 +574,10 @@ Outputs:
   Table:
     Value: !Ref Table
 
-  StepFunctionArn:
+  DeadHandStepFunctionArn:
+    Value: !Ref DeadHandStepFunction
+
+  ProcessStepFunctionArn:
     Value: !Ref ProcessStepFunction
 
   InteractionsEndpointUrl:

@@ -1,1 +1,0 @@
-from ..irus import Invasion

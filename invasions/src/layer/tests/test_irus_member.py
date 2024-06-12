@@ -3,7 +3,7 @@ import boto3
 import boto3.session
 import pytest
 from aws_lambda_powertools import Logger
-from ..irus import Member
+from ..irus import IrusMember
 
 logger = Logger(service="test_irus_member", level="INFO", correlation_id=True)
 profile = os.environ["PROFILE"]
@@ -15,15 +15,15 @@ table = dynamodb.Table(table_name)
 
 @pytest.fixture
 def member_from_user():
-    member = Member.from_user(player="fred", day=2, month=5, year=2024, faction="green", admin=False, salary=True)
+    member = IrusMember.from_user(player="fred", day=2, month=5, year=2024, faction="green", admin=False, salary=True)
     yield member
     member.remove()
 
 
 @pytest.fixture
 def member_from_table():
-    member = Member.from_user(player="mary", day=3, month=5, year=2024, faction="purple", admin=False, salary=True)
-    item = Member.from_table(player="mary")
+    member = IrusMember.from_user(player="mary", day=3, month=5, year=2024, faction="purple", admin=False, salary=True)
+    item = IrusMember.from_table(player="mary")
     yield item
     member.remove()
 
@@ -51,7 +51,7 @@ def test_member_from_table(member_from_table):
 
 
 def test_member_remove():
-    member = Member.from_user(player="paul", day=4, month=5, year=2024, faction="yellow", admin=False, salary=True)
+    member = IrusMember.from_user(player="paul", day=4, month=5, year=2024, faction="yellow", admin=False, salary=True)
     key = member.key()
     member.remove()
     response = table.get_item(Key=key)
@@ -60,5 +60,5 @@ def test_member_remove():
 
 def test_member_from_table_not_found():
     with pytest.raises(ValueError) as excinfo:
-        member = Member.from_table('karen')
+        member = IrusMember.from_table('karen')
     assert str(excinfo.value) == "No member found called karen"

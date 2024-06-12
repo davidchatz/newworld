@@ -2,11 +2,10 @@ import os
 import boto3
 import boto3.session
 import pytest
-from decimal import Decimal
 from aws_lambda_powertools import Logger
-from ..irus import Member, MemberList
+from ..irus import IrusMember, IrusMemberList
 
-logger = Logger(service="test_irus_member", level="INFO", correlation_id=True)
+logger = Logger(service="test_irus_memberlist", level="INFO", correlation_id=True)
 profile = os.environ["PROFILE"]
 session = boto3.session.Session(profile_name=profile)
 dynamodb = session.resource('dynamodb')
@@ -16,10 +15,10 @@ table = dynamodb.Table(table_name)
 
 @pytest.fixture
 def memberlist_init():
-    fred = Member.from_user(player="fred", day=2, month=5, year=2024, faction="green", admin=False, salary=True)
-    mary = Member.from_user(player="mary", day=3, month=5, year=2024, faction="purple", admin=False, salary=True)
-    paul = Member.from_user(player="paul", day=4, month=5, year=2024, faction="yellow", admin=False, salary=True)
-    members = MemberList()
+    fred = IrusMember.from_user(player="fred", day=2, month=5, year=2024, faction="green", admin=False, salary=True)
+    mary = IrusMember.from_user(player="mary", day=3, month=5, year=2024, faction="purple", admin=False, salary=True)
+    paul = IrusMember.from_user(player="paul", day=4, month=5, year=2024, faction="yellow", admin=False, salary=True)
+    members = IrusMemberList()
     yield members
     paul.remove()
     mary.remove()

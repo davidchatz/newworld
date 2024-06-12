@@ -1,14 +1,15 @@
 import os
 import json
-import boto3
 from botocore.exceptions import ClientError
-from .environ import logger
-from .invasion import Invasion
+from .invasion import IrusInvasion
+from .environ import IrusResources
 
-state_machine = boto3.client('stepfunctions')
+resources = IrusResources()
+logger = resources.logger
+table = resources.table
+state_machine = resources.state_machine
 
-
-class Files:
+class IrusFiles:
 
     def __init__(self):
         self.files : list = []
@@ -36,7 +37,7 @@ class Files:
         return self.files
 
 
-class Process:
+class IrusProcess:
 
     step_func_arn : str = None
     webhook_url : str = None
@@ -49,7 +50,7 @@ class Process:
             raise ValueError(f'Environment not defined {self.step_function_arn} {self.webhook_url}')
 
 
-    def start(self, id: str, token: str, invasion: Invasion, files: Files, process: str) -> str:
+    def start(self, id: str, token: str, invasion: IrusInvasion, files: IrusFiles, process: str) -> str:
 
         logger.info(f'Process.start:\nid: {id}\ntoken: {token}\ninvasion: {invasion}\nfiles: {files}\nprocess: {process}')
 
@@ -62,7 +63,7 @@ class Process:
             'month': invasion.month_prefix()
         }
 
-        if process == "Ladder" or process == "Download":
+        if process == "Ladder":
             cmd['folder'] = 'ladders/' + cmd['invasion'] + '/'
         elif process == "Roster":
             cmd['folder'] = 'boards/' + cmd['invasion'] + '/'
