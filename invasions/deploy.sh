@@ -3,13 +3,19 @@
 status=1
 tmp=/tmp/$$
 cmd=`basename $0`
+pids=""
 
-PROFILE=testnewworld
+AWS_PROFILE=testnewworld
 STACK_NAME=invasions
+LOG_LEVEL=info
 
 _cleanup()
 {
     rm -rf $tmp
+    if [[ -n "$pids" ]]
+    then
+        kill $pids
+    fi
     exit $status
 }
 
@@ -85,14 +91,14 @@ function _error()
 }
 
 
-REGION=$(aws configure get region --profile $PROFILE)
+REGION=$(aws configure get region --profile $AWS_PROFILE)
 if [[ -z "$REGION" ]]
 then
     _note "Defaulting to ap-southeast-2"
     REGION=ap-southeast-2
 fi
 
-OPTIONS="--region $REGION --profile $PROFILE"
+OPTIONS="--region $REGION --profile $AWS_PROFILE"
 
 ACCOUNT=$(aws sts get-caller-identity $OPTIONS --query Account --output text)
 if [[ -z "$ACCOUNT" ]]
@@ -100,6 +106,16 @@ then
     _error "Unable to determine AWS Account ID, credentials may have expired."
 fi
 
+TEST_BUCKET=${STACK_NAME}-test-${ACCOUNT}-${REGION}
+
+function _create_bucket()
+{
+    if aws s3api head-bucket $OPTIONS --bucket $1 2>&1 | grep -q 404;
+    then
+        _walk aws s3 mb $OPTIONS s3://$1 
+        sleep 2
+    fi
+}
 
 function _empty_bucket()
 {
@@ -108,6 +124,16 @@ function _empty_bucket()
         _run aws s3 rm $OPTIONS --recursive s3://$1
     fi
 }
+
+function _delete_bucket()
+{
+    if ! aws s3api head-bucket $OPTIONS --bucket $1 2>&1 | grep -q 404;
+    then
+        _run aws s3 rm $OPTIONS --recursive s3://$1
+        _run aws s3 rb $OPTIONS s3://$1
+    fi  
+}
+
 
 function _init()
 {
@@ -143,17 +169,22 @@ warm_containers = "EAGER"
 [prod.sync.parameters]
 watch = false
 EOF
+
+    _header "Create and populate S3 bucket with test images"
+
+    _create_bucket $TEST_BUCKET
+    _walk aws s3 sync $OPTIONS tests/samples s3://$TEST_BUCKET 
 }
 
 function _build()
 {
     _header "SAM build"
-    _walk sam build
+    _walk sam build --use-container
 }
 
 function _update_env()
 {
-    _header "Update environment variables"
+    _header "Update environment variable files"
 
     BUCKET=$(aws cloudformation describe-stacks \
             $OPTIONS \
@@ -187,12 +218,33 @@ function _update_env()
     
     cat << EOF > .env
 BUCKET_NAME=$BUCKET
+TEST_BUCKET_NAME=$TEST_BUCKET
 TABLE_NAME=$TABLE
 DEAD_HAND_STEP_FUNC=$DEAD_HAND_STEP
 PROCESS_STEP_FUNC=$PROCESS_STEP
 WEBHOOK_URL=$URL
-PROFILE=$PROFILE
-POWERTOOLS_LOG_LEVEL=info
+AWS_PROFILE=$AWS_PROFILE
+POWERTOOLS_LOG_LEVEL=$LOG_LEVEL
+EOF
+    cat .env
+
+    cat << EOF > .env.json
+{
+    "Download": {
+        "POWERTOOLS_SERVICE_NAME": "Download",
+        "POWERTOOLS_LOG_LEVEL": "$LOG_LEVEL",
+        "BUCKET_NAME": "$BUCKET"
+    },
+    "Ladder": {
+        "POWERTOOLS_SERVICE_NAME": "Ladder",
+        "POWERTOOLS_LOG_LEVEL": "$LOG_LEVEL",
+        "BUCKET_NAME": "$BUCKET",
+        "TABLE_NAME": "$TABLE",
+        "DEAD_HAND_STEP_FUNC": "$DEAD_HAND_STEP",
+        "PROCESS_STEP_FUNC": "$PROCESS_STEP",
+        "WEBHOOK_URL": "$URL"
+    }
+}
 EOF
 }
 
@@ -203,7 +255,7 @@ function _deploy()
     _update_env
 }
 
-function _test()
+function _cleanup_table()
 {
     _header "Cleanup table"
     TABLE=$(aws cloudformation describe-stacks \
@@ -211,13 +263,57 @@ function _test()
             --stack-name $STACK_NAME \
             --query 'Stacks[].Outputs[?OutputKey==`Table`].{id:OutputValue}' \
             --output text)
-    _run ./src/layer/tests/delete_items.py $PROFILE $TABLE
+    _run ./src/layer/tests/delete_items.py $AWS_PROFILE $TABLE
+}
+
+function _cleanup_bucket()
+{
+    _header "Cleanup bucket"
+    _note TODO
+}
+
+function _cleanup_test_bucket()
+{
+    _header "Cleanup test image bucket"
+    _empty_bucket $TEST_BUCKET
+    _delete_bucket $TEST_BUCKET
+}
+
+function _test()
+{
+    _cleanup_table
+    _cleanup_bucket
     _header "Test deployment"
     _walk pytest
 }
 
+function _local_test_prep()
+{
+    _header "Prepare local test of lambda functions"
+    _walk sam build --use-container
+}
+
+function _test_download()
+{
+    _header "Test download lambda"
+    pid=$(lsof -i tcp:3001 -t)
+    if [[ -n "$pid" ]]
+    then
+        _warn sam lambda server already running, terminating
+        _run kill $pid
+    fi
+    _note sam local start-lambda --env-vars .env.json
+    sam local start-lambda --env-vars .env.json &
+    pid=$!
+    pids="$pids $pid"
+    _run sleep 10
+    _walk pytest tests/test_download.py
+    _run kill -s INT $pid
+}
+
 function _delete()
 {
+    _cleanup_test_bucket
     _header "SAM delete"
     _walk sam delete
 }
@@ -236,14 +332,30 @@ case $1 in
         _deploy
         ;;
 
+    update-env)
+        _update_env
+        ;;
+
     test)
         _test
+        ;;
+
+    local-test-prep)
+        _local_test_prep
+        ;;
+
+    test-download)
+        _test_download
         ;;
 
     install)
         _build
         _deploy
         _test
+        ;;
+
+    env)
+        _update_env
         ;;
 
     cleanup)

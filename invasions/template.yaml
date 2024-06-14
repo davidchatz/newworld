@@ -305,6 +305,7 @@ Resources:
         Variables:
           POWERTOOLS_SERVICE_NAME: Download
           POWERTOOLS_LOG_LEVEL: !Ref LogLevel
+          BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
       Policies: 
         - S3CrudPolicy:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"

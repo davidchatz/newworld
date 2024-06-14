@@ -5,7 +5,7 @@ from datetime import datetime
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
 from aws_lambda_powertools.utilities.typing import LambdaContext
-from irus import Invasion, InvasionList, Member, MemberList, LadderRank, Secrets, Files, Process, logger
+from irus import IrusInvasion, IrusInvasionList, IrusMember, IrusMemberList, IrusLadderRank, IrusSecrets, IrusFiles, IrusProcess, IrusResources
 
 
 discord_cmd = os.environ['DISCORD_CMD']
@@ -14,8 +14,10 @@ discord_cmd = os.environ['DISCORD_CMD']
 # Authenticate Requests
 # Verify raises exception if it fails
 #
-secrets = Secrets()
-process = Process()
+resources = IrusResources()
+logger = resources.logger
+secrets = IrusSecrets()
+process = IrusProcess()
 
 def verify_signature(event):
     body = event['body']
@@ -41,10 +43,10 @@ def invasion_list_cmd(options:list) -> str:
         elif o["name"] == "year":
             year = int(o["value"])
 
-    return InvasionList.from_month(month=month, year=year).markdown()
+    return IrusInvasionList.from_month(month=month, year=year).markdown()
 
 
-def invasion_add_cmd(options:list) -> Invasion:
+def invasion_add_cmd(options:list) -> IrusInvasion:
     logger.info(f'invasion_add: {options}')
 
     notes=None
@@ -67,7 +69,7 @@ def invasion_add_cmd(options:list) -> Invasion:
         elif o["name"] == "notes":
             notes = o["value"]
 
-    item = Invasion.from_user(day=day,
+    item = IrusInvasion.from_user(day=day,
                               month=month,
                               year=year,
                               settlement=settlement,
@@ -81,12 +83,12 @@ def invasion_download_cmd(id: str, token: str, options:list, resolved:dict, meth
     logger.info(f'invasion_download_cmd:\nid: {id}\ntoken: {token}\noptions: {options}\nresolved: {resolved}\nmethod: {method}')
 
     invasion = None
-    files = Files()
+    files = IrusFiles()
 
     try:
         for o in options:
             if o["name"] == "invasion":
-                invasion = Invasion.from_table(o["value"])
+                invasion = IrusInvasion.from_table(o["value"])
             elif o["name"].startswith("file"):
                 files.append(name = o["name"], attachment = o["value"])
     except ValueError as e:
@@ -118,12 +120,12 @@ def invasion_cmd(id:str, token:str, options:dict, resolved: dict) -> str:
 #
 
 def member_list_cmd() -> str:
-    return MemberList().markdown()
+    return IrusMemberList().markdown()
 
 
-def update_invasions(member: Member) -> str:
+def update_invasions(member: IrusMember) -> str:
     logger.info(f'Ladder.update_invasions: {member}')
-    invasionlist = InvasionList.from_start(member.start)
+    invasionlist = IrusInvasionList.from_start(member.start)
     logger.debug(f'Invasions on or after {invasionlist.start}: {str(invasionlist)}')
 
     if invasionlist.count() == 0:
@@ -132,7 +134,7 @@ def update_invasions(member: Member) -> str:
         mesg = f'\n## Member flag updated in these invasions:\n'
         for i in invasionlist.invasions:
             try:
-                ladder = LadderRank.from_invasion_for_member(i, member)
+                ladder = IrusLadderRank.from_invasion_for_member(i, member)
                 logger.debug(f'LadderRank.from_invasion_for_member: {ladder}')
                 mesg += f'- {i.name} rank {ladder.rank}\n'
                 ladder.update_membership(True)
@@ -174,7 +176,7 @@ def member_add_cmd(options:list) -> str:
         elif o["name"] == "salary":
             salary = bool(o["value"])
 
-    member = Member.from_user(player=player,
+    member = IrusMember.from_user(player=player,
                                 day=day,
                                 month=month,
                                 year=year,
@@ -197,7 +199,7 @@ def member_remove_cmd(options:list) -> str:
             player = o["value"]
 
     try:
-        member = Member.from_table(player)
+        member = IrusMember.from_table(player)
     except ValueError:
         return f'Member {player} not found'
     return member.remove()

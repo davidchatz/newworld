@@ -5,6 +5,7 @@ from aws_lambda_powertools import Logger
 class IrusResources:
 
     logger = None
+    session = None
     s3 = None
     s3_resource = None
     bucket_name = None
@@ -15,34 +16,48 @@ class IrusResources:
     step_function_arn = None
     textract = None
     webhook_url = None
+    done = False
 
-    def __init__(self):
+    def __init__(self, profile:str = None):
 
-        if not self.webhook_url:
+        if self.done == False:
             self.logger = Logger()
 
+            if profile:
+                self.session = boto3.session.Session(profile_name=profile)
+            else:
+                self.session = boto3.session.Session()
+
             # get bucket name of environment
-            self.s3 = boto3.client('s3')
-            self.s3_resource = boto3.resource('s3')
             self.bucket_name = os.environ.get('BUCKET_NAME')
+            if self.bucket_name:
+                self.s3 = self.session.client('s3')
+                self.s3_resource = self.session.resource('s3')
+
             self.logger.debug(f'bucket name: {self.bucket_name}')
 
             # table details
-            self.dynamodb = boto3.resource('dynamodb')
-            self.table_name = os.environ['TABLE_NAME']
-            self.table = self.dynamodb.Table(self.table_name)
+            self.table_name = os.environ.get('TABLE_NAME')
+            if self.table_name:
+                self.dynamodb = self.session.resource('dynamodb')
+                self.table = self.dynamodb.Table(self.table_name)
+
             self.logger.debug(f'table name: {self.table_name}')
 
             # downloader step function
-            self.state_machine = boto3.client('stepfunctions')
             self.step_function_arn = os.environ.get('PROCESS_STEP_FUNC')
+            if self.step_function_arn:
+                self.state_machine = self.session.client('stepfunctions')
+            
             self.logger.debug(f'step function arn: {self.step_function_arn}')
 
             # textract to scan images
-            self.textract = boto3.client('textract')
+            self.textract = self.session.client('textract')
 
             self.webhook_url = os.environ.get('WEBHOOK_URL')
             self.logger.debug(f'webhook url: {self.webhook_url}')
+
+            self.done = True
 
 
 class IrusSecrets:
