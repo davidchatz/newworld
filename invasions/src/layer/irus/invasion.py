@@ -124,3 +124,9 @@ class IrusInvasion:
     def month_prefix(self):
         zero_month = '{0:02d}'.format(int(self.month))
         return f'{self.year}{zero_month}'
+    
+    def path_ladders(self):
+        return f'ladders/{self.name}/'
+    
+    def path_roster(self):
+        return f'roster/{self.name}/'

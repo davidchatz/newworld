@@ -293,7 +293,7 @@ function _local_test_prep()
     _walk sam build --use-container
 }
 
-function _test_download()
+function _test_local()
 {
     _header "Test download lambda"
     pid=$(lsof -i tcp:3001 -t)
@@ -307,7 +307,7 @@ function _test_download()
     pid=$!
     pids="$pids $pid"
     _run sleep 10
-    _walk pytest tests/test_download.py
+    _walk pytest tests
     _run kill -s INT $pid
 }
 
@@ -344,14 +344,15 @@ case $1 in
         _local_test_prep
         ;;
 
-    test-download)
-        _test_download
+    test-local)
+        _test_local
         ;;
 
     install)
         _build
         _deploy
         _test
+        _test_local
         ;;
 
     env)

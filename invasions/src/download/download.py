@@ -31,6 +31,7 @@ def lambda_handler(event: dict, context: LambdaContext):
 
     try:
         s3.upload_fileobj(pool_mgr.request('GET', url, preload_content=False), bucket_name, target)
+        
     except Exception as e:
         status = 400
         logger.error(f'Error downloading {filename} to {target}: {e}')
