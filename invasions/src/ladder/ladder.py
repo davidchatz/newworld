@@ -19,11 +19,12 @@ def lambda_handler(event:dict, context:LambdaContext):
 
     name = event["invasion"]
     filename = event["filename"]
+    folder = event["folder"]
 
     try:
         members = IrusMemberList()
         invasion = IrusInvasion.from_table(name)
-        ladder = IrusLadder.from_image(invasion, members, bucket_name, filename)
+        ladder = IrusLadder.from_image(invasion, members, bucket_name, folder + filename)
         msg = str(ladder)
     except Exception as e:
         status = 500

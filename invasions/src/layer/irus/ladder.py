@@ -237,7 +237,7 @@ class IrusLadder:
         return count
     
     def __str__(self) -> str:
-        return f'Ladder for invasion {self.invasion.name} of {self.count()} ranks including {self.members()} members\n'
+        return f'Ladder for invasion {self.invasion.name} of {self.count()} ranks including {self.members()} members'
 
     def csv(self) -> str:
         msg = f'ladder for invasion {self.invasion.name}\n'
