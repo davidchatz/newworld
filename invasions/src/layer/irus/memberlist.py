@@ -44,8 +44,14 @@ class IrusMemberList:
         return self.members[index]
     
     def is_member(self, player:str) -> bool:
+        # Replace any letter O in name with number 0
+        playerO = player.replace('O', '0')
+        # Replace any number 0 in name with letter 0
+        player0 = playerO.replace('0', 'O')
+
+        # Check if player is in the list
         for m in self.members:
-            if m.player == player:
+            if m.player == player or m.player == playerO or m.player == player0:
                 return True
         return False
 

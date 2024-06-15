@@ -134,6 +134,23 @@ function _delete_bucket()
     fi  
 }
 
+function _sync_samples()
+{
+    _header "Create and populate S3 bucket with test images"
+
+    _create_bucket $TEST_BUCKET
+    _walk aws s3 sync $OPTIONS tests/samples s3://$TEST_BUCKET --exclude .DS_store
+
+    _header "Sync some samples to target bucket"
+
+    BUCKET=$(aws cloudformation describe-stacks \
+            $OPTIONS \
+            --stack-name $STACK_NAME \
+            --query 'Stacks[].Outputs[?OutputKey==`Bucket`].{id:OutputValue}' \
+            --output text)
+
+    _walk aws s3 sync $OPTIONS s3://$TEST_BUCKET/20240611-rw s3://$BUCKET/ladders/20240611-rw/ --exclude .DS_store
+}
 
 function _init()
 {
@@ -169,11 +186,6 @@ warm_containers = "EAGER"
 [prod.sync.parameters]
 watch = false
 EOF
-
-    _header "Create and populate S3 bucket with test images"
-
-    _create_bucket $TEST_BUCKET
-    _walk aws s3 sync $OPTIONS tests/samples s3://$TEST_BUCKET 
 }
 
 function _build()
@@ -269,7 +281,12 @@ function _cleanup_table()
 function _cleanup_bucket()
 {
     _header "Cleanup bucket"
-    _note TODO
+    BUCKET=$(aws cloudformation describe-stacks \
+            $OPTIONS \
+            --stack-name $STACK_NAME \
+            --query 'Stacks[].Outputs[?OutputKey==`Bucket`].{id:OutputValue}' \
+            --output text)
+    _empty_bucket $BUCKET
 }
 
 function _cleanup_test_bucket()
@@ -282,7 +299,8 @@ function _cleanup_test_bucket()
 function _test()
 {
     _cleanup_table
-    _cleanup_bucket
+    # _cleanup_bucket
+    _sync_samples
     _header "Test deployment"
     _walk pytest
 }
@@ -295,6 +313,9 @@ function _local_test_prep()
 
 function _test_local()
 {
+    _cleanup_table
+    # _cleanup_bucket
+    _sync_samples
     _header "Test download lambda"
     pid=$(lsof -i tcp:3001 -t)
     if [[ -n "$pid" ]]
@@ -302,11 +323,11 @@ function _test_local()
         _warn sam lambda server already running, terminating
         _run kill $pid
     fi
-    _note sam local start-lambda --env-vars .env.json
-    sam local start-lambda --env-vars .env.json &
+    _note sam local start-lambda --env-vars .env.json --warm-containers eager
+    sam local start-lambda --env-vars .env.json --warm-containers eager &
     pid=$!
     pids="$pids $pid"
-    _run sleep 10
+    _run sleep 15
     _walk pytest tests
     _run kill -s INT $pid
 }
@@ -314,6 +335,8 @@ function _test_local()
 function _delete()
 {
     _cleanup_test_bucket
+    # _cleanup_bucket
+    # _cleanup_table
     _header "SAM delete"
     _walk sam delete
 }
@@ -348,7 +371,7 @@ case $1 in
         _test_local
         ;;
 
-    install)
+    all)
         _build
         _deploy
         _test

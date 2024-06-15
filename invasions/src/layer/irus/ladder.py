@@ -1,6 +1,7 @@
 from boto3.dynamodb.conditions import Key, Attr
 from botocore.exceptions import ClientError
 from dataclasses import dataclass
+from decimal import Decimal
 from .ladderrank import IrusLadderRank
 from .environ import IrusResources
 from .invasion import IrusInvasion
@@ -74,7 +75,7 @@ def get_rows_columns_map(table_result, blocks_map):
     return rows
 
 
-def generate_ladder_ranks(rows:list, members:IrusMemberList) -> list:
+def generate_ladder_ranks(invasion:IrusInvasion, rows:list, members:IrusMemberList) -> list:
     rec = []
 
     for row_index, cols in rows.items():
@@ -87,7 +88,7 @@ def generate_ladder_ranks(rows:list, members:IrusMemberList) -> list:
                 # Name may flow into score, so be more aggresive filtering this value
                 f = filter(str.isnumeric,cols[4])
                 player = cols[3].rstrip()
-                result = IrusLadderRank({
+                result = IrusLadderRank(invasion=invasion, item={
                     'rank': '{0:02d}'.format(i),
                     'player': player,
                     'score': int("".join(f)),
@@ -105,7 +106,7 @@ def generate_ladder_ranks(rows:list, members:IrusMemberList) -> list:
             elif col_indices == 8:
                 f = filter(str.isnumeric,cols[3])
                 player = cols[2].rstrip()
-                result = IrusLadderRank({
+                result = IrusLadderRank(invasion=invasion, item={
                     'rank': '{0:02d}'.format(i),
                     'player': player,
                     'score': int("".join(f)),
@@ -152,13 +153,13 @@ class IrusLadder:
             raise ValueError(f'Do not recognise invasion ladder in {bucket}/{key}')
 
         rows = get_rows_columns_map(table_blocks[0], blocks_map)
-        rec = generate_ladder_ranks(rows, members)
+        rec = generate_ladder_ranks(invasion, rows, members)
 
         try:
             table.put_item(Item={'invasion': f'#upload#{invasion.name}', 'id': key})
             with table.batch_writer() as batch:
                 for item in rec:
-                    batch.put_item(Item=dict(item))
+                    batch.put_item(Item=item.item())
         except ClientError as err:
             logger.error(f'Failed to update table: {err}')
             raise ValueError(f'Failed to update table: {err}')
@@ -178,7 +179,8 @@ class IrusLadder:
     def is_contiguous_from_1(self) -> bool:
         count = 1
         for r in self.ranks:
-            if r.rank != count:
+            if int(r.rank) != count:
+                logger.debug(f's_contiguous_from_1: Rank {r.rank} is not {count}')
                 return False
             count += 1
         return True
@@ -189,7 +191,7 @@ class IrusLadder:
     def members(self) -> int:
         count = 0
         for r in self.ranks:
-            count += 1 if r['member'] == True else 0
+            count += 1 if r.member == True else 0
         return count
     
     def __str__(self) -> str:

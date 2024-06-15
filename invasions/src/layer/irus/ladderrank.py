@@ -14,21 +14,36 @@ class IrusLadderRank:
     def __init__(self, invasion: IrusInvasion, item: dict):
         logger.info(f'LadderRank.__init__: {invasion} {item}')
         self.invasion = invasion
-        self.rank = item['id']
+        self.rank = item['rank']
         self.member = bool(item['member'])
         self.player = item['player']
         self.score = int(item['score'])
         self.kills = int(item['kills'])
         self.deaths = int(item['deaths'])
-        self.assists = int['assists']
-        self.heals = int['heals']
-        self.damage = int['damage']
+        self.assists = int(item['assists'])
+        self.heals = int(item['heals'])
+        self.damage = int(item['damage'])
         self.ladder = bool(item['ladder'])
 
    
     def invasion_key(self) -> str:
         return f'#ladder#{self.invasion.name}'
 
+
+    def item(self) -> dict:
+        return {
+            'invasion': self.invasion_key(),
+            'id': self.rank,
+            'member': self.member,
+            'player': self.player,
+            'score': self.score,
+            'kills': self.kills,
+            'deaths': self.deaths,
+            'assists': self.assists,
+            'heals': self.heals,
+            'damage': self.damage,
+            'ladder': self.ladder
+        }
 
     def __dict__(self) -> dict:
         return {
@@ -62,6 +77,8 @@ class IrusLadderRank:
             logger.error(f'Player {member.player} matched multiple times in {invasion.name}')
             raise ValueError(f'Player {member.player} matched multiple times in {invasion.name}')
         
+        # Maybe we should just store both id and rank, even though they are the same in the ladder rank
+        items[0]['rank'] = items[0]['id']
         return cls(invasion, items[0])
 
 

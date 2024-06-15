@@ -144,6 +144,52 @@ Resources:
       BuildMethod: python3.11
       BuildArchitecture: x86_64  
 
+  # LadderAsync:
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     Handler: ladder_async.lambda_handler
+  #     Runtime: python3.11
+  #     CodeUri: src/ladder_async
+  #     Description: 'Scan invasion screen shots'
+  #     MemorySize: 256
+  #     Timeout: 10
+  #     Policies: 
+  #       - TextractPolicy: {}
+  #       - S3ReadPolicy:
+  #           BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+  #       - DynamoDBCrudPolicy:
+  #           TableName: !Ref Table
+  #     Environment:
+  #       Variables:
+  #         POWERTOOLS_SERVICE_NAME: LadderAsync
+  #         POWERTOOLS_LOG_LEVEL: !Ref LogLevel
+  #         APP_ID_PATH: !Sub "${SsmPrefix}/${AppIdPath}"
+  #         TABLE_NAME: !Ref Table
+  #         BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+  #         TZ: !Ref Timezone
+  #     Events:
+  #       ScanLadder:
+  #         Type: S3
+  #         Properties:
+  #           Bucket: !Ref InvasionBucket
+  #           Events:
+  #             - s3:ObjectCreated:*
+  #           Filter:
+  #             S3Key:
+  #               Rules:
+  #                 - Name: prefix
+  #                   Value: "ladders/"
+  #                 - Name: suffix
+  #                   Value: .png
+
+  # LadderAsyncLogGroup:
+  #   Type: AWS::Logs::LogGroup
+  #   DeletionPolicy: Delete
+  #   UpdateReplacePolicy: Delete
+  #   Properties:
+  #     LogGroupName: !Sub /aws/lambda/${LadderAsync}
+  #     RetentionInDays: 30
+
   Ladder:
     Type: AWS::Serverless::Function
     Properties:
@@ -163,24 +209,8 @@ Resources:
         Variables:
           POWERTOOLS_SERVICE_NAME: Ladder
           POWERTOOLS_LOG_LEVEL: !Ref LogLevel
-          APP_ID_PATH: !Sub "${SsmPrefix}/${AppIdPath}"
           TABLE_NAME: !Ref Table
           BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
-          TZ: !Ref Timezone
-      Events:
-        ScanLadder:
-          Type: S3
-          Properties:
-            Bucket: !Ref InvasionBucket
-            Events:
-              - s3:ObjectCreated:*
-            Filter:
-              S3Key:
-                Rules:
-                  - Name: prefix
-                    Value: "ladders/"
-                  - Name: suffix
-                    Value: .png
 
   LadderLogGroup:
     Type: AWS::Logs::LogGroup

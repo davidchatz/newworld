@@ -1,15 +1,15 @@
 import json
 import urllib
 from irus import IrusResources, IrusMemberList, IrusLadder, IrusInvasion
-
+from aws_lambda_powertools.utilities.typing import LambdaContext
 
 resources = IrusResources()
 logger = resources.logger
-textract = resources.textract
-table = resources.table
+bucket_name = resources.bucket_name
 
 # define lambda handler that gets S3 bucket and key from event and calls import_table
-def lambda_handler(event, context):
+@logger.inject_lambda_context(log_event=True)
+def lambda_handler(event:dict, context:LambdaContext):
 
     status = 200
     headers = {
@@ -17,33 +17,17 @@ def lambda_handler(event, context):
     }
     msg = ''
 
-    # get bucket and key from event
-    bucket = event['Records'][0]['s3']['bucket']['name']
-    # key = event['Records'][0]['s3']['object']['key']
-    key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'])
-    folders = key.split('/')
+    name = event["invasion"]
+    filename = event["filename"]
 
-    if len(folders) != 3:
-        status = 401
-        msg = f'Skipping {key} as it is not in the correct format'
-    elif folders[0] != 'ladders':
-        status = 401
-        msg = f'Skipping {key} as it is not in the correct format'
-    elif key[-4:] != '.png':
-        status = 401
-        msg = f'Skipping {key} as it is not a PNG file'
-    else:
-        try:
-            name = folders[1]
-            logger.info(f'ladders: {bucket}/{key} for {name}')
-            members = IrusMemberList()
-            invasion = IrusInvasion.from_table(name)
-            ladder = IrusLadder(invasion, members, bucket, key)
-            msg = str(ladder)
-        except Exception as e:
-            status = 500
-            msg = f'Error importing {key} for {invasion}: {e}'
-
+    try:
+        members = IrusMemberList()
+        invasion = IrusInvasion.from_table(name)
+        ladder = IrusLadder.from_image(invasion, members, bucket_name, filename)
+        msg = str(ladder)
+    except Exception as e:
+        status = 500
+        msg = f'Error importing ladder {filename} for {invasion}: {e}'
 
     if status == 200:
         logger.info(msg)

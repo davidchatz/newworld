@@ -64,9 +64,9 @@ class IrusProcess:
         }
 
         if process == "Ladder":
-            cmd['folder'] = 'ladders/' + cmd['invasion'] + '/'
+            cmd['folder'] = invasion.path_ladders()
         elif process == "Roster":
-            cmd['folder'] = 'boards/' + cmd['invasion'] + '/'
+            cmd['folder'] = invasion.path_roster()
         else:
             raise ValueError(f'invasion_screenshots: Unknown process {process}')
 

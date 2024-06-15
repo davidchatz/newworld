@@ -30,7 +30,12 @@ def lambda_handler(event: dict, context: LambdaContext):
     logger.info(f'Downloading file {filename} from {url} to {target} for invasion {invasion}')
 
     try:
-        s3.upload_fileobj(pool_mgr.request('GET', url, preload_content=False), bucket_name, target)
+        if filename[-4:] != '.png':
+            status = 400
+            logger.warning(f'Skipping {filename} as it is not a PNG file')
+            msg = f'Skipping {filename} as it is not a PNG file'
+        else:
+            s3.upload_fileobj(pool_mgr.request('GET', url, preload_content=False), bucket_name, target)
         
     except Exception as e:
         status = 400
