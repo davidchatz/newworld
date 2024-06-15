@@ -75,6 +75,9 @@ def get_rows_columns_map(table_result, blocks_map):
     return rows
 
 
+def numeric(orig:str) -> int:
+    return int("".join(filter(str.isnumeric, orig)))
+
 def generate_ladder_ranks(invasion:IrusInvasion, rows:list, members:IrusMemberList) -> list:
     rec = []
 
@@ -82,21 +85,19 @@ def generate_ladder_ranks(invasion:IrusInvasion, rows:list, members:IrusMemberLi
         col_indices = len(cols.items())
         
         try:
-            i = int("".join(filter(str.isnumeric, cols[1])))
             # sometimes textextract treats icon as a column
             if col_indices == 9 or col_indices == 10:
                 # Name may flow into score, so be more aggresive filtering this value
-                f = filter(str.isnumeric,cols[4])
                 player = cols[3].rstrip()
                 result = IrusLadderRank(invasion=invasion, item={
-                    'rank': '{0:02d}'.format(i),
+                    'rank': '{0:02d}'.format(numeric(cols[1])),
                     'player': player,
-                    'score': int("".join(f)),
-                    'kills': int(cols[5].replace(',','')),
-                    'deaths': int(cols[6].replace(',','')),
-                    'assists': int(cols[7].replace(',','')),
-                    'heals': int(cols[8].replace(',','')),
-                    'damage': int(cols[9].replace(',','')),
+                    'score': numeric(cols[4]),
+                    'kills': numeric(cols[5]),
+                    'deaths': numeric(cols[6]),
+                    'assists': numeric(cols[7]),
+                    'heals': numeric(cols[8]),
+                    'damage': numeric(cols[9]),
                     # Are they listed as a company member, this is updated in insert_db
                     'member': members.is_member(player),
                     # Are these stats from a ladder screenshot import
@@ -104,17 +105,17 @@ def generate_ladder_ranks(invasion:IrusInvasion, rows:list, members:IrusMemberLi
                 })
                 rec.append(result)
             elif col_indices == 8:
-                f = filter(str.isnumeric,cols[3])
                 player = cols[2].rstrip()
                 result = IrusLadderRank(invasion=invasion, item={
-                    'rank': '{0:02d}'.format(i),
+                    'rank': '{0:02d}'.format(numeric(cols[1])),
                     'player': player,
-                    'score': int("".join(f)),
-                    'kills': int(cols[4].replace(', ', '')),
-                    'deaths': int(cols[5].replace(', ', '')),
-                    'assists': int(cols[6].replace(', ', '')),
-                    'heals': int(cols[7].replace(', ', '')),
-                    'damage': int(cols[8].replace(',','')),
+                    'score': numeric(cols[3]),
+                    # sometimes textextract treats icon as a column
+                    'kills': numeric(cols[4]),
+                    'deaths': numeric(cols[5]),
+                    'assists': numeric(cols[6]),
+                    'heals': numeric(cols[7]),
+                    'damage': numeric(cols[8]),
                     'member': members.is_member(player),
                     'ladder': True
                 })
@@ -122,8 +123,48 @@ def generate_ladder_ranks(invasion:IrusInvasion, rows:list, members:IrusMemberLi
             else:
                 logger.info(f'Skipping {row_index} with {col_indices} items: {cols}')
 
+            # i = int("".join(filter(str.isnumeric, cols[1])))
+            # # sometimes textextract treats icon as a column
+            # if col_indices == 9 or col_indices == 10:
+            #     # Name may flow into score, so be more aggresive filtering this value
+            #     f = filter(str.isnumeric,cols[4])
+            #     player = cols[3].rstrip()
+            #     result = IrusLadderRank(invasion=invasion, item={
+            #         'rank': '{0:02d}'.format(i),
+            #         'player': player,
+            #         'score': int("".join(f)),
+            #         'kills': int(cols[5].replace(',','')),
+            #         'deaths': int(cols[6].replace(',','')),
+            #         'assists': int(cols[7].replace(',','')),
+            #         'heals': int(cols[8].replace(',','')),
+            #         'damage': int(cols[9].replace(',','')),
+            #         # Are they listed as a company member, this is updated in insert_db
+            #         'member': members.is_member(player),
+            #         # Are these stats from a ladder screenshot import
+            #         'ladder': True
+            #     })
+            #     rec.append(result)
+            # elif col_indices == 8:
+            #     f = filter(str.isnumeric,cols[3])
+            #     player = cols[2].rstrip()
+            #     result = IrusLadderRank(invasion=invasion, item={
+            #         'rank': '{0:02d}'.format(i),
+            #         'player': player,
+            #         'score': int("".join(f)),
+            #         'kills': int(cols[4].replace(', ', '')),
+            #         'deaths': int(cols[5].replace(', ', '')),
+            #         'assists': int(cols[6].replace(', ', '')),
+            #         'heals': int(cols[7].replace(', ', '')),
+            #         'damage': int(cols[8].replace(',','')),
+            #         'member': members.is_member(player),
+            #         'ladder': True
+            #     })
+            #     rec.append(result)
+            # else:
+            #     logger.info(f'Skipping {row_index} with {col_indices} items: {cols}')
+
         except Exception as e:
-            logger.info(f'Skipping row {row_index}, unable to scan: {e}')
+            logger.info(f'Skipping row {row_index} with {cols}, unable to scan: {e}')
 
     logger.debug(f'scanned table: {rec}')
     return rec
@@ -171,7 +212,8 @@ class IrusLadder:
         logger.info(f'Ladder.from_invasion {invasion.name}')
         rec = []
         for item in table.query(KeyConditionExpression=Key('invasion').eq(f'#ladder#{invasion.name}'))['Items']:
-            rec.append(IrusLadderRank(item))
+            item['rank'] = item['id']
+            rec.append(IrusLadderRank(invasion, item))
 
         return cls(invasion, rec)
 
