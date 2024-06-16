@@ -143,7 +143,7 @@ def reduce_list(table: dict) -> list:
     return response
 
 
-def member_match(candidates: list, members:IrusMemberList):
+def member_match(candidates: list, members:IrusMemberList) -> list:
     print(f'member_match')
 
     matched = []
@@ -161,10 +161,10 @@ def member_match(candidates: list, members:IrusMemberList):
     # Sort again in case we matched multiple times to the same player, yes this can happen
     sorted_matched = sorted(set(matched))
 
-    log.debug(f'matched ({len(sorted_matched)}): {sorted_matched}')
-    log.debug(f'unmatched ({len(unmatched)}): {unmatched}')
+    logger.debug(f'matched ({len(sorted_matched)}): {sorted_matched}')
+    logger.debug(f'unmatched ({len(unmatched)}): {unmatched}')
 
-    return sorted_matched, unmatched
+    return sorted_matched
 
 
 def generate_roster_ranks(invasion:IrusInvasion, matched:list) -> list:
@@ -185,6 +185,7 @@ def generate_roster_ranks(invasion:IrusInvasion, matched:list) -> list:
             'ladder': False
         })
         rec.append(result)
+        rank += 1 
 
     logger.debug(f'roster: {rec}')
     return rec
@@ -234,8 +235,8 @@ class IrusLadder:
 
         response = import_roster_table(bucket, key)
         candidates = reduce_list(response)
-        sorted_matched, unmatched = member_match(candidates, members)
-        rec = generate_roster_ranks(invasion, sorted_matched)
+        matched = member_match(candidates, members)
+        rec = generate_roster_ranks(invasion, matched)
 
         try:
             table.put_item(Item={'invasion': f'#upload#{invasion.name}', 'id': key})

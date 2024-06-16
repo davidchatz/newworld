@@ -87,6 +87,30 @@ def generate_invasion_ladders():
     Fred.remove()
 
 
+@pytest.fixture
+def generate_roster():
+    invasion = IrusInvasion.from_user(day=24, month=5, year=2024, settlement='bw', win=True)
+    logger.debug(f'Invasion {invasion}')
+
+    Chatz01 = IrusMember.from_user(player = "Chatz01", day=1, month=5, year=2024, faction= "purple", admin=False, salary=True)
+    Stuggy = IrusMember.from_user(player = "Stuggy", day=1, month=5, year=2024, faction= "green", admin=True, salary=True)
+    Zel0s = IrusMember.from_user(player = "Zel0s", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
+    SunnieGal = IrusMember.from_user(player = "SunnieGal", day=1, month=5, year=2024, faction= "purple", admin=False, salary=False)
+    GMaaa = IrusMember.from_user(player = "G Maaaa", day=1, month=5, year=2024, faction= "green", admin=True, salary=False)
+    members = IrusMemberList()
+
+    roster = IrusLadder.from_roster_image(invasion, members, bucket_name, f'{invasion.path_roster()}20240524-bw-board-groups.png')
+    logger.debug(f'Roster {roster}')
+
+    yield roster
+    invasion.delete_from_table()
+    Chatz01.remove()
+    Stuggy.remove()
+    Zel0s.remove()
+    SunnieGal.remove()
+    GMaaa.remove()
+
+
 def test_generate_first_ladder(generate_first_ladder):
     assert generate_first_ladder is not None
     assert generate_first_ladder.invasion is not None
@@ -112,3 +136,12 @@ def test_generate_invasion_ladders(generate_invasion_ladders):
     assert generate_invasion_ladders.count() == 52
     assert generate_invasion_ladders.members() == 5
     assert generate_invasion_ladders.is_contiguous_from_1() == True
+
+
+def test_generate_roster(generate_roster):
+    assert generate_roster is not None
+    assert generate_roster.invasion is not None
+    logger.info(generate_roster.csv())
+    assert generate_roster.count() == 4
+    assert generate_roster.members() == 4
+    assert generate_roster.is_contiguous_from_1() == True

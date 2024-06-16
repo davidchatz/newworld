@@ -150,6 +150,7 @@ function _sync_samples()
             --output text)
 
     _walk aws s3 sync $OPTIONS s3://$TEST_BUCKET/20240611-rw s3://$BUCKET/ladders/20240611-rw/ --exclude .DS_store
+    _walk aws s3 sync $OPTIONS s3://$TEST_BUCKET/20240524-bw-board s3://$BUCKET/roster/20240524-bw/ --exclude .DS_store
 }
 
 function _init()
@@ -366,7 +367,7 @@ case $1 in
         _build
         _deploy
         ;;
-        
+
     update-env)
         _update_env
         ;;
