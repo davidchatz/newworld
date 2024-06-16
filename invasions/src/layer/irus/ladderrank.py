@@ -5,9 +5,8 @@ from .invasion import IrusInvasion
 from .member import IrusMember
 from .environ import IrusResources
 
-resources = IrusResources()
-logger = resources.logger
-table = resources.table
+logger = IrusResources.logger()
+table = IrusResources.table()
 
 class IrusLadderRank:
 

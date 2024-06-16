@@ -3,9 +3,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from .environ import IrusResources
 
-resources = IrusResources()
-logger = resources.logger
-table = resources.table
+logger = IrusResources.logger()
+table = IrusResources.table()
 
 class IrusMember:
 

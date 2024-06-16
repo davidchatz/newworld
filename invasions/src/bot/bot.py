@@ -14,9 +14,8 @@ discord_cmd = os.environ['DISCORD_CMD']
 # Authenticate Requests
 # Verify raises exception if it fails
 #
-resources = IrusResources()
-logger = resources.logger
-secrets = IrusSecrets()
+logger = IrusResources.logger()
+app_id = IrusSecrets.app_id()
 process = IrusProcess()
 
 def verify_signature(event):
@@ -25,7 +24,7 @@ def verify_signature(event):
     auth_ts  = event['headers'].get('x-signature-timestamp')
 
     # message = auth_ts.encode() + body.encode()
-    verify_key = VerifyKey(secrets.public_key_bytes)
+    verify_key = VerifyKey(IrusSecrets.public_key_bytes())
     verify_key.verify(f'{auth_ts}{body}'.encode(), bytes.fromhex(auth_sig))
 
 #
@@ -316,14 +315,14 @@ def lambda_handler(event: dict, context: LambdaContext):
             resolved = body["data"]["resolved"] if "resolved" in body["data"] else None
 
             if subcommand["name"] == "invasion":
-                content = invasion_cmd(secrets.app_id, body['token'], subcommand["options"][0], resolved)
+                content = invasion_cmd(app_id, body['token'], subcommand["options"][0], resolved)
             elif subcommand["name"] == "ladders":
                 invasion = invasion_add_cmd(subcommand["options"][0]["options"])
-                invasion_download_cmd(secrets.app_id, body['token'], subcommand["options"][0], resolved, 'Ladder')
+                invasion_download_cmd(app_id, body['token'], subcommand["options"][0], resolved, 'Ladder')
                 content = f'In Progress: Registered invasion {invasion.name}, next download file(s)'
             elif subcommand["name"] == "roster":
                 invasion = invasion_add_cmd(subcommand["options"][0]["options"])
-                invasion_download_cmd(secrets.app_id, body['token'], subcommand["options"][0], resolved, 'Roster')
+                invasion_download_cmd(app_id, body['token'], subcommand["options"][0], resolved, 'Roster')
                 content = f'In Progress: Registered invasion {invasion.name}, next download file(s)'
             elif subcommand["name"] == "report":
                 content = report_cmd(subcommand["options"][0], resolved)

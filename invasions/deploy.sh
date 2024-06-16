@@ -313,6 +313,13 @@ function _local_test_prep()
 
 function _test_local()
 {
+    if [[ $# -eq 1 ]]
+    then
+        TESTS=$1
+    else
+        TESTS=tests
+    fi
+
     _cleanup_table
     # _cleanup_bucket
     _sync_samples
@@ -328,7 +335,7 @@ function _test_local()
     pid=$!
     pids="$pids $pid"
     _run sleep 15
-    _walk pytest tests
+    _walk pytest $TESTS
     _run kill -s INT $pid
 }
 
@@ -355,6 +362,11 @@ case $1 in
         _deploy
         ;;
 
+    install)
+        _build
+        _deploy
+        ;;
+        
     update-env)
         _update_env
         ;;

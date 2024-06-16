@@ -3,10 +3,9 @@ import urllib
 from irus import IrusResources, IrusMemberList, IrusLadder, IrusInvasion
 from aws_lambda_powertools.utilities.typing import LambdaContext
 
-resources = IrusResources()
-logger = resources.logger
-textract = resources.textract
-table = resources.table
+logger = IrusResources.logger()
+textract = IrusResources.textract()
+table = IrusResources.table()
 
 # define lambda handler that gets S3 bucket and key from event and calls import_table
 @logger.inject_lambda_context(log_event=True)

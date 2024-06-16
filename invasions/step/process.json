@@ -152,7 +152,7 @@
               "ApiEndpoint.$": "$.post",
               "Method": "POST",
               "RequestBody": {
-                "content.$": "States.Format('File {} ({}) downloaded for invasion {}, next process image', $.filename, $.process, $.invasion)"
+                "content.$": "States.Format('{} {} downloaded for invasion {}, next step is processing image', $.process, $.filename, $.invasion)"
               },
               "Headers": {
                 "Content-Type": "application/json"
@@ -261,7 +261,7 @@
               "ApiEndpoint.$": "$.post",
               "Method": "POST",
               "RequestBody": {
-                "content.$": "States.Format('Failed to process file {} ({}) for invasion {}', $.filename, $.process, $.invasion)"
+                "content.$": "States.Format('Failed to process {} {} for invasion {}', $.process, $.filename, $.invasion)"
               },
               "Headers": {
                 "Content-Type": "application/json"
@@ -351,7 +351,7 @@
         "ApiEndpoint.$": "$.post",
         "Method": "POST",
         "RequestBody": {
-          "content.$": "States.Format('File(s) ({}) downloaded and processed for invasion {}, next update invasion stats', $.process, $.invasion)"
+          "content.$": "States.Format('{} file(s) downloaded and processed for invasion {}, next update invasion stats', $.process, $.invasion)"
         },
         "Headers": {
           "Content-Type": "application/json"

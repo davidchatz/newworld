@@ -5,7 +5,7 @@ import pytest
 import json
 from aws_lambda_powertools import Logger
 from .lambdaclient import LambdaClient
-from irus import IrusInvasion, IrusMember, IrusMemberList, IrusLadder
+from irus import IrusInvasion, IrusMember, IrusLadder
 
 
 client = LambdaClient(local=True)

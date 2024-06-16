@@ -336,9 +336,12 @@ Resources:
           POWERTOOLS_SERVICE_NAME: Download
           POWERTOOLS_LOG_LEVEL: !Ref LogLevel
           BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+          TABLE_NAME: !Ref Table
       Policies: 
         - S3CrudPolicy:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Table
 
   DownloadLogGroup:
     Type: AWS::Logs::LogGroup
@@ -400,6 +403,7 @@ Resources:
     Properties:
       DefinitionSubstitutions:
         DownloadFunctionArn: !GetAtt Download.Arn
+        LadderFunctionArn: !GetAtt Ladder.Arn
         InvasionFunctionArn: !GetAtt Invasion.Arn
         MonthFunctionArn: !GetAtt Month.Arn
         BoardFunctionArn: !GetAtt Board.Arn
@@ -409,6 +413,8 @@ Resources:
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref Download
+        - LambdaInvokePolicy:
+            FunctionName: !Ref Ladder
         - DynamoDBReadPolicy:
             TableName: !Ref Table
         - S3CrudPolicy:

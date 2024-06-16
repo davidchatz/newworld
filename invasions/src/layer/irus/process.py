@@ -4,10 +4,9 @@ from botocore.exceptions import ClientError
 from .invasion import IrusInvasion
 from .environ import IrusResources
 
-resources = IrusResources()
-logger = resources.logger
-table = resources.table
-state_machine = resources.state_machine
+logger = IrusResources.logger()
+table = IrusResources.table()
+state_machine = IrusResources.state_machine()
 
 class IrusFiles:
 

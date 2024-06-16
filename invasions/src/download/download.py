@@ -3,10 +3,9 @@ import json
 from irus import IrusResources
 from aws_lambda_powertools.utilities.typing import LambdaContext
 
-resources = IrusResources()
-logger = resources.logger
-s3 = resources.s3
-bucket_name = resources.bucket_name
+logger = IrusResources.logger()
+s3 = IrusResources.s3()
+bucket_name = IrusResources.bucket_name()
 
 pool_mgr = urllib3.PoolManager()
 

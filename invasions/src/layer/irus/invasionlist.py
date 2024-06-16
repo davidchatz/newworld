@@ -3,9 +3,8 @@ from decimal import Decimal
 from .invasion import IrusInvasion
 from .environ import IrusResources
 
-resources = IrusResources()
-logger = resources.logger
-table = resources.table
+logger = IrusResources.logger()
+table = IrusResources.table()
 
 class IrusInvasionList:
 

@@ -8,10 +8,9 @@ from .invasion import IrusInvasion
 from .member import IrusMember
 from .memberlist import IrusMemberList
 
-resources = IrusResources()
-logger = resources.logger
-table = resources.table
-textract = resources.textract
+logger = IrusResources.logger()
+table = IrusResources.table()
+textract = IrusResources.textract()
 
 #
 # based on https://docs.aws.amazon.com/textract/latest/dg/examples-export-table-csv.html
