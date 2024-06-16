@@ -83,7 +83,7 @@ class IrusMember:
         return cls(member['Item'])
 
 
-    def __str__(self):
+    def str(self):
         return f'## Member {self.player}\nFaction: {self.faction}\nStarting {self.start}\nAdmin {self.admin}\n'
     
 

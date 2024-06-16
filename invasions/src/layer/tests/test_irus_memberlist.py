@@ -43,6 +43,8 @@ def test_memberlist_init(memberlist_init):
     assert memberlist_init.get(1).player == "mary"
     assert memberlist_init.is_member("paul") == "paul"
     assert memberlist_init.is_member("joe") == None
+    logger.info(memberlist_init.str())
+    logger.info(memberlist_init.csv())
 
 def test_memberlist_partial(memberlist_partial):
     assert memberlist_partial.count() == 3
@@ -50,5 +52,7 @@ def test_memberlist_partial(memberlist_partial):
     assert memberlist_partial.is_member("Zel0s") == 'ZelOs'
     assert memberlist_partial.is_member("Chatz", partial=True) == 'Chatz01'
     assert memberlist_partial.is_member("Dave the", partial=True) == 'Dave the Farmer'
+    logger.info(memberlist_partial.str())
+    logger.info(memberlist_partial.csv())
 
 

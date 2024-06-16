@@ -23,17 +23,20 @@ class IrusMemberList:
             for i in items:
                 self.members.append(IrusMember(i))
 
-
-    def __str__(self) -> str:
+    def str(self) -> str:
+        return f'MemberList(count={len(self.members)})'
+    
+    def csv(self) -> str:
         body = f"player,faction,start\n"
         for m in self.members:
-            body += '{player},{faction},{start}\n'.format_map(m)
+            body += f'{m.player},{m.faction},{m.start}\n'
         return body
 
     def markdown(self) -> str:
         body = f"# {len(self.members)} Members\n"
+        body += "*Note: This list may be truncated, run **report members** to get full list.*\n"
         for m in self.members:
-            body += '- {player} ({faction}) started {start}\n'.format_map(m)
+            body += '- f{m.player} ({m.faction}) started {m.start}\n'
         return body
 
     def count(self) -> int:

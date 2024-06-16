@@ -5,7 +5,7 @@ from datetime import datetime
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
 from aws_lambda_powertools.utilities.typing import LambdaContext
-from irus import IrusInvasion, IrusInvasionList, IrusMember, IrusMemberList, IrusLadderRank, IrusSecrets, IrusFiles, IrusProcess, IrusResources
+from irus import IrusInvasion, IrusInvasionList, IrusMember, IrusMemberList, IrusLadderRank, IrusLadder, IrusSecrets, IrusFiles, IrusProcess, IrusResources, IrusReport
 
 
 discord_cmd = os.environ['DISCORD_CMD']
@@ -186,6 +186,7 @@ def member_add_cmd(options:list) -> str:
                                 notes=notes)
     mesg = str(member)
     mesg += update_invasions(member)
+    logger.info(f'member_add_cmd: {mesg}')
 
     return mesg
 
@@ -241,17 +242,18 @@ def report_month_cmd(options:list) -> str:
 
 def report_invasion_cmd(options:list) -> str:
 
-    invasion = None
+    name = None
     for o in options:
         if o["name"] == "invasion":
-            invasion = o["value"]
+            name = o["value"]
 
-    if not invasion:
+    if not name:
         return 'Missing invasion from request'
 
-    logger.error('Not implemented')
-    return 'Not implemented'
-    # return layer.report_invasion(invasion)
+    invasion = IrusInvasion.from_table(name)
+    ladder = IrusLadder.from_invasion(invasion)
+    report = IrusReport.from_invasion(invasion, str(ladder))
+    return f"#Report for Invasion {name}\n" + report.msg
 
 
 def report_member_cmd(options:list) -> str:
@@ -273,6 +275,14 @@ def report_member_cmd(options:list) -> str:
     # return layer.report_member(player, month, year)
 
 
+def report_members_cmd(options:list) -> str:
+    now = datetime.now().strftime("%Y%m%d%H%M%S")
+    members = IrusMemberList()
+    logger.debug(f'report_members_cmd: {members}')
+    report = IrusReport.from_members(timestamp = now, report = members.csv())
+    return f"# Report of current members\n" + report.msg
+
+
 def report_cmd(options:dict, resolved: dict) -> str:
     logger.info(f'report_cmd: {options}')
 
@@ -283,6 +293,8 @@ def report_cmd(options:dict, resolved: dict) -> str:
         return report_invasion_cmd(options['options'])
     elif name == 'member':
         return report_member_cmd(options['options'])
+    elif name == 'members':
+        return report_members_cmd(options['options'])
     else:
         logger.error(f'Invalid command {name}')
         return f'Invalid command {name}'

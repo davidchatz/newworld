@@ -433,6 +433,9 @@
               description: Invasion identifier
               type: 3
               required: true
+        - name: members
+          description: Generate and fetch report of all company members
+          type: 1
         - name: member
           description: Stats for a company member from latest monthly report
           type: 1
