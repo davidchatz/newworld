@@ -144,12 +144,12 @@ def reduce_list(table: dict) -> list:
 
 
 def member_match(candidates: list, members:IrusMemberList) -> list:
-    print(f'member_match')
 
     matched = []
     unmatched = []
 
     sorted_candidates = sorted(set(candidates))
+    logger.debug(f'sorted_candidates ({len(sorted_candidates)}): {sorted_candidates}')
 
     for c in sorted_candidates:
         player = members.is_member(c, partial = True)

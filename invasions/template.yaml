@@ -190,6 +190,36 @@ Resources:
   #     LogGroupName: !Sub /aws/lambda/${LadderAsync}
   #     RetentionInDays: 30
 
+  Process:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: process.lambda_handler
+      Runtime: python3.11
+      CodeUri: src/process
+      Description: 'Download and scan invasion screen shots'
+      MemorySize: 256
+      Timeout: 10
+      Policies: 
+        - TextractPolicy: {}
+        - S3CrudPolicy:
+            BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Table
+      Environment:
+        Variables:
+          POWERTOOLS_SERVICE_NAME: Process
+          POWERTOOLS_LOG_LEVEL: !Ref LogLevel
+          TABLE_NAME: !Ref Table
+          BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+
+  ProcessLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${Process}
+      RetentionInDays: 30
+
   Ladder:
     Type: AWS::Serverless::Function
     Properties:
@@ -402,8 +432,7 @@ Resources:
     Type: AWS::Serverless::StateMachine
     Properties:
       DefinitionSubstitutions:
-        DownloadFunctionArn: !GetAtt Download.Arn
-        LadderFunctionArn: !GetAtt Ladder.Arn
+        ProcessFunctionArn: !GetAtt Process.Arn
         InvasionFunctionArn: !GetAtt Invasion.Arn
         MonthFunctionArn: !GetAtt Month.Arn
         BoardFunctionArn: !GetAtt Board.Arn
@@ -412,9 +441,7 @@ Resources:
         TableName: !Ref Table
       Policies:
         - LambdaInvokePolicy:
-            FunctionName: !Ref Download
-        - LambdaInvokePolicy:
-            FunctionName: !Ref Ladder
+            FunctionName: !Ref Process
         - DynamoDBReadPolicy:
             TableName: !Ref Table
         - S3CrudPolicy:
