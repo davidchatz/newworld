@@ -317,11 +317,11 @@ def lambda_handler(event: dict, context: LambdaContext):
             if subcommand["name"] == "invasion":
                 content = invasion_cmd(app_id, body['token'], subcommand["options"][0], resolved)
             elif subcommand["name"] == "ladders":
-                invasion = invasion_add_cmd(subcommand["options"][0]["options"])
+                invasion = invasion_add_cmd(subcommand["options"][0])
                 invasion_download_cmd(app_id, body['token'], subcommand["options"][0], resolved, 'Ladder')
                 content = f'In Progress: Registered invasion {invasion.name}, next download file(s)'
             elif subcommand["name"] == "roster":
-                invasion = invasion_add_cmd(subcommand["options"][0]["options"])
+                invasion = invasion_add_cmd(subcommand["options"][0])
                 invasion_download_cmd(app_id, body['token'], subcommand["options"][0], resolved, 'Roster')
                 content = f'In Progress: Registered invasion {invasion.name}, next download file(s)'
             elif subcommand["name"] == "report":

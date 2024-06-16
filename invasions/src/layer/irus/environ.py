@@ -43,7 +43,7 @@ class IrusResources:
         return cls._s3_resource
     
     @classmethod
-    def bucket_name(cls):
+    def bucket_name(cls) -> str:
         if cls._bucket_name == None:
             cls._bucket_name = os.environ.get('BUCKET_NAME')
             if cls._bucket_name == None:
@@ -57,7 +57,7 @@ class IrusResources:
         return cls._dynamodb
     
     @classmethod
-    def table_name(cls):
+    def table_name(cls) -> str:
         if cls._table_name == None:
             cls._table_name = os.environ.get('TABLE_NAME')
             if cls._table_name == None:
@@ -77,7 +77,7 @@ class IrusResources:
         return cls._state_machine
     
     @classmethod
-    def step_function_arn(cls):
+    def step_function_arn(cls) -> str:
         if cls._step_function_arn == None:
             cls._step_function_arn = os.environ.get('PROCESS_STEP_FUNC')
             if cls._step_function_arn == None:
@@ -91,7 +91,7 @@ class IrusResources:
         return cls._textract
     
     @classmethod
-    def webhook_url(cls):
+    def webhook_url(cls) -> str:
         if cls._webhook_url == None:
             cls._webhook_url = os.environ.get('WEBHOOK_URL')
             if cls._webhook_url == None:
@@ -116,7 +116,7 @@ class IrusSecrets:
         return cls._ssm
 
     @classmethod
-    def public_key_path(cls):
+    def public_key_path(cls) -> str:
         if cls._public_key_path == None:
             cls._public_key_path = os.environ['PUBLIC_KEY_PATH']
         return cls._public_key_path
@@ -128,19 +128,19 @@ class IrusSecrets:
         return cls._public_key
     
     @classmethod
-    def public_key_bytes(cls):
+    def public_key_bytes(cls) -> bytes:
         if cls._public_key_bytes == None:
             cls._public_key_bytes = bytes.fromhex(cls.public_key())
         return cls._public_key_bytes
     
     @classmethod
-    def app_id_path(cls):
+    def app_id_path(cls) -> str:
         if cls._app_id_path == None:
             cls._app_id_path = os.environ['APP_ID_PATH']
         return cls._app_id_path
     
     @classmethod
-    def app_id(cls):
+    def app_id(cls) -> str:
         if cls._app_id == None:
             cls._app_id = cls.ssm().get_parameter(Name=cls.app_id_path(), WithDecryption=True)['Parameter']['Value']
         return cls._app_id

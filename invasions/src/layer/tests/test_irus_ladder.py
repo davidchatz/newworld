@@ -26,7 +26,7 @@ def generate_first_ladder():
     Stuggy = IrusMember.from_user(player = "Stuggy", day=1, month=5, year=2024, faction= "green", admin=True, salary=True)
     members = IrusMemberList()
 
-    ladder = IrusLadder.from_image(invasion, members, bucket_name, f'{invasion.path_ladders()}one.png')
+    ladder = IrusLadder.from_ladder_image(invasion, members, bucket_name, f'{invasion.path_ladders()}one.png')
     logger.debug(f'Ladder {ladder}')
 
     yield ladder
@@ -46,7 +46,7 @@ def generate_fourth_ladder():
     SunnieGal = IrusMember.from_user(player = "SunnieGal", day=1, month=5, year=2024, faction= "purple", admin=False, salary=False)
     members = IrusMemberList()
 
-    ladder = IrusLadder.from_image(invasion, members, bucket_name, f'{invasion.path_ladders()}four.png')
+    ladder = IrusLadder.from_ladder_image(invasion, members, bucket_name, f'{invasion.path_ladders()}four.png')
     logger.debug(f'Ladder {ladder}')
 
     yield ladder
@@ -72,7 +72,7 @@ def generate_invasion_ladders():
     members = IrusMemberList()
 
     for f in ['one.png', 'two.png', 'three.png', 'four.png', 'five.png', 'six.png', 'seven.png', 'eight.png']:
-        ladder = IrusLadder.from_image(invasion, members, bucket_name, f'{invasion.path_ladders()}{f}')
+        ladder = IrusLadder.from_ladder_image(invasion, members, bucket_name, f'{invasion.path_ladders()}{f}')
         logger.debug(f'Ladder {ladder}')
 
     ladders = IrusLadder.from_invasion(invasion)

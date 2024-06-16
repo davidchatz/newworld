@@ -5,7 +5,6 @@ from decimal import Decimal
 from .ladderrank import IrusLadderRank
 from .environ import IrusResources
 from .invasion import IrusInvasion
-from .member import IrusMember
 from .memberlist import IrusMemberList
 
 logger = IrusResources.logger()
@@ -13,11 +12,12 @@ table = IrusResources.table()
 textract = IrusResources.textract()
 
 #
+# Ladder image processing
 # based on https://docs.aws.amazon.com/textract/latest/dg/examples-export-table-csv.html
 #
 
 # define function that takes s3 bucket and key and calls textract to import table
-def import_table(bucket, key):
+def import_ladder_table(bucket, key):
     # call textract
     response = textract.analyze_document(
         Document={'S3Object': {'Bucket': bucket, 'Name': key}},
@@ -84,88 +84,109 @@ def generate_ladder_ranks(invasion:IrusInvasion, rows:list, members:IrusMemberLi
         col_indices = len(cols.items())
         
         try:
-            # sometimes textextract treats icon as a column
-            if col_indices == 9 or col_indices == 10:
+            # sometimes textextract treats icon as a column, so check columns detected
+            offset = 0 if col_indices == 8 else 1
+            if col_indices >= 8 or col_indices <= 10:
                 # Name may flow into score, so be more aggresive filtering this value
-                player = cols[3].rstrip()
+                player = cols[2+offset].rstrip()
+                member = members.is_member(player)
                 result = IrusLadderRank(invasion=invasion, item={
                     'rank': '{0:02d}'.format(numeric(cols[1])),
-                    'player': player,
-                    'score': numeric(cols[4]),
-                    'kills': numeric(cols[5]),
-                    'deaths': numeric(cols[6]),
-                    'assists': numeric(cols[7]),
-                    'heals': numeric(cols[8]),
-                    'damage': numeric(cols[9]),
+                    'player': member if member else player,
+                    'score': numeric(cols[3+offset]),
+                    'kills': numeric(cols[4+offset]),
+                    'deaths': numeric(cols[5+offset]),
+                    'assists': numeric(cols[6+offset]),
+                    'heals': numeric(cols[7+offset]),
+                    'damage': numeric(cols[8+offset]),
                     # Are they listed as a company member, this is updated in insert_db
-                    'member': members.is_member(player),
+                    'member': True if member else False,
                     # Are these stats from a ladder screenshot import
-                    'ladder': True
-                })
-                rec.append(result)
-            elif col_indices == 8:
-                player = cols[2].rstrip()
-                result = IrusLadderRank(invasion=invasion, item={
-                    'rank': '{0:02d}'.format(numeric(cols[1])),
-                    'player': player,
-                    'score': numeric(cols[3]),
-                    # sometimes textextract treats icon as a column
-                    'kills': numeric(cols[4]),
-                    'deaths': numeric(cols[5]),
-                    'assists': numeric(cols[6]),
-                    'heals': numeric(cols[7]),
-                    'damage': numeric(cols[8]),
-                    'member': members.is_member(player),
                     'ladder': True
                 })
                 rec.append(result)
             else:
                 logger.info(f'Skipping {row_index} with {col_indices} items: {cols}')
 
-            # i = int("".join(filter(str.isnumeric, cols[1])))
-            # # sometimes textextract treats icon as a column
-            # if col_indices == 9 or col_indices == 10:
-            #     # Name may flow into score, so be more aggresive filtering this value
-            #     f = filter(str.isnumeric,cols[4])
-            #     player = cols[3].rstrip()
-            #     result = IrusLadderRank(invasion=invasion, item={
-            #         'rank': '{0:02d}'.format(i),
-            #         'player': player,
-            #         'score': int("".join(f)),
-            #         'kills': int(cols[5].replace(',','')),
-            #         'deaths': int(cols[6].replace(',','')),
-            #         'assists': int(cols[7].replace(',','')),
-            #         'heals': int(cols[8].replace(',','')),
-            #         'damage': int(cols[9].replace(',','')),
-            #         # Are they listed as a company member, this is updated in insert_db
-            #         'member': members.is_member(player),
-            #         # Are these stats from a ladder screenshot import
-            #         'ladder': True
-            #     })
-            #     rec.append(result)
-            # elif col_indices == 8:
-            #     f = filter(str.isnumeric,cols[3])
-            #     player = cols[2].rstrip()
-            #     result = IrusLadderRank(invasion=invasion, item={
-            #         'rank': '{0:02d}'.format(i),
-            #         'player': player,
-            #         'score': int("".join(f)),
-            #         'kills': int(cols[4].replace(', ', '')),
-            #         'deaths': int(cols[5].replace(', ', '')),
-            #         'assists': int(cols[6].replace(', ', '')),
-            #         'heals': int(cols[7].replace(', ', '')),
-            #         'damage': int(cols[8].replace(',','')),
-            #         'member': members.is_member(player),
-            #         'ladder': True
-            #     })
-            #     rec.append(result)
-            # else:
-            #     logger.info(f'Skipping {row_index} with {col_indices} items: {cols}')
-
         except Exception as e:
             logger.info(f'Skipping row {row_index} with {cols}, unable to scan: {e}')
 
     logger.debug(f'scanned table: {rec}')
+    return rec
+
+
+#
+# Roster image processing
+#
+
+def import_roster_table(bucket, key):
+    # call textract
+    response = textract.detect_document_text(
+        Document={'S3Object': {'Bucket': bucket, 'Name': key}}
+    )
+    # print(response)
+    return response
+
+
+def reduce_list(table: dict) -> list:
+    logger.debug(f'IrusLadder.reduce_list')
+    response = []
+
+    for block in table['Blocks']:
+        if block['BlockType'] != 'PAGE':
+            text = block['Text']
+
+            if not (text.isnumeric() or text == ':' or text.startswith('GROUP')):
+                response.append(text)
+
+    logger.debug(f'reduce_list: {response}')
+    return response
+
+
+def member_match(candidates: list, members:IrusMemberList):
+    print(f'member_match')
+
+    matched = []
+    unmatched = []
+
+    sorted_candidates = sorted(set(candidates))
+
+    for c in sorted_candidates:
+        player = members.is_member(c, partial = True)
+        if player:
+            matched.append(player)
+        else:
+            unmatched.append(c)
+
+    # Sort again in case we matched multiple times to the same player, yes this can happen
+    sorted_matched = sorted(set(matched))
+
+    log.debug(f'matched ({len(sorted_matched)}): {sorted_matched}')
+    log.debug(f'unmatched ({len(unmatched)}): {unmatched}')
+
+    return sorted_matched, unmatched
+
+
+def generate_roster_ranks(invasion:IrusInvasion, matched:list) -> list:
+    rec = []
+
+    rank = 1
+    for m in matched:
+        result = IrusLadderRank(invasion=invasion, item={
+            'rank': '{0:02d}'.format(rank),
+            'player': m,
+            'score': 0,
+            'kills': 0,
+            'deaths': 0,
+            'assists': 0,
+            'heals': 0,
+            'damage': 0,
+            'member': True,
+            'ladder': False
+        })
+        rec.append(result)
+
+    logger.debug(f'roster: {rec}')
     return rec
 
 
@@ -181,10 +202,10 @@ class IrusLadder:
 
 
     @classmethod
-    def from_image(cls, invasion:IrusInvasion, members:IrusMemberList, bucket:str, key:str):
-        logger.info(f'Ladder.from_image {bucket}/{key} for {invasion.name}')
+    def from_ladder_image(cls, invasion:IrusInvasion, members:IrusMemberList, bucket:str, key:str):
+        logger.info(f'Ladder.from_ladder_image {bucket}/{key} for {invasion.name}')
 
-        response = import_table(bucket, key)
+        response = import_ladder_table(bucket, key)
         table_blocks, blocks_map = extract_blocks(response)
 
         if len(table_blocks) == 0:
@@ -205,6 +226,28 @@ class IrusLadder:
             raise ValueError(f'Failed to update table: {err}')
 
         return cls(invasion, rec)
+
+
+    @classmethod
+    def from_roster_image(cls, invasion:IrusInvasion, members:IrusMemberList, bucket:str, key:str):
+        logger.info(f'Ladder.from_roster_image {bucket}/{key} for {invasion.name}')
+
+        response = import_roster_table(bucket, key)
+        candidates = reduce_list(response)
+        sorted_matched, unmatched = member_match(candidates, members)
+        rec = generate_roster_ranks(invasion, sorted_matched)
+
+        try:
+            table.put_item(Item={'invasion': f'#upload#{invasion.name}', 'id': key})
+            with table.batch_writer() as batch:
+                for item in rec:
+                    batch.put_item(Item=item.item())
+        except ClientError as err:
+            logger.error(f'Failed to update table: {err}')
+            raise ValueError(f'Failed to update table: {err}')
+
+        return cls(invasion, rec)
+
 
     @classmethod
     def from_invasion(cls, invasion:IrusInvasion):

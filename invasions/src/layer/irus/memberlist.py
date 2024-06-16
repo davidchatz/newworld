@@ -42,7 +42,8 @@ class IrusMemberList:
     def get(self,index:int) -> IrusMember:
         return self.members[index]
     
-    def is_member(self, player:str) -> bool:
+    # Returns name of player matched, else None
+    def is_member(self, player:str, partial:bool = False) -> str:
         # Replace any letter O in name with number 0
         playerO = player.replace('O', '0')
         # Replace any number 0 in name with letter 0
@@ -51,8 +52,11 @@ class IrusMemberList:
         # Check if player is in the list
         for m in self.members:
             if m.player == player or m.player == playerO or m.player == player0:
-                return True
-        return False
+                return m.player
+            # Roster text scan can struggle with some names, especially multi-word names
+            if partial and (m.player.startswith(player) or m.player.startswith(playerO) or m.player.startswith(player0)):
+                return m.player
+        return None
 
         #     filename = f'members/{date}.csv'
         #     logger.info(f'Writing member list to {bucket_name}/{filename}')

@@ -38,7 +38,7 @@ def lambda_handler(event:dict, context:LambdaContext):
             logger.info(f'ladders: {bucket}/{key} for {name}')
             members = IrusMemberList()
             invasion = IrusInvasion.from_table(name)
-            ladder = IrusLadder.from_image(invasion, members, bucket, key)
+            ladder = IrusLadder.from_ladder_image(invasion, members, bucket, key)
             msg = str(ladder)
         except Exception as e:
             status = 500
