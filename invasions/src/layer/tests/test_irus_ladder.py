@@ -117,7 +117,7 @@ def test_generate_first_ladder(generate_first_ladder):
     logger.info(generate_first_ladder.csv())
     assert generate_first_ladder.count() == 8
     assert generate_first_ladder.members() == 2
-    assert generate_first_ladder.is_contiguous_from_1() == True
+    assert generate_first_ladder.contiguous_from_1_until() == generate_first_ladder.count()
 
 
 def test_generate_fourth_ladder(generate_fourth_ladder):
@@ -126,7 +126,7 @@ def test_generate_fourth_ladder(generate_fourth_ladder):
     logger.info(generate_fourth_ladder.csv())
     assert generate_fourth_ladder.count() == 4
     assert generate_fourth_ladder.members() == 2
-    assert generate_fourth_ladder.is_contiguous_from_1() == False
+    assert generate_fourth_ladder.contiguous_from_1_until() != generate_fourth_ladder.count() == 4
 
 
 def test_generate_invasion_ladders(generate_invasion_ladders):
@@ -135,7 +135,7 @@ def test_generate_invasion_ladders(generate_invasion_ladders):
     logger.info(generate_invasion_ladders.csv())
     assert generate_invasion_ladders.count() == 52
     assert generate_invasion_ladders.members() == 5
-    assert generate_invasion_ladders.is_contiguous_from_1() == True
+    assert generate_invasion_ladders.contiguous_from_1_until() == generate_invasion_ladders.count()
 
 
 def test_generate_roster(generate_roster):
@@ -144,4 +144,4 @@ def test_generate_roster(generate_roster):
     logger.info(generate_roster.csv())
     assert generate_roster.count() == 4
     assert generate_roster.members() == 4
-    assert generate_roster.is_contiguous_from_1() == True
+    assert generate_roster.contiguous_from_1_until() == generate_roster.count() == 4

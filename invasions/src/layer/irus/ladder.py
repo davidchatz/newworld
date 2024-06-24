@@ -260,15 +260,16 @@ class IrusLadder:
 
         return cls(invasion, rec)
 
-    # Ranks start from 1 and are contiguous
-    def is_contiguous_from_1(self) -> bool:
-        count = 1
+    # Ranks start from 1 and are contiguous until return value
+    # Compare result to count() to confirm ladder is contiguous
+    def contiguous_from_1_until(self) -> int:
+        count = 0
         for r in self.ranks:
+            count += 1
             if int(r.rank) != count:
                 logger.debug(f's_contiguous_from_1: Rank {r.rank} is not {count}')
-                return False
-            count += 1
-        return True
+                return count
+        return count
 
     def count(self) -> int:
         return len(self.ranks)
@@ -279,8 +280,8 @@ class IrusLadder:
             count += 1 if r.member == True else 0
         return count
     
-    def __str__(self) -> str:
-        return f'Ladder for invasion {self.invasion.name} of {self.count()} ranks including {self.members()} members'
+    def str(self) -> str:
+        return f'Ladder for invasion {self.invasion.name} with {self.count()} rank(s) including {self.members()} member(s)'
 
     def csv(self) -> str:
         msg = f'ladder for invasion {self.invasion.name}\n'

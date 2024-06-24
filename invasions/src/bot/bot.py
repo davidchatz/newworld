@@ -5,6 +5,7 @@ from datetime import datetime
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
 from aws_lambda_powertools.utilities.typing import LambdaContext
+import irus
 from irus import IrusInvasion, IrusInvasionList, IrusMember, IrusMemberList, IrusLadderRank, IrusLadder, IrusSecrets, IrusFiles, IrusProcess, IrusResources, IrusReport
 
 
@@ -122,28 +123,6 @@ def member_list_cmd() -> str:
     return IrusMemberList().markdown()
 
 
-def update_invasions(member: IrusMember) -> str:
-    logger.info(f'Ladder.update_invasions: {member}')
-    invasionlist = IrusInvasionList.from_start(member.start)
-    logger.debug(f'Invasions on or after {invasionlist.start}: {str(invasionlist)}')
-
-    if invasionlist.count() == 0:
-        mesg = f'\nNo invasions found to update\n'
-    else:
-        mesg = f'\n## Member flag updated in these invasions:\n'
-        for i in invasionlist.invasions:
-            try:
-                ladder = IrusLadderRank.from_invasion_for_member(i, member)
-                logger.debug(f'LadderRank.from_invasion_for_member: {ladder}')
-                mesg += f'- {i.name} rank {ladder.rank}\n'
-                ladder.update_membership(True)
-            except ValueError:
-                pass
-
-    logger.info(mesg)
-    return mesg
-
-
 def member_add_cmd(options:list) -> str:
 
     now = datetime.now()
@@ -185,7 +164,7 @@ def member_add_cmd(options:list) -> str:
                                 salary=salary,
                                 notes=notes)
     mesg = str(member)
-    mesg += update_invasions(member)
+    mesg += irus.update_invasions_for_new_member(member)
     logger.info(f'member_add_cmd: {mesg}')
 
     return mesg

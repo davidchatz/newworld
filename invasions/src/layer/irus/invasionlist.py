@@ -41,7 +41,7 @@ class IrusInvasionList:
         return cls(response['Items'] if 'Items' in response else [], start)
 
 
-    def __str__(self) -> str:
+    def str(self) -> str:
         msg = ''
         if len(self.invasions) > 0:
             msg += self.invasions[0].name

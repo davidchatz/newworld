@@ -297,7 +297,7 @@ function _cleanup_test_bucket()
     _delete_bucket $TEST_BUCKET
 }
 
-function _test()
+function _test_irus()
 {
     _cleanup_table
     # _cleanup_bucket
@@ -306,10 +306,16 @@ function _test()
     _walk pytest
 }
 
-function _local_test_prep()
+# Force the rebuild of local lambda containers ready for local execution,
+# including pulling the latest lambda runtimes.
+# Most of the time this is not needed, but _test_local skips this pulling
+# the latest image as it may take too long for the sleep.
+function _test_local_prep()
 {
     _header "Prepare local test of lambda functions"
     _walk sam build --use-container
+    _header "Start local lambda server"
+    _walk sam local start-lambda --env-vars .env.json --warm-containers eager
 }
 
 function _test_local()
@@ -322,7 +328,6 @@ function _test_local()
     fi
 
     _cleanup_table
-    # _cleanup_bucket
     _sync_samples
     _header "Test download lambda"
     pid=$(lsof -i tcp:3001 -t)
@@ -331,11 +336,16 @@ function _test_local()
         _warn sam lambda server already running, terminating
         _run kill $pid
     fi
-    _note sam local start-lambda --env-vars .env.json --warm-containers eager
-    sam local start-lambda --env-vars .env.json --warm-containers eager &
+    _note sam local start-lambda --env-vars .env.json --warm-containers eager --skip-pull-image
+    sam local start-lambda --env-vars .env.json --warm-containers eager --skip-pull-image &
     pid=$!
     pids="$pids $pid"
+
+    # No good way to determine when the server is actually ready, so just sleep and pray
+    # Should replace with calling one of the lambda functions with a simple ping until
+    # it succeeds.
     _run sleep 15
+
     _walk pytest $TESTS
     _run kill -s INT $pid
 }
@@ -372,12 +382,12 @@ case $1 in
         _update_env
         ;;
 
-    test)
-        _test
+    test-irus)
+        _test_irus
         ;;
 
-    local-test-prep)
-        _local_test_prep
+    test-local-prep)
+        _test_local_prep
         ;;
 
     test-local)

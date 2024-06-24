@@ -45,12 +45,13 @@ def lambda_handler(event: dict, context: LambdaContext):
             logger.info(f'Processing {process} image {filename} for invasion {name}')
             members = IrusMemberList()
             invasion = IrusInvasion.from_table(name)
+            ladder = None
             if process == 'ladder':
                 ladder = IrusLadder.from_ladder_image(invasion, members, bucket_name, target)
             else:
                 ladder = IrusLadder.from_roster_image(invasion, members, bucket_name, target)
-            data = str(ladder)
-            
+            data = f'Successful download of {filename}. ' + ladder.str()
+
     except Exception as e:
         status = 400
         data = f'Error importing ladder {filename} for {invasion}: {e}'

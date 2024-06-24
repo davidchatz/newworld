@@ -152,7 +152,7 @@ Resources:
       CodeUri: src/process
       Description: 'Download and scan invasion screen shots'
       MemorySize: 256
-      Timeout: 10
+      Timeout: 20
       Policies: 
         - TextractPolicy: {}
         - S3CrudPolicy:
@@ -180,13 +180,15 @@ Resources:
       Handler: invasion.lambda_handler
       Runtime: python3.11
       CodeUri: src/invasion
-      Description: 'Scan invasion screen shots'
+      Description: 'Generate invasion report'
       MemorySize: 256
       Timeout: 10
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: Invasion
           POWERTOOLS_LOG_LEVEL: !Ref LogLevel
+          TABLE_NAME: !Ref Table
+          BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
       Policies: 
         - TextractPolicy: {}
         - S3CrudPolicy:
@@ -255,6 +257,8 @@ Resources:
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref Process
+        - LambdaInvokePolicy:
+            FunctionName: !Ref Invasion
         - DynamoDBReadPolicy:
             TableName: !Ref Table
         - S3CrudPolicy:

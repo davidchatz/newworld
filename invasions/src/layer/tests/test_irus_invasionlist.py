@@ -41,6 +41,7 @@ def invasionlist_from_start():
 def test_invasionlist_from_month(invasionlist_from_month):
     assert invasionlist_from_month.count() == 2
     assert invasionlist_from_month.start == Decimal('20240501')
+    logger.info(invasionlist_from_month.str())
     i_20240501 = invasionlist_from_month.get(0)
     assert i_20240501.date == Decimal('20240501')
     i_20240502 = invasionlist_from_month.get(1)
@@ -50,6 +51,7 @@ def test_invasionlist_from_month(invasionlist_from_month):
 def test_invasionlist_from_start(invasionlist_from_start):
     assert invasionlist_from_start.count() == 2
     assert invasionlist_from_start.start == Decimal('20240502')
+    logger.info(invasionlist_from_start.str())
     i_20240502 = invasionlist_from_start.get(0)
     assert i_20240502.date == Decimal('20240502')
     i_20240601 = invasionlist_from_start.get(1)
