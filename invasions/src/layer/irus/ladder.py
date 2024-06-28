@@ -111,9 +111,39 @@ def generate_ladder_ranks(invasion:IrusInvasion, rows:list, members:IrusMemberLi
         except Exception as e:
             logger.info(f'Skipping row {row_index} with {cols}, unable to scan: {e}')
 
+    # With larger scans textract struggles with the rank column
+    # Traverse the list of ranks and try to correct any values which are clearly wrong
+    # This is particularly trick if the first row is wrong...
+
+    # If we scanned 3 or less don't try to fix as we don't have enough context
+    if len(rec) > 3:
+
+        # check ranks are in range as they sometimes get an extra number on the end
+        try:
+            for r in range(0, len(rec)):
+                if numeric(rec[r].rank) > 99:
+                    logger.info(f'Fixing rank {r} from {rec[r].rank} to {rec[r].rank[:2]}')
+                    rec[r].rank = rec[r].rank[:2]
+        except Exception as e:
+            logger.error(f'Unable to fix rank size: {e}')
+
+        # now check order
+        try:
+            for r in range(0, len(rec)-1):
+                if numeric(rec[r].rank) > numeric(rec[r+1].rank):
+                    logger.info(f'Fixing rank {r} from {rec[r].rank} to {numeric(rec[r+1].rank) - 1}')
+                    rec[r].rank = '{0:02d}'.format(numeric(rec[r+1].rank) - 1)
+        except Exception as e:
+            logger.error(f'Unable to fix rank order: {e}')
+
+        pos = numeric(rec[0].rank)
+        for r in range(1, len(rec)):
+            pos += 1
+            if numeric(rec[r].rank) != pos:
+                logger.warning(f'Rank {r} is {rec[r].rank}, expected {pos}')
+
     logger.debug(f'scanned table: {rec}')
     return rec
-
 
 #
 # Roster image processing

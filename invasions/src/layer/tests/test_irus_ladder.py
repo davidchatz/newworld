@@ -111,6 +111,73 @@ def generate_roster():
     GMaaa.remove()
 
 
+@pytest.fixture
+def generate_large_one_ladder():
+    invasion = IrusInvasion.from_user(day=23, month=6, year=2024, settlement='rw', win=True)
+    logger.debug(f'Invasion {invasion}')
+
+    SeaCoconut = IrusMember.from_user(player = "Sea Coconut", day=1, month=5, year=2024, faction= "purple", admin=False, salary=True)
+    TaliMonk = IrusMember.from_user(player = "TaliMonk", day=1, month=5, year=2024, faction= "green", admin=True, salary=True)
+    AbuHurayra = IrusMember.from_user(player = "Abu Hurayra", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
+    Steve = IrusMember.from_user(player = "Steve", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
+    LovingMum = IrusMember.from_user(player = "Loving Mum", day=1, month=5, year=2024, faction= "purple", admin=False, salary=True)
+    kbaz = IrusMember.from_user(player = "kbaz", day=1, month=5, year=2024, faction= "green", admin=True, salary=True)
+    SirCandeez = IrusMember.from_user(player = "Sir Candeez", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
+    Julie = IrusMember.from_user(player = "Julie", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
+
+    members = IrusMemberList()
+
+    for f in ['20240623-rw.png']:
+        ladder = IrusLadder.from_ladder_image(invasion, members, bucket_name, f'{invasion.path_ladders()}{f}')
+        logger.debug(f'Ladder {ladder}')
+
+    ladders = IrusLadder.from_invasion(invasion)
+
+    yield ladders
+    invasion.delete_from_table()
+    SeaCoconut.remove()
+    AbuHurayra.remove()
+    TaliMonk.remove()
+    Steve.remove()
+    LovingMum.remove()
+    kbaz.remove()
+    SirCandeez.remove()
+    Julie.remove()
+
+@pytest.fixture
+def generate_large_six_ladders():
+    invasion = IrusInvasion.from_user(day=23, month=6, year=2024, settlement='rw', win=True)
+    logger.debug(f'Invasion {invasion}')
+
+    SeaCoconut = IrusMember.from_user(player = "Sea Coconut", day=1, month=5, year=2024, faction= "purple", admin=False, salary=True)
+    TaliMonk = IrusMember.from_user(player = "TaliMonk", day=1, month=5, year=2024, faction= "green", admin=True, salary=True)
+    AbuHurayra = IrusMember.from_user(player = "Abu Hurayra", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
+    Steve = IrusMember.from_user(player = "Steve", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
+    LovingMum = IrusMember.from_user(player = "Loving Mum", day=1, month=5, year=2024, faction= "purple", admin=False, salary=True)
+    kbaz = IrusMember.from_user(player = "kbaz", day=1, month=5, year=2024, faction= "green", admin=True, salary=True)
+    SirCandeez = IrusMember.from_user(player = "Sir Candeez", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
+    Julie = IrusMember.from_user(player = "Julie", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
+
+    members = IrusMemberList()
+
+    for f in ['one.png', 'two.png', 'three.png', 'four.png', 'five.png', 'six.png']:
+        ladder = IrusLadder.from_ladder_image(invasion, members, bucket_name, f'{invasion.path_ladders()}{f}')
+        logger.debug(f'Ladder {ladder}')
+
+    ladders = IrusLadder.from_invasion(invasion)
+
+    yield ladders
+    invasion.delete_from_table()
+    SeaCoconut.remove()
+    AbuHurayra.remove()
+    TaliMonk.remove()
+    Steve.remove()
+    LovingMum.remove()
+    kbaz.remove()
+    SirCandeez.remove()
+    Julie.remove()
+
+
 def test_generate_first_ladder(generate_first_ladder):
     assert generate_first_ladder is not None
     assert generate_first_ladder.invasion is not None
@@ -145,3 +212,21 @@ def test_generate_roster(generate_roster):
     assert generate_roster.count() == 4
     assert generate_roster.members() == 4
     assert generate_roster.contiguous_from_1_until() == generate_roster.count() == 4
+
+
+def test_generate_large_one_ladder(generate_large_one_ladder):
+    assert generate_large_one_ladder is not None
+    assert generate_large_one_ladder.invasion is not None
+    logger.info(generate_large_one_ladder.csv())
+    assert generate_large_one_ladder.count() == 47
+    assert generate_large_one_ladder.members() == 6
+    assert generate_large_one_ladder.contiguous_from_1_until() == generate_large_one_ladder.count()
+
+
+def test_generate_large_six_ladders(generate_large_six_ladders):
+    assert generate_large_six_ladders is not None
+    assert generate_large_six_ladders.invasion is not None
+    logger.info(generate_large_six_ladders.csv())
+    assert generate_large_six_ladders.count() == 47
+    assert generate_large_six_ladders.members() == 6
+    assert generate_large_six_ladders.contiguous_from_1_until() == generate_large_six_ladders.count()

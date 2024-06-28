@@ -149,8 +149,11 @@ function _sync_samples()
             --query 'Stacks[].Outputs[?OutputKey==`Bucket`].{id:OutputValue}' \
             --output text)
 
-    _walk aws s3 sync $OPTIONS s3://$TEST_BUCKET/20240611-rw s3://$BUCKET/ladders/20240611-rw/ --exclude .DS_store
-    _walk aws s3 sync $OPTIONS s3://$TEST_BUCKET/20240524-bw-board s3://$BUCKET/roster/20240524-bw/ --exclude .DS_store
+    _walk aws s3 sync $OPTIONS s3://$TEST_BUCKET/ladders s3://$BUCKET/ladders/ --exclude .DS_store
+    _walk aws s3 sync $OPTIONS s3://$TEST_BUCKET/roster s3://$BUCKET/roster/ --exclude .DS_store
+    # _walk aws s3 sync $OPTIONS s3://$TEST_BUCKET/20240611-rw s3://$BUCKET/ladders/20240611-rw/ --exclude .DS_store
+    # _walk aws s3 sync $OPTIONS s3://$TEST_BUCKET/20240524-bw-board s3://$BUCKET/roster/20240524-bw/ --exclude .DS_store
+    # _walk aws s3 sync $OPTIONS s3://$TEST_BUCKET/20240523-rw s3://$BUCKET/ladders/20240623-rw/ --exclude .DS_store
 }
 
 function _init()
@@ -380,6 +383,10 @@ case $1 in
 
     update-env)
         _update_env
+        ;;
+
+    sync-samples)
+        _sync_samples
         ;;
 
     test-irus)
