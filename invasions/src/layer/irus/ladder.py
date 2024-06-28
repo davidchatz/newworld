@@ -122,7 +122,7 @@ def generate_ladder_ranks(invasion:IrusInvasion, rows:list, members:IrusMemberLi
         try:
             for r in range(0, len(rec)):
                 if numeric(rec[r].rank) > 99:
-                    logger.info(f'Fixing rank {r} from {rec[r].rank} to {rec[r].rank[:2]}')
+                    logger.info(f'Fixing rank {r+1} from {rec[r].rank} to {rec[r].rank[:2]}')
                     rec[r].rank = rec[r].rank[:2]
         except Exception as e:
             logger.error(f'Unable to fix rank size: {e}')
@@ -131,7 +131,7 @@ def generate_ladder_ranks(invasion:IrusInvasion, rows:list, members:IrusMemberLi
         try:
             for r in range(0, len(rec)-1):
                 if numeric(rec[r].rank) > numeric(rec[r+1].rank):
-                    logger.info(f'Fixing rank {r} from {rec[r].rank} to {numeric(rec[r+1].rank) - 1}')
+                    logger.info(f'Fixing rank {r+1} from {rec[r].rank} to {numeric(rec[r+1].rank) - 1}')
                     rec[r].rank = '{0:02d}'.format(numeric(rec[r+1].rank) - 1)
         except Exception as e:
             logger.error(f'Unable to fix rank order: {e}')
