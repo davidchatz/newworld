@@ -239,7 +239,7 @@ def report_member(options:list) -> str:
                 print(f'No invasions found for {month}, expected at least {item["invasions"]}')
                 mesg += f'No invasions found for {month}?'
 
-            mesg += "Invasion / Rank / Result\n"
+            mesg += "Invasion / Rank / Result / Score\n"
             for invasion in invasions["Items"]: 
                 ladder = table.query(KeyConditionExpression=Key('invasion').eq(f'#ladder#{invasion["id"]}'),
                                         FilterExpression=Attr('name').eq(player))
@@ -249,9 +249,9 @@ def report_member(options:list) -> str:
                     continue
 
                 if invasion["win"]:
-                    mesg += f'- {invasion["id"]} / {ladder["Items"][0]["id"]} / Win\n'
+                    mesg += f'- {invasion["id"]} / {ladder["Items"][0]["id"]} / Win / {ladder["Items"][0]["score"]}\n'
                 else:
-                    mesg += f'- {invasion["id"]} / {ladder["Items"][0]["id"]} / Loss\n'
+                    mesg += f'- {invasion["id"]} / {ladder["Items"][0]["id"]} / Loss / {ladder["Items"][0]["score"]}\n'
 
     return mesg
 
