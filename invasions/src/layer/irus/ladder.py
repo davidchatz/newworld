@@ -1,4 +1,4 @@
-from boto3.dynamodb.conditions import Key, Attr
+from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 from dataclasses import dataclass
 from decimal import Decimal
@@ -224,7 +224,8 @@ def generate_roster_ranks(invasion:IrusInvasion, matched:list) -> list:
 class IrusLadder:
 
     def __init__(self, invasion: IrusInvasion, rec:list):
-        logger.info(f'Ladder.__init__: {invasion}')
+        logger.info(f'IrusLadder.__init__: {invasion}')
+        logger.debug(f'{rec}')
         self.ranks = rec
         self.invasion = invasion
 
@@ -290,6 +291,41 @@ class IrusLadder:
 
         return cls(invasion, rec)
 
+
+    @classmethod
+    def from_csv(cls, invasion:IrusInvasion, csv:str, members:IrusMemberList):
+        logger.info(f'Ladder.from_csv {invasion.name}')
+        rec = []
+        lines = csv.splitlines()
+        for line in lines[1:]:
+            cols = line.split(',')
+            if (len(cols) == 8):
+                item = {
+                    'rank': cols[0],
+                    'player': cols[1],
+                    'score': int(cols[2]),
+                    'kills': int(cols[3]),
+                    'deaths': int(cols[4]),
+                    'assists': int(cols[5]),
+                    'heals': int(cols[6]),
+                    'damage': int(cols[7]),
+                    'member': members.is_member(cols[1]),
+                    'ladder': True
+                }
+                rec.append(IrusLadderRank(invasion, item))
+
+        try:
+            table.put_item(Item={'invasion': f'#upload#{invasion.name}', 'id': 'csv'})
+            with table.batch_writer() as batch:
+                for item in rec:
+                    batch.put_item(Item=item.item())
+        except ClientError as err:
+            logger.error(f'Failed to update table: {err}')
+            raise ValueError(f'Failed to update table: {err}')
+
+        return cls(invasion, rec)
+
+
     # Ranks start from 1 and are contiguous until return value
     # Compare result to count() to confirm ladder is contiguous
     def contiguous_from_1_until(self) -> int:
@@ -310,6 +346,12 @@ class IrusLadder:
             count += 1 if r.member == True else 0
         return count
     
+    def member(self, player:str) -> IrusLadderRank:
+        for r in self.ranks:
+            if r.player == player:
+                return r
+        return None
+
     def str(self) -> str:
         return f'Ladder for invasion {self.invasion.name} with {self.count()} rank(s) including {self.members()} member(s)'
 

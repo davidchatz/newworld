@@ -42,6 +42,9 @@ class IrusMemberList:
     def count(self) -> int:
         return len(self.members)
     
+    def range(self) -> range:
+        return range(0, len(self.members))
+    
     def get(self,index:int) -> IrusMember:
         return self.members[index]
     

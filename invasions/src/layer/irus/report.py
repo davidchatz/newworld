@@ -25,7 +25,7 @@ class IrusReport:
         return cls(path = 'reports/invasion/', name = f'{invasion.name}.csv', report = report)
 
     @classmethod
-    def from_month(cls, month:int, report:str):
+    def from_month(cls, month:str, report:str):
         logger.debug(f'IrusReport.from_month: {month}\n{report}')
         return cls(path = 'reports/month/', name = f'{month}.csv', report = report)
 

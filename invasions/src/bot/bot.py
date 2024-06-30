@@ -6,7 +6,7 @@ from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
 from aws_lambda_powertools.utilities.typing import LambdaContext
 import irus
-from irus import IrusInvasion, IrusInvasionList, IrusMember, IrusMemberList, IrusLadderRank, IrusLadder, IrusSecrets, IrusFiles, IrusProcess, IrusResources, IrusReport
+from irus import IrusInvasion, IrusInvasionList, IrusMember, IrusMemberList, IrusLadder, IrusSecrets, IrusFiles, IrusProcess, IrusResources, IrusReport, IrusMonth
 
 
 discord_cmd = os.environ['DISCORD_CMD']
@@ -214,9 +214,9 @@ def report_month_cmd(options:list) -> str:
         elif o["name"] == "year":
             year = o["value"]
 
-    logger.error('Not implemented')
-    return 'Not implemented'
-    # return layer.remote_month(month, year)
+    month = IrusMonth.from_invasion_stats(month = month, year = year)
+    report = IrusReport.from_month(month.month, report = month.csv())
+    return month.str() + report.msg
 
 
 def report_invasion_cmd(options:list) -> str:
@@ -231,7 +231,7 @@ def report_invasion_cmd(options:list) -> str:
 
     invasion = IrusInvasion.from_table(name)
     ladder = IrusLadder.from_invasion(invasion)
-    report = IrusReport.from_invasion(invasion, str(ladder))
+    report = IrusReport.from_invasion(invasion, report = ladder.csv())
     return f"#Report for Invasion {name}\n" + report.msg
 
 

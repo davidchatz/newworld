@@ -66,5 +66,8 @@ class IrusInvasionList:
     def count(self) -> int:
         return len(self.invasions)
     
+    def range(self) -> range:
+        return range(0, len(self.invasions))
+
     def get(self, index:int) -> IrusInvasion:
         return self.invasions[index]
