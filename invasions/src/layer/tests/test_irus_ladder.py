@@ -31,6 +31,7 @@ def generate_first_ladder():
 
     yield ladder
     invasion.delete_from_table()
+    ladder.delete_from_table()
     Chatz01.remove()
     Stuggy.remove()
 
@@ -51,6 +52,7 @@ def generate_fourth_ladder():
 
     yield ladder
     invasion.delete_from_table()
+    ladder.delete_from_table()
     Chatz01.remove()
     Stuggy.remove()
     Zel0s.remove()
@@ -79,6 +81,7 @@ def generate_invasion_ladders():
 
     yield ladders
     invasion.delete_from_table()
+    ladders.delete_from_table()
     Chatz01.remove()
     Stuggy.remove()
     Zel0s.remove()
@@ -104,6 +107,7 @@ def generate_roster():
 
     yield roster
     invasion.delete_from_table()
+    roster.delete_from_table()
     Chatz01.remove()
     Stuggy.remove()
     Zel0s.remove()
@@ -135,6 +139,7 @@ def generate_large_one_ladder():
 
     yield ladders
     invasion.delete_from_table()
+    ladders.delete_from_table()
     SeaCoconut.remove()
     AbuHurayra.remove()
     TaliMonk.remove()
@@ -168,6 +173,7 @@ def generate_large_six_ladders():
 
     yield ladders
     invasion.delete_from_table()
+    ladders.delete_from_table()
     SeaCoconut.remove()
     AbuHurayra.remove()
     TaliMonk.remove()
@@ -248,6 +254,7 @@ def generate_from_csv():
 
     yield ladders
     invasion.delete_from_table()
+    ladders.delete_from_table()
     SeaCoconut.remove()
     AbuHurayra.remove()
     TaliMonk.remove()
@@ -258,22 +265,22 @@ def generate_from_csv():
     Julie.remove()
 
 
-# def test_generate_first_ladder(generate_first_ladder):
-#     assert generate_first_ladder is not None
-#     assert generate_first_ladder.invasion is not None
-#     logger.info(generate_first_ladder.csv())
-#     assert generate_first_ladder.count() == 8
-#     assert generate_first_ladder.members() == 2
-#     assert generate_first_ladder.contiguous_from_1_until() == generate_first_ladder.count()
+def test_generate_first_ladder(generate_first_ladder):
+    assert generate_first_ladder is not None
+    assert generate_first_ladder.invasion is not None
+    logger.info(generate_first_ladder.csv())
+    assert generate_first_ladder.count() == 8
+    assert generate_first_ladder.members() == 2
+    assert generate_first_ladder.contiguous_from_1_until() == generate_first_ladder.count()
 
 
-# def test_generate_fourth_ladder(generate_fourth_ladder):
-#     assert generate_fourth_ladder is not None
-#     assert generate_fourth_ladder.invasion is not None
-#     logger.info(generate_fourth_ladder.csv())
-#     assert generate_fourth_ladder.count() == 4
-#     assert generate_fourth_ladder.members() == 2
-#     assert generate_fourth_ladder.contiguous_from_1_until() != generate_fourth_ladder.count() == 4
+def test_generate_fourth_ladder(generate_fourth_ladder):
+    assert generate_fourth_ladder is not None
+    assert generate_fourth_ladder.invasion is not None
+    logger.info(generate_fourth_ladder.csv())
+    assert generate_fourth_ladder.count() == 4
+    assert generate_fourth_ladder.members() == 2
+    assert generate_fourth_ladder.contiguous_from_1_until() != generate_fourth_ladder.count() == 4
 
 
 def test_generate_invasion_ladders(generate_invasion_ladders):
@@ -285,37 +292,37 @@ def test_generate_invasion_ladders(generate_invasion_ladders):
     assert generate_invasion_ladders.contiguous_from_1_until() == generate_invasion_ladders.count()
 
 
-# def test_generate_roster(generate_roster):
-#     assert generate_roster is not None
-#     assert generate_roster.invasion is not None
-#     logger.info(generate_roster.csv())
-#     assert generate_roster.count() == 4
-#     assert generate_roster.members() == 4
-#     assert generate_roster.contiguous_from_1_until() == generate_roster.count() == 4
+def test_generate_roster(generate_roster):
+    assert generate_roster is not None
+    assert generate_roster.invasion is not None
+    logger.info(generate_roster.csv())
+    assert generate_roster.count() == 4
+    assert generate_roster.members() == 4
+    assert generate_roster.contiguous_from_1_until() == generate_roster.count() == 4
 
 
-# def test_generate_large_one_ladder(generate_large_one_ladder):
-#     assert generate_large_one_ladder is not None
-#     assert generate_large_one_ladder.invasion is not None
-#     logger.info(generate_large_one_ladder.csv())
-#     assert generate_large_one_ladder.count() == 47
-#     assert generate_large_one_ladder.members() == 6
-#     assert generate_large_one_ladder.contiguous_from_1_until() == generate_large_one_ladder.count()
+def test_generate_large_one_ladder(generate_large_one_ladder):
+    assert generate_large_one_ladder is not None
+    assert generate_large_one_ladder.invasion is not None
+    logger.info(generate_large_one_ladder.csv())
+    assert generate_large_one_ladder.count() == 46
+    assert generate_large_one_ladder.members() == 6
+    assert generate_large_one_ladder.contiguous_from_1_until() == generate_large_one_ladder.count()
 
 
-# def test_generate_large_six_ladders(generate_large_six_ladders):
-#     assert generate_large_six_ladders is not None
-#     assert generate_large_six_ladders.invasion is not None
-#     logger.info(generate_large_six_ladders.csv())
-#     assert generate_large_six_ladders.count() == 47
-#     assert generate_large_six_ladders.members() == 6
-#     assert generate_large_six_ladders.contiguous_from_1_until() == generate_large_six_ladders.count()
+def test_generate_large_six_ladders(generate_large_six_ladders):
+    assert generate_large_six_ladders is not None
+    assert generate_large_six_ladders.invasion is not None
+    logger.info(generate_large_six_ladders.csv())
+    assert generate_large_six_ladders.count() == 47
+    assert generate_large_six_ladders.members() == 6
+    assert generate_large_six_ladders.contiguous_from_1_until() == generate_large_six_ladders.count()
 
 
-# def test_generate_from_csv(generate_from_csv):
-#     assert generate_from_csv is not None
-#     assert generate_from_csv.invasion is not None
-#     logger.info(generate_from_csv.csv())
-#     assert generate_from_csv.count() == 47
-#     assert generate_from_csv.members() == 6
-#     assert generate_from_csv.contiguous_from_1_until() == generate_from_csv.count()
+def test_generate_from_csv(generate_from_csv):
+    assert generate_from_csv is not None
+    assert generate_from_csv.invasion is not None
+    logger.info(generate_from_csv.csv())
+    assert generate_from_csv.count() == 47
+    assert generate_from_csv.members() == 6
+    assert generate_from_csv.contiguous_from_1_until() == generate_from_csv.count()

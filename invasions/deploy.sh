@@ -246,19 +246,17 @@ EOF
 
     cat << EOF > .env.json
 {
-    "Download": {
-        "POWERTOOLS_SERVICE_NAME": "Download",
-        "POWERTOOLS_LOG_LEVEL": "$LOG_LEVEL",
-        "BUCKET_NAME": "$BUCKET"
-    },
-    "Ladder": {
-        "POWERTOOLS_SERVICE_NAME": "Ladder",
+    "Invasion": {
+        "POWERTOOLS_SERVICE_NAME": "InvasionReport",
         "POWERTOOLS_LOG_LEVEL": "$LOG_LEVEL",
         "BUCKET_NAME": "$BUCKET",
-        "TABLE_NAME": "$TABLE",
-        "DEAD_HAND_STEP_FUNC": "$DEAD_HAND_STEP",
-        "PROCESS_STEP_FUNC": "$PROCESS_STEP",
-        "WEBHOOK_URL": "$URL"
+        "TABLE_NAME": "$TABLE"
+    },
+    "Month": {
+        "POWERTOOLS_SERVICE_NAME": "MonthReport",
+        "POWERTOOLS_LOG_LEVEL": "$LOG_LEVEL",
+        "BUCKET_NAME": "$BUCKET",
+        "TABLE_NAME": "$TABLE"
     },
     "Process": {
         "POWERTOOLS_SERVICE_NAME": "Process",
@@ -408,6 +406,18 @@ case $1 in
 
     test-local)
         _test_local
+        ;;
+
+    test-local-process)
+        _test_local "-k test_process tests"
+        ;;
+
+    test-local-invasion)
+        _test_local "-k test_invasion tests"
+        ;;
+
+    test-local-month)
+        _test_local "-k test_month tests"
         ;;
 
     all)

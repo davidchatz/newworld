@@ -214,9 +214,9 @@ def report_month_cmd(options:list) -> str:
         elif o["name"] == "year":
             year = o["value"]
 
-    month = IrusMonth.from_invasion_stats(month = month, year = year)
-    report = IrusReport.from_month(month.month, report = month.csv())
-    return month.str() + report.msg
+    stats = IrusMonth.from_invasion_stats(month = month, year = year)
+    report = IrusReport.from_month(stats)
+    return stats.str() + report.msg
 
 
 def report_invasion_cmd(options:list) -> str:
@@ -231,7 +231,7 @@ def report_invasion_cmd(options:list) -> str:
 
     invasion = IrusInvasion.from_table(name)
     ladder = IrusLadder.from_invasion(invasion)
-    report = IrusReport.from_invasion(invasion, report = ladder.csv())
+    report = IrusReport.from_invasion(ladder)
     return f"#Report for Invasion {name}\n" + report.msg
 
 

@@ -26,12 +26,12 @@ def lambda_handler(event:dict, context:LambdaContext):
         if contiguous != ladder.count():
             msg += f"*Ladder may be incomplete, starting at rank {contiguous}. Are you uploaded all the screen shots?*\n"
             
-        report = IrusReport.from_invasion(invasion, str(ladder))
+        report = IrusReport.from_invasion(ladder)
         msg += report.msg
 
     except Exception as e:
         status = 500
-        msg = f'Error generating report for {invasion}: {e}'
+        msg = f'Error generating report for {name}: {e}'
 
     if status == 200:
         logger.info(msg)

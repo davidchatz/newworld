@@ -1,4 +1,5 @@
 from boto3.dynamodb.conditions import Key
+from botocore.exceptions import ClientError
 from dataclasses import dataclass
 from datetime import datetime
 from .environ import IrusResources
@@ -35,14 +36,12 @@ class IrusMonth:
     def from_invasion_stats(cls, month:int, year:int):
         logger.info(f'IrusMonth.from_invasion_stats: {month}/{year}')
 
-        zero_month = '{0:02d}'.format(month)
-        date = f'{year}{zero_month}'
-
+        date = f'{year}{month:02d}'
         invasions = IrusInvasionList.from_month(month, year)
         members = IrusMemberList()
         
         if invasions.count() == 0:
-            logger.info(f'Note no invasions found for {month}')
+            logger.info(f'Note no invasions found for {date}')
 
         if members.count() == 0:
             logger.info(f'Note no members found')
@@ -51,7 +50,7 @@ class IrusMonth:
         for m in members.range():
             member = members.get(m)
             logger.debug(f'IrusMonth.from_invasion_stats: Adding {member.player} {member.salary}')
-            report.append({'invasion': f'#month#{month}', 'id': member.player, 'salary': member.salary, 'invasions': Decimal(0), 'ladders': Decimal(0), 'wins': Decimal(0),
+            report.append({'invasion': f'#month#{date}', 'id': member.player, 'salary': member.salary, 'invasions': Decimal(0), 'ladders': Decimal(0), 'wins': Decimal(0),
                             'sum_score': 0, 'sum_kills': 0, 'sum_assists': 0, 'sum_deaths': 0, 'sum_heals': 0, 'sum_damage': 0,
                             'avg_score': Decimal(0.0), 'avg_kills': Decimal(0.0), 'avg_assists': Decimal(0.0), 'avg_deaths': Decimal(0.0), 'avg_heals': Decimal(0.0), 'avg_damage': Decimal(0.0), 'avg_rank': Decimal(0.0),
                             'max_score': Decimal(0.0), 'max_kills': Decimal(0.0), 'max_assists': Decimal(0.0), 'max_deaths': Decimal(0.0), 'max_heals': Decimal(0.0), 'max_damage': Decimal(0.0), 'max_rank': Decimal(100.0)
@@ -85,7 +84,7 @@ class IrusMonth:
                         r["max_damage"] = max(r["max_damage"], rank.damage)
                         r["max_rank"] = min(r["max_rank"], Decimal(rank.rank))
                     else:
-                        logger.debug(f'Skipping stats for {r["id"]} from non-ladder invasion {invasion["id"]}')
+                        logger.debug(f'Skipping stats for {r["id"]} from non-ladder invasion {invasion.name}')
 
         # compute averages
         for r in report:
@@ -146,5 +145,12 @@ class IrusMonth:
     
     def delete_from_table(self):
         logger.info(f'IrusMonth.delete_from_table for month {self.month}')
-        logger.warn('Not implemented yet')
-        # TODO
+
+        try:
+            with table.batch_writer() as batch:
+                for r in self.report:
+                    if r["invasions"] > 0:
+                        batch.delete_item(Key={'invasion': r["invasion"], 'id': r["id"]})
+        except ClientError as err:
+            logger.error(f'Failed to delete from table: {err}')
+            raise ValueError(f'Failed to delete from table: {err}')

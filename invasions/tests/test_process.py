@@ -10,7 +10,7 @@ from irus import IrusInvasion, IrusMember, IrusLadder
 
 client = LambdaClient(local=True)
 
-logger = Logger(service="test_download", level="INFO", correlation_id=True)
+logger = Logger(service="test_process", level="INFO", correlation_id=True)
 dynamodb = client.session.resource('dynamodb')
 table_name = os.environ['TABLE_NAME']
 table = dynamodb.Table(table_name)
@@ -139,7 +139,7 @@ def generate_invasion_ladders():
 
     Chatz01 = IrusMember.from_user(player = "Chatz01", day=1, month=5, year=2024, faction= "purple", admin=False, salary=True)
     Stuggy = IrusMember.from_user(player = "Stuggy", day=1, month=5, year=2024, faction= "green", admin=True, salary=True)
-    Talimonk = IrusMember.from_user(player = "Talimonk", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
+    TaliMonk = IrusMember.from_user(player = "TaliMonk", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
     kbaz = IrusMember.from_user(player = "kbaz", day=1, month=5, year=2024, faction= "purple", admin=False, salary=False)
     Merkavar = IrusMember.from_user(player = "Merkavar", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
     Fred = IrusMember.from_user(player = "Fred", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
@@ -175,7 +175,7 @@ def generate_invasion_ladders():
     invasion.delete_from_table()
     Chatz01.remove()
     Stuggy.remove()
-    Talimonk.remove()
+    TaliMonk.remove()
     kbaz.remove()
     Merkavar.remove()
     Fred.remove()
@@ -199,4 +199,4 @@ def test_generate_invasion_ladders(generate_invasion_ladders):
     logger.info(generate_invasion_ladders.csv())
     assert generate_invasion_ladders.count() == 52
     assert generate_invasion_ladders.members() == 5
-    assert generate_invasion_ladders.is_contiguous_from_1() == True
+    assert generate_invasion_ladders.contiguous_from_1_until() == generate_invasion_ladders.count()

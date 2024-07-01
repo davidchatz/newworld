@@ -210,13 +210,15 @@ Resources:
       Handler: month.lambda_handler
       Runtime: python3.11
       CodeUri: src/month
-      Description: 'Scan invasion screen shots'
+      Description: 'Generate monthly reports'
       MemorySize: 256
       Timeout: 10
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: Month
           POWERTOOLS_LOG_LEVEL: !Ref LogLevel
+          TABLE_NAME: !Ref Table
+          BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
       Policies: 
         - TextractPolicy: {}
         - S3CrudPolicy:

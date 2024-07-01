@@ -367,3 +367,13 @@ class IrusLadder:
         msg += f'Ranks: {self.count()}\n'
         msg += self.invasion.markdown()
         return msg
+
+    def delete_from_table(self):
+        logger.info(f'IrusLadder.delete_from_table for {self.invasion.name}')
+        try:
+            with table.batch_writer() as batch:
+                for r in self.ranks:
+                    batch.delete_item(Key={'invasion': f'#ladder#{self.invasion.name}', 'id': r.rank})
+        except ClientError as err:
+            logger.error(f'Failed to delete from table: {err}')
+            raise ValueError(f'Failed to delete from table: {err}')
