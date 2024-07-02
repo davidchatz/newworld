@@ -121,6 +121,11 @@ class IrusMonth:
             KeyConditionExpression=Key('invasion').eq(f'#month#{month}'),
             Select='ALL_ATTRIBUTES'
         )
+
+        if response.Count == 0:
+            logger.info(f'Note no data found for month {date}')
+            raise ValueError(f'Note no data found for month {date}')
+        
         report = response['Items']
 
         logger.debug(f'Retrieved report for {date}: {report}')
@@ -154,3 +159,26 @@ class IrusMonth:
         except ClientError as err:
             logger.error(f'Failed to delete from table: {err}')
             raise ValueError(f'Failed to delete from table: {err}')
+        
+    def member(self, player: str) -> dict:
+        for r in self.report:
+            if r["id"] == player:
+                return r
+        return None
+    
+    def member_stats(self, player: str) -> str:
+        item = self.member(player)
+        mesg = f'## Stats for {self.month}\n'
+        if item:
+            mesg += 'Invasions (Wins): {invasions} ({wins})\n'.format_map(item)
+            mesg += 'Sum / Max / Average\n'
+            mesg += '- Score: {sum_score} / {max_score} / {avg_score}\n'.format_map(item)
+            mesg += '- Kills: {sum_kills} / {max_kills} / {avg_kills}\n'.format_map(item)
+            mesg += '- Assists: {sum_assists} / {max_assists} / {avg_assists}\n'.format_map(item)
+            mesg += '- Deaths: {sum_deaths} / {max_deaths} / {avg_deaths}\n'.format_map(item)
+            mesg += '- Heals: {sum_heals} / {max_heals} / {avg_heals}\n'.format_map(item)
+            mesg += '- Damage: {sum_damage} / {max_damage} / {avg_damage}\n'.format_map(item)
+        else:
+            mesg = f'*No stats found for {player} in {self.month}*\n'
+
+        return mesg

@@ -70,6 +70,15 @@ Globals:
       # - !FindInMap [ "LambdaPowerTools", !Ref "AWS::Region", "ARN" ]
       - !GetAtt AwsLambdaPowertoolsPythonLayer.Outputs.LayerVersionArn
       - !Ref IrusLayer
+    Environment:
+      Variables:
+        POWERTOOLS_LOG_LEVEL: !Ref LogLevel
+        PUBLIC_KEY_PATH: !Sub "${SsmPrefix}/${PublicKeyPath}"
+        APP_ID_PATH: !Sub "${SsmPrefix}/${AppIdPath}"
+        TABLE_NAME: !Ref Table
+        DISCORD_CMD: !Ref DiscordCmd
+        BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+        WEBHOOK_URL: !Ref DiscordWebHookURL
 
 Resources:
 
@@ -162,9 +171,6 @@ Resources:
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: Process
-          POWERTOOLS_LOG_LEVEL: !Ref LogLevel
-          TABLE_NAME: !Ref Table
-          BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
 
   ProcessLogGroup:
     Type: AWS::Logs::LogGroup
@@ -186,9 +192,6 @@ Resources:
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: Invasion
-          POWERTOOLS_LOG_LEVEL: !Ref LogLevel
-          TABLE_NAME: !Ref Table
-          BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
       Policies: 
         - TextractPolicy: {}
         - S3CrudPolicy:
@@ -216,9 +219,6 @@ Resources:
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: Month
-          POWERTOOLS_LOG_LEVEL: !Ref LogLevel
-          TABLE_NAME: !Ref Table
-          BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
       Policies: 
         - TextractPolicy: {}
         - S3CrudPolicy:
@@ -261,6 +261,8 @@ Resources:
             FunctionName: !Ref Process
         - LambdaInvokePolicy:
             FunctionName: !Ref Invasion
+        - LambdaInvokePolicy:
+            FunctionName: !Ref Month
         - DynamoDBReadPolicy:
             TableName: !Ref Table
         - S3CrudPolicy:
@@ -389,14 +391,7 @@ Resources:
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: Bot
-          POWERTOOLS_LOG_LEVEL: !Ref LogLevel
-          PUBLIC_KEY_PATH: !Sub "${SsmPrefix}/${PublicKeyPath}"
-          APP_ID_PATH: !Sub "${SsmPrefix}/${AppIdPath}"
-          TABLE_NAME: !Ref Table
-          DISCORD_CMD: !Ref DiscordCmd
-          BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
           PROCESS_STEP_FUNC: !Ref DeadHandStepFunction
-          WEBHOOK_URL: !Ref DiscordWebHookURL
           TZ: !Ref Timezone
       Events:
         ApiPOSTdiscord:

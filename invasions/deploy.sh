@@ -250,13 +250,19 @@ EOF
         "POWERTOOLS_SERVICE_NAME": "InvasionReport",
         "POWERTOOLS_LOG_LEVEL": "$LOG_LEVEL",
         "BUCKET_NAME": "$BUCKET",
-        "TABLE_NAME": "$TABLE"
+        "TABLE_NAME": "$TABLE",
+        "DEAD_HAND_STEP_FUNC": "$DEAD_HAND_STEP",
+        "PROCESS_STEP_FUNC": "$PROCESS_STEP",
+        "WEBHOOK_URL": "$URL"
     },
     "Month": {
         "POWERTOOLS_SERVICE_NAME": "MonthReport",
         "POWERTOOLS_LOG_LEVEL": "$LOG_LEVEL",
         "BUCKET_NAME": "$BUCKET",
-        "TABLE_NAME": "$TABLE"
+        "TABLE_NAME": "$TABLE",
+        "DEAD_HAND_STEP_FUNC": "$DEAD_HAND_STEP",
+        "PROCESS_STEP_FUNC": "$PROCESS_STEP",
+        "WEBHOOK_URL": "$URL"
     },
     "Process": {
         "POWERTOOLS_SERVICE_NAME": "Process",

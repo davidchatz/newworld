@@ -8,6 +8,7 @@ logger = IrusResources.logger()
 table = IrusResources.table()
 state_machine = IrusResources.state_machine()
 
+
 class IrusFiles:
 
     def __init__(self):
@@ -34,24 +35,21 @@ class IrusFiles:
 
     def get(self) -> list:
         return self.files
+    
+    def str(self) -> str:
+        return f'{len(self.files)} files'
 
 
 class IrusProcess:
 
-    step_func_arn : str = None
-    webhook_url : str = None
-
-    def __init__(self):
-        self.step_function_arn = os.environ.get('PROCESS_STEP_FUNC')
-        self.webhook_url = os.environ.get('WEBHOOK_URL')
-        if not self.step_function_arn or not self.webhook_url:
-            logger.warning(f'Environment not defined {self.step_function_arn} {self.webhook_url}')
-            raise ValueError(f'Environment not defined {self.step_function_arn} {self.webhook_url}')
+    def __init__(self) -> None:
+        self.step_func_arn = IrusResources.step_function_arn()
+        self.webhook_url = IrusResources.webhook_url()
 
 
     def start(self, id: str, token: str, invasion: IrusInvasion, files: IrusFiles, process: str) -> str:
 
-        logger.info(f'Process.start:\nid: {id}\ntoken: {token}\ninvasion: {invasion}\nfiles: {files}\nprocess: {process}')
+        logger.info(f'Process.start: invasion: {invasion.name} files: {files.str()} process: {process}')
 
         cmd = {
             'post': f'{self.webhook_url}/{id}/{token}',
@@ -73,7 +71,7 @@ class IrusProcess:
 
         try:
             state_machine.start_execution(
-                stateMachineArn=self.step_function_arn,
+                stateMachineArn=self.step_func_arn,
                 input=json.dumps(cmd)
             )
 

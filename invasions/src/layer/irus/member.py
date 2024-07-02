@@ -106,11 +106,11 @@ class IrusMember:
 
         response = table.delete_item(Key=self.key(), ReturnValues='ALL_OLD')
         if 'Attributes' in response:
-            mesg = f'# Removed member {self.player}'
+            mesg = f'## Removed member {self.player}'
             table.put_item(Item=item)
             self.player = None
         else:
-            mesg = f'Member {self.player} not found, nothing to remove'
+            mesg = f'*Member {self.player} not found, nothing to remove*'
 
         logger.info(mesg)
         return mesg

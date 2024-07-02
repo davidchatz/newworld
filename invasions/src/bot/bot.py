@@ -54,6 +54,7 @@ def invasion_add_cmd(options:list) -> IrusInvasion:
     day = now.day
     month = now.month
     year = now.year
+    win = True
 
     for o in options:
         if o["name"] == "day":
@@ -76,7 +77,7 @@ def invasion_add_cmd(options:list) -> IrusInvasion:
                               win=win,
                               notes=notes)
     
-    return item.markdown()
+    return item
 
 
 def invasion_download_cmd(id: str, token: str, options:list, resolved:dict, method:str) -> str:
@@ -106,7 +107,7 @@ def invasion_cmd(id:str, token:str, options:dict, resolved: dict) -> str:
     if name == 'list':
         return invasion_list_cmd(options['options'])
     elif name == 'add':
-        return str(invasion_add_cmd(options['options']))
+        return invasion_add_cmd(options['options']).markdown()
     elif name == 'ladder' or name == 'screenshots':
         return invasion_download_cmd(id, token, options['options'], resolved, 'Ladder')
     elif name == 'roster':
@@ -114,6 +115,25 @@ def invasion_cmd(id:str, token:str, options:dict, resolved: dict) -> str:
     else:
         logger.error(f'Invalid command {name}')
         return f'Invalid command {name}'
+
+
+def invasion_process(id: str, token: str, invasion: IrusInvasion, options:list, resolved:dict, method:str) -> str:
+    logger.info(f'invasion_process:\nid: {id}\ntoken: {token}\noptions: {options}\nresolved: {resolved}\nmethod: {method}')
+
+    files = IrusFiles()
+
+    try:
+        for o in options:
+            if o["name"].startswith("file"):
+                files.append(name = o["name"], attachment = o["value"])
+    except ValueError as e:
+        logger.info(e)
+        return str(e)
+
+    files.update(resolved['attachments'])
+
+    return process.start(id, token, invasion, files, method)
+
 
 #
 # Member Commands
@@ -163,7 +183,7 @@ def member_add_cmd(options:list) -> str:
                                 admin=admin,
                                 salary=salary,
                                 notes=notes)
-    mesg = str(member)
+    mesg = member.str()
     mesg += irus.update_invasions_for_new_member(member)
     logger.info(f'member_add_cmd: {mesg}')
 
@@ -180,7 +200,7 @@ def member_remove_cmd(options:list) -> str:
     try:
         member = IrusMember.from_table(player)
     except ValueError:
-        return f'Member {player} not found'
+        return f'*Member {player} not found*'
     return member.remove()
 
 
@@ -240,6 +260,8 @@ def report_member_cmd(options:list) -> str:
     now = datetime.now()
     month = now.month
     year = now.year
+    member = None
+    report = None
 
     for o in options:
         if o["name"] == "player":
@@ -249,9 +271,24 @@ def report_member_cmd(options:list) -> str:
         elif o["name"] == "year":
             year = o["value"]
 
-    logger.error('Not implemented')
-    return 'Not implemented'
-    # return layer.report_member(player, month, year)
+    try:
+        member = IrusMember.from_table(player)
+    except:
+        mesg = f'*Member {player} not found*'
+
+    if member:
+        mesg = f'# Report for {player}\n'
+        mesg += member.str()
+        try:
+            report = IrusMonth.from_table(month, year)
+        except:
+            mesg = f'*No monthly stats found for {month}/{year}*'
+
+        if report:
+            mesg += report.member_stats(player)
+
+    logger.debug(mesg)
+    return mesg
 
 
 def report_members_cmd(options:list) -> str:
@@ -303,17 +340,18 @@ def lambda_handler(event: dict, context: LambdaContext):
         elif body["type"] == 2 and body["data"]["name"] == discord_cmd:
             logger.debug(f'body: {body["data"]}')
             subcommand = body["data"]["options"][0]
+            logger.debug(f'subcommand: {subcommand}')
             resolved = body["data"]["resolved"] if "resolved" in body["data"] else None
 
             if subcommand["name"] == "invasion":
                 content = invasion_cmd(app_id, body['token'], subcommand["options"][0], resolved)
             elif subcommand["name"] == "ladders":
-                invasion = invasion_add_cmd(subcommand["options"][0])
-                invasion_download_cmd(app_id, body['token'], subcommand["options"][0], resolved, 'Ladder')
+                invasion = invasion_add_cmd(subcommand["options"])
+                invasion_process(app_id, body['token'], invasion, subcommand["options"], resolved, 'Ladder')
                 content = f'In Progress: Registered invasion {invasion.name}, next download file(s)'
             elif subcommand["name"] == "roster":
-                invasion = invasion_add_cmd(subcommand["options"][0])
-                invasion_download_cmd(app_id, body['token'], subcommand["options"][0], resolved, 'Roster')
+                invasion = invasion_add_cmd(subcommand["options"])
+                invasion_process(app_id, body['token'], invasion, subcommand["options"], resolved, 'Roster')
                 content = f'In Progress: Registered invasion {invasion.name}, next download file(s)'
             elif subcommand["name"] == "report":
                 content = report_cmd(subcommand["options"][0], resolved)
