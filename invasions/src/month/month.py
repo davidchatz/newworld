@@ -12,33 +12,46 @@ def lambda_handler(event:dict, context:LambdaContext):
     headers = {
         "Content-Type": "application/json"
     }
-    msg = ''
 
     month = event["month"]
 
+    body = {
+        'template': '''
+        # Report for Month {}
+        Invasions: {}
+        Active Members: {}
+        Participation (sum of members across invasions): {}
+        {}
+        ''',
+        'month': month,
+        'invasions': '0',
+        'members': '0',
+        'participation': '0',
+        'url': 'TBD'
+    }
+
     try:
         report = IrusMonth.from_invasion_stats(month=int(month[4:6]), year=int(month[:4]))
-        msg = f'# Monthly report for {month}'
-        msg += f'- Invasions: {report.invasions}\n'
-        msg += f'- Active Members (1 or more invasions): {len(report.report)}\n'
-        msg += f'- Participation (sum of members across invasions won): {report.participation}\n'
+        body['invasions'] = report.invasions
+        body['members'] = len(report.report)
+        body['participation'] = report.participation
 
         export = IrusReport.from_month(report)
-        msg += export.msg
+        body['url'] = export.msg
 
     except Exception as e:
         status = 500
-        msg = f'Error generating report for {month}: {e}'
+        body['url'] = f'Error generating report for {month}: {e}'
 
     if status == 200:
-        logger.info(msg)
+        logger.info(body)
     elif status == 401:
-        logger.warning(msg)
+        logger.warning(body)
     else:
-        logger.error(msg)
+        logger.error(body)
 
     return {
         "statusCode": status,
         "headers": headers,
-        "body": json.dumps(msg)
+        "body": body
     }

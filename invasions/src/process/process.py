@@ -46,10 +46,15 @@ def lambda_handler(event: dict, context: LambdaContext):
             members = IrusMemberList()
             invasion = IrusInvasion.from_table(name)
             ladder = None
-            if process == 'ladder':
+            if process == 'Ladder':
                 ladder = IrusLadder.from_ladder_image(invasion, members, bucket_name, target)
-            else:
+            elif process == 'Roster':
                 ladder = IrusLadder.from_roster_image(invasion, members, bucket_name, target)
+            else:
+                logger.error(f'Unknown process {process}')
+                raise ValueError(f'Unknown process {process}')
+
+            logger.info(ladder.str())
             data = f'Successful download of {filename}. ' + ladder.str()
 
     except Exception as e:

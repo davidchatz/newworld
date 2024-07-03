@@ -12,36 +12,93 @@ def lambda_handler(event:dict, context:LambdaContext):
     headers = {
         "Content-Type": "application/json"
     }
-    msg = ''
+    body = {
+        'template': '''
+        # Report for Invasion {}
+        Ranks: {}
+        Memebers: {}
+        Contiguous: {}
+        {}
+        ''',
+        'name': 'TBD',
+        'ranks': '0',
+        'members': '0',
+        'contiguous': '0',
+        'url': 'TBD'
+    }
 
     name = event["invasion"]
 
     try:
-        msg = f"#Report for Invasion {name}\n"
         invasion = IrusInvasion.from_table(name)
         ladder = IrusLadder.from_invasion(invasion)
-        msg += f"Ranks: {ladder.count()}\n"
-        msg += f"Members: {ladder.members()}\n"
+        body['name'] = name
+        body['ranks'] = ladder.count()
+        body['members'] = ladder.members()
         contiguous = ladder.contiguous_from_1_until()
         if contiguous != ladder.count():
-            msg += f"*Ladder may be incomplete, starting at rank {contiguous}. Are you uploaded all the screen shots?*\n"
+            body['contiguous'] = f"*Ladder may be incomplete, starting from rank {contiguous}. Have you uploaded all the screen shots?*\n"
+        else:
+            body['contiguous'] = 'Yes'
             
         report = IrusReport.from_invasion(ladder)
-        msg += report.msg
+        body['url'] = report.msg
 
     except Exception as e:
         status = 500
-        msg = f'Error generating report for {name}: {e}'
+        body['url'] = f'Error generating report for {name}: {e}'
 
     if status == 200:
-        logger.info(msg)
+        logger.info(body)
     elif status == 401:
-        logger.warning(msg)
+        logger.warning(body)
     else:
-        logger.error(msg)
+        logger.error(body)
 
     return {
         "statusCode": status,
         "headers": headers,
-        "body": json.dumps(msg)
+        "body": body
     }
+
+
+# @logger.inject_lambda_context(log_event=True)
+# def lambda_handler(event:dict, context:LambdaContext):
+
+#     status = 200
+#     headers = {
+#         "Content-Type": "application/json"
+#     }
+#     msg = ''
+
+#     name = event["invasion"]
+
+#     try:
+#         msg = f"#Report for Invasion {name}\n"
+#         invasion = IrusInvasion.from_table(name)
+#         ladder = IrusLadder.from_invasion(invasion)
+#         msg += f"Ranks: {ladder.count()}\n"
+#         msg += f"Members: {ladder.members()}\n"
+#         contiguous = ladder.contiguous_from_1_until()
+#         if contiguous != ladder.count():
+#             msg += f"*Ladder may be incomplete, starting at rank {contiguous}. Are you uploaded all the screen shots?*\n"
+            
+#         report = IrusReport.from_invasion(ladder)
+#         msg += report.msg
+
+#     except Exception as e:
+#         status = 500
+#         msg = f'Error generating report for {name}: {e}'
+
+#     if status == 200:
+#         logger.info(msg)
+#     elif status == 401:
+#         logger.warning(msg)
+#     else:
+#         logger.error(msg)
+
+#     return {
+#         "statusCode": status,
+#         "headers": headers,
+#         "body": json.dumps(msg)
+#     }

@@ -268,7 +268,7 @@
               "ApiEndpoint.$": "$.post",
               "Method": "POST",
               "RequestBody": {
-                  "content.$": "$.UpdateInvasionStats.Payload.body"
+                  "content.$": "States.Format($.UpdateInvasionStats.Payload.body.template, $.UpdateInvasionStats.Payload.body.name, $.UpdateInvasionStats.Payload.body.ranks, $.UpdateInvasionStats.Payload.body.members, $.UpdateInvasionStats.Payload.body.contiguous, $.UpdateInvasionStats.Payload.body.url)"
               },
               "Headers": {
                   "Content-Type": "application/json"
@@ -392,8 +392,8 @@
               "ApiEndpoint.$": "$.post",
               "Method": "POST",
               "RequestBody": {
-                  "content.$": "$.UpdateMonthlyStats.Payload.body"
-              },
+                "content.$": "States.Format($.UpdateMonthlyStats.Payload.body.template, $.UpdateMonthlyStats.Payload.body.month, $.UpdateMonthlyStats.Payload.body.invasions, $.UpdateMonthlyStats.Payload.body.members, $.UpdateMonthlyStats.Payload.body.participation, $.UpdateMonthlyStats.Payload.body.url)"
+            },
               "Headers": {
                   "Content-Type": "application/json"
               },

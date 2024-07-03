@@ -345,7 +345,7 @@ def lambda_handler(event: dict, context: LambdaContext):
 
             if subcommand["name"] == "invasion":
                 content = invasion_cmd(app_id, body['token'], subcommand["options"][0], resolved)
-            elif subcommand["name"] == "ladders":
+            elif subcommand["name"] == "ladders" or subcommand["name"] == "ladder":
                 invasion = invasion_add_cmd(subcommand["options"])
                 invasion_process(app_id, body['token'], invasion, subcommand["options"], resolved, 'Ladder')
                 content = f'In Progress: Registered invasion {invasion.name}, next download file(s)'
