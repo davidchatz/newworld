@@ -33,10 +33,11 @@ class IrusMemberList:
         return body
 
     def markdown(self) -> str:
-        body = f"# {len(self.members)} Members\n"
+        body = f"# Member List\n"
+        body += f'Members: {len(self.members)}\n'
         body += "*Note: This list may be truncated, run **report members** to get full list.*\n"
         for m in self.members:
-            body += '- f{m.player} ({m.faction}) started {m.start}\n'
+            body += f'- {m.player} ({m.faction}) started {m.start}\n'
         return body
 
     def count(self) -> int:

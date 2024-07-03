@@ -176,7 +176,7 @@
               "ApiEndpoint.$": "$.post",
               "Method": "POST",
               "RequestBody": {
-                  "content.$": "States.Format('{} file(s) downloaded and processed for invasion {}, next updating invasion stats', $.process, $.invasion)"
+                  "content.$": "States.Format('# {} Processing\nInvasion: {}\nFiles downloaded and processed, now updating invasion stats\n', $.process, $.invasion)"
               },
               "Headers": {
                   "Content-Type": "application/json"
@@ -268,7 +268,7 @@
               "ApiEndpoint.$": "$.post",
               "Method": "POST",
               "RequestBody": {
-                  "content.$": "States.Format($.UpdateInvasionStats.Payload.body.template, $.UpdateInvasionStats.Payload.body.name, $.UpdateInvasionStats.Payload.body.ranks, $.UpdateInvasionStats.Payload.body.members, $.UpdateInvasionStats.Payload.body.contiguous, $.UpdateInvasionStats.Payload.body.url)"
+                  "content.$": "States.Format($.UpdateInvasionStats.Payload.body.template, $.UpdateInvasionStats.Payload.body.name, $.UpdateInvasionStats.Payload.body.ranks, $.UpdateInvasionStats.Payload.body.members, $.UpdateInvasionStats.Payload.body.memberlist, $.UpdateInvasionStats.Payload.body.nonmemberlist, $.UpdateInvasionStats.Payload.body.contiguous, $.UpdateInvasionStats.Payload.body.url)"
               },
               "Headers": {
                   "Content-Type": "application/json"

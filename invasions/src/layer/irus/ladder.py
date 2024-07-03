@@ -352,6 +352,20 @@ class IrusLadder:
                 return r
         return None
 
+    def member_list(self) -> str:
+        mesg = ''
+        for r in self.ranks:
+            if r.member:
+                mesg += f'{r.player}, '
+        return mesg
+        
+    def non_member_list(self) -> str:
+        mesg = ''
+        for r in self.ranks:
+            if not r.member:
+                mesg += f'{r.player}, '
+        return mesg
+
     def str(self) -> str:
         return f'Ladder for invasion {self.invasion.name} with {self.count()} rank(s) including {self.members()} member(s)'
 

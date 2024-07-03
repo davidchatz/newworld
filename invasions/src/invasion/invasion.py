@@ -16,13 +16,16 @@ def lambda_handler(event:dict, context:LambdaContext):
         'template': '''
         # Report for Invasion {}
         Ranks: {}
-        Memebers: {}
+        Members ({}): {}
+        Non Members: {}
         Contiguous: {}
         {}
         ''',
         'name': 'TBD',
         'ranks': '0',
         'members': '0',
+        'memberlist': 'TBD',
+        'nonmemberlist': 'TBD',
         'contiguous': '0',
         'url': 'TBD'
     }
@@ -35,6 +38,8 @@ def lambda_handler(event:dict, context:LambdaContext):
         body['name'] = name
         body['ranks'] = ladder.count()
         body['members'] = ladder.members()
+        body['memberlist'] = ladder.member_list()
+        body['nonmemberlist'] = ladder.non_member_list()
         contiguous = ladder.contiguous_from_1_until()
         if contiguous != ladder.count():
             body['contiguous'] = f"*Ladder may be incomplete, starting from rank {contiguous}. Have you uploaded all the screen shots?*\n"
