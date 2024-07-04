@@ -24,7 +24,7 @@ class IrusMonth:
         self.invasions = invasions
         self.participation = 0
         for r in report:
-            logger.info(f'IrusMonth.__init__: {r["id"]} {r["wins"]} {r["salary"]} {self.participation}')
+            logger.debug(f'IrusMonth.__init__: {r["id"]} {r["wins"]} {r["salary"]} {self.participation}')
             if r["salary"] == True:
                 self.participation += r["wins"]
 
@@ -134,7 +134,7 @@ class IrusMonth:
 
 
     def str(self) -> str:
-        mesg = f'# Monthly report for {self.month}'
+        mesg = f'# Monthly report for {self.month}\n'
         mesg += f'- Invasions: {self.invasions}\n'
         mesg += f'- Active Members (1 or more invasions): {len(self.report)}\n'
         mesg += f'- Participation (sum of members across invasions won): {self.participation}\n'

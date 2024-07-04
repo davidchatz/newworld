@@ -42,7 +42,7 @@ def download_sample_ladder_file():
         'filename': 'Screenshot_2024-05-23_222523.png',
         'url': url,
         'folder': invasion.path_ladders(),
-        'process': 'ladder'
+        'process': 'Ladder'
     }
     logger.debug(f'Event: {event}')
 
@@ -77,7 +77,7 @@ def download_missing_file():
         'filename': 'missing.png',
         'url': 'https://bogus.example.com',
         'folder': invasion.path_ladders(),
-        'process': 'ladder'
+        'process': 'Ladder'
     }
     logger.debug(f'Event: {event}')
 
@@ -110,7 +110,7 @@ def download_sample_jpg_file():
         'filename': 'Screenshot_2024-05-23_222523_bad.jpg',
         'url': url,
         'folder': invasion.path_ladders(),
-        'process': 'ladder'
+        'process': 'Ladder'
     }
     logger.debug(f'Event: {event}')
 
@@ -158,7 +158,7 @@ def generate_invasion_ladders():
             'filename': f'{f}',
             'url': url,
             'folder': invasion.path_ladders(),
-            'process': 'ladder'
+            'process': 'Ladder'
         }
         logger.debug(f'Event: {event}')
 

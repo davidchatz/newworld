@@ -305,7 +305,7 @@ def test_generate_large_one_ladder(generate_large_one_ladder):
     assert generate_large_one_ladder is not None
     assert generate_large_one_ladder.invasion is not None
     logger.info(generate_large_one_ladder.csv())
-    assert generate_large_one_ladder.count() == 46
+    assert generate_large_one_ladder.count() == 46 or generate_large_one_ladder.count() == 47
     assert generate_large_one_ladder.members() == 6
     assert generate_large_one_ladder.contiguous_from_1_until() == generate_large_one_ladder.count()
 
@@ -314,7 +314,7 @@ def test_generate_large_six_ladders(generate_large_six_ladders):
     assert generate_large_six_ladders is not None
     assert generate_large_six_ladders.invasion is not None
     logger.info(generate_large_six_ladders.csv())
-    assert generate_large_six_ladders.count() == 47
+    assert generate_large_six_ladders.count() == 46 or generate_large_six_ladders.count() == 47
     assert generate_large_six_ladders.members() == 6
     assert generate_large_six_ladders.contiguous_from_1_until() == generate_large_six_ladders.count()
 

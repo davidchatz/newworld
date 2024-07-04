@@ -9,7 +9,7 @@ AWS_PROFILE=testnewworld
 STACK_NAME=invasions
 LOG_LEVEL=info
 
-_cleanup()
+_exit()
 {
     rm -rf $tmp
     if [[ -n "$pids" ]]
@@ -19,7 +19,7 @@ _cleanup()
     exit $status
 }
 
-trap _cleanup 0 1 2 3
+trap _exit 0 1 2 3
 
 function _usage()
 {
@@ -295,6 +295,20 @@ function _cleanup_table()
     _run ./src/layer/tests/delete_items.py $AWS_PROFILE $TABLE
 }
 
+function _delete_table()
+{
+    _header "Cleanup table"
+    TABLE=$(aws cloudformation describe-stacks \
+            $OPTIONS \
+            --stack-name $STACK_NAME \
+            --query 'Stacks[].Outputs[?OutputKey==`Table`].{id:OutputValue}' \
+            --output text)
+    _run ./src/layer/tests/delete_items.py $AWS_PROFILE $TABLE
+    _walk aws dynamodb delete-table \
+            $OPTIONS \
+            --table-name $TABLE
+}
+
 function _cleanup_bucket()
 {
     _header "Cleanup bucket"
@@ -304,6 +318,18 @@ function _cleanup_bucket()
             --query 'Stacks[].Outputs[?OutputKey==`Bucket`].{id:OutputValue}' \
             --output text)
     _empty_bucket $BUCKET
+}
+
+function _delete_bucket()
+{
+    _header "Delete bucket"
+    BUCKET=$(aws cloudformation describe-stacks \
+            $OPTIONS \
+            --stack-name $STACK_NAME \
+            --query 'Stacks[].Outputs[?OutputKey==`Bucket`].{id:OutputValue}' \
+            --output text)
+    _empty_bucket $BUCKET
+    _walk aws s3 rb $OPTIONS s3://$BUCKET --force
 }
 
 function _cleanup_test_bucket()
@@ -366,13 +392,32 @@ function _test_local()
     _run kill -s INT $pid
 }
 
-function _delete()
+function _cleanup()
 {
     _cleanup_test_bucket
-    # _cleanup_bucket
-    # _cleanup_table
     _header "SAM delete"
     _walk sam delete
+}
+
+function _delete_all()
+{
+    echo -n "Are you sure? [y/N]: "
+    read ans
+    if [[ $ans =~ [yY] ]]
+    then
+        _delete_bucket
+        _delete_table
+        _cleanup
+    fi
+}
+
+function _demo()
+{
+    _cleanup_table
+    _sync_samples
+    _header "Setup demo"
+    _walk export PYTHONPATH=src/layer:$PYTHONPATH
+    _walk python3 src/layer/demo/demo.py
 }
 
 case $1 in
@@ -438,7 +483,15 @@ case $1 in
         ;;
 
     cleanup)
-        _delete
+        _cleanup
+        ;;
+
+    delete_all)
+        _delete_all
+        ;;
+
+    demo)
+        _demo
         ;;
 
     *)

@@ -252,7 +252,7 @@ def report_invasion_cmd(options:list) -> str:
     invasion = IrusInvasion.from_table(name)
     ladder = IrusLadder.from_invasion(invasion)
     report = IrusReport.from_invasion(ladder)
-    return f"#Report for Invasion {name}\n" + report.msg
+    return f"# Report for Invasion {name}\n" + report.msg
 
 
 def report_member_cmd(options:list) -> str:

@@ -11,7 +11,7 @@ table = IrusResources.table()
 class IrusLadderRank:
 
     def __init__(self, invasion: IrusInvasion, item: dict):
-        logger.info(f'LadderRank.__init__: {invasion} {item}')
+        logger.debug(f'LadderRank.__init__: {invasion} {item}')
         self.invasion = invasion
         self.rank = item['rank']
         self.member = bool(item['member'])
