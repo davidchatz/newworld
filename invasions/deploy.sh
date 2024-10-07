@@ -5,8 +5,8 @@ tmp=/tmp/$$
 cmd=`basename $0`
 pids=""
 
-AWS_PROFILE=testnewworld
-STACK_NAME=invasions
+AWS_PROFILE=irus-202410
+STACK_NAME=irus
 LOG_LEVEL=info
 
 _exit()
@@ -304,7 +304,7 @@ function _delete_table()
             --query 'Stacks[].Outputs[?OutputKey==`Table`].{id:OutputValue}' \
             --output text)
     _run ./src/layer/tests/delete_items.py $AWS_PROFILE $TABLE
-    _walk aws dynamodb delete-table \
+    _run aws dynamodb delete-table \
             $OPTIONS \
             --table-name $TABLE
 }
@@ -329,7 +329,7 @@ function _delete_bucket()
             --query 'Stacks[].Outputs[?OutputKey==`Bucket`].{id:OutputValue}' \
             --output text)
     _empty_bucket $BUCKET
-    _walk aws s3 rb $OPTIONS s3://$BUCKET --force
+    _run aws s3 rb $OPTIONS s3://$BUCKET --force
 }
 
 function _cleanup_test_bucket()
@@ -396,7 +396,7 @@ function _cleanup()
 {
     _cleanup_test_bucket
     _header "SAM delete"
-    _walk sam delete
+    _walk sam delete --no-prompts
 }
 
 function _delete_all()

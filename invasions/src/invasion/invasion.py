@@ -38,8 +38,8 @@ def lambda_handler(event:dict, context:LambdaContext):
         body['name'] = name
         body['ranks'] = ladder.count()
         body['members'] = ladder.members()
-        body['memberlist'] = ladder.member_list()
-        body['nonmemberlist'] = ladder.non_member_list()
+        body['memberlist'] = ladder.list(member = True)
+        body['nonmemberlist'] = ladder.list(member = False)
         contiguous = ladder.contiguous_from_1_until()
         if contiguous != ladder.count():
             body['contiguous'] = f"*Ladder may be incomplete, starting from rank {contiguous}. Have you uploaded all the screen shots?*\n"

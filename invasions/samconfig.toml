@@ -3,8 +3,8 @@ version = 0.1
 [default]
 [default.global]
 [default.global.parameters]
-stack_name = "invasions"
-profile = "testnewworld"
+stack_name = "irus"
+profile = "irus-202410"
 
 [default.build.parameters]
 cached = true

@@ -65,31 +65,66 @@ Sample downloaded report:
 
 ## Dependencies
 
-- Python 3.11
+- Python 3.12
 - Python [virtualenv](https://virtualenv.pypa.io/en/latest/) or equivalent
 - [AWS CLI v2](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
 - [AWS SAM](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
+- Docker
 
 ## Create AWS Account
 
 Navigate to https://aws.amazon.com/free and create an AWS Free Tier account. You will still incurr some charges using this account, so I strongly recommend you create a **Billing and Cost Management** -> **Budget** to alert you if the costs are higher than you expect.
 
-Configure a [profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html) for this account using an IAM user or an Identity Center role.
+## Enable Organizations
+
+Navigate to AWS Organizations and enable for this account.
+
+## Enable Identity Centre
+
+While still in AWS Organizations, under services enable Identity Centre.
+Navigate to Identity Centre and create
+- Permissions Set for AdministratorAccess
+- Group called `admins`
+- A user, adding them to the `admins` group. Setup the user's password and MFA.
+- AWS Accounts add this account and enable the group `admins`
+- Test that your user can login to this account
+
+## Enable CLI SSO
+
+- [Create a profile using SSO](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sso.html#cli-configure-sso-configure)
+
+```bash
+aws configure sso
+SSO session name (Recommended): irus-202410
+SSO start URL [None]: https://irus-202410.awsapps.com/start
+SSO region [None]: us-east-1
+SSO registration scopes [None]: sso:account:access
+```
+
+This will force you to login as your user through Identity Centre to enable the AWS CLI access to this account.
+
+If your login expires and does not automatically refresh, run
+
+```bash
+aws sso login --profile irus-202410
+```
 
 ## Create Bot
 
 - Navigate to https://discord.com/developers/applications.
 - Create a new application and provide a name
 
-## Store Keys and Tokens
+## Region, Store Keys and Tokens
+
+Decide on what AWS Region you intend to use and switch the console to that region.
 
 In your AWS account navigate to **Systems Manager** -> **Parameter Store**. This is a good and cost effective way of storing secrets and keys you can programmatically fetch.
 
-Decide on a prefix for your parameters, for exaple `invasionstats`, and create four **secure string** parameters under that prefix as we get these keys in the following steps:
-1. `/invasionstats/appid`
-2. `/invasionstats/bottoken`
-3. `/invasionstats/serverid`
-4. `/invasionstats/publickey`
+Decide on a prefix for your parameters, for example `irus`, and create four **secure string** parameters under that prefix as we get these keys in the following steps:
+1. `/irus/appid`
+2. `/irus/bottoken`
+3. `/irus/serverid`
+4. `/irus/publickey`
 
 In another tab navigate to https://discord.com/developers/applications and select the application you created. Under **General Information** you will see both the **Application Id** and the **Public Key**. Add these values to the parameters you created. 
 
@@ -140,6 +175,10 @@ Another panel will appear, tick *Attach Files* and *Use Slash Commands*:
 ![Server Bot Panel](../docs/server-bot.png)
 
 Copy the **GENERATED URL** and open that Url in another tab. Select your server where you want to run the bot.
+
+## Configure serverid
+
+Right click on the server icon in Discord and select `Copy Server ID`. Copy the ID into the `/irustest/serverid` SSM parameter.
 
 ## Register slash commands
 

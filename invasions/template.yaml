@@ -13,7 +13,7 @@ Parameters:
     Default: Australia/Sydney
 
   SsmPrefix:
-    Default: /chatzdevinvasion
+    Default: /irustest
     # Default: /chatzinvasionstats
     Type: String
 

@@ -8,8 +8,126 @@ from aws_lambda_powertools.utilities.typing import LambdaContext
 import irus
 from irus import IrusInvasion, IrusInvasionList, IrusMember, IrusMemberList, IrusLadder, IrusSecrets, IrusFiles, IrusProcess, IrusResources, IrusReport, IrusMonth
 
-
 discord_cmd = os.environ['DISCORD_CMD']
+
+
+#
+# Help text
+#
+
+help_text = {}
+help_text['help'] = f'''
+# Invasions R Us Stats
+
+Bot for capturing, tracking and reporting invasion stats for the Invasions R Us company.
+
+Settlements are specified using an abrieviation:
+- Brightwood: bw
+- Brimstone Sands: bs
+- Cutlass Keys: ck
+- Ebonscale Reach: er
+- Edengrove: eg
+- Everfall: ef
+- Monarchs Bluff: mb
+- Mourningdale: md
+- Reekwater: rw
+- Restless Shore: rs
+- Weavers Fen: wf
+- Windsward: ww
+
+### /{discord_cmd} ladder *settlement win file1 [files] [date] [notes]*
+
+Register an invasion, upload one or more ladder screen shots and generate reports. This commands should be used when the entire ladder is captured as a single image, or when there are less than seven screen shots (ie when the invasion was not full). The command requires the settlement name, was it a win, and will default to today's date if no other date is specified.
+
+### /{discord_cmd} ladders *settlement win file1 ... file7 [date] [notes]*
+
+Register an invasion, upload seven ladder screen shots and generate reports after a near full/full invasion. This command should be used when seven individual screen shots were used to capture the ladder. The command requires the settlement name, was it a win, and will default to today's date if no other date is specified.
+
+### /{discord_cmd} roster *settlement win file1 [date] [notes]*
+
+Register an invasion where only the war board roster was captured. If only a war board roster screen was captured, use this command to register the invasion. The command requires the settlement name, was it a win, and will default to today's date if no other date is specified.
+
+### /{discord_cmd} invasion help
+
+Get help for commands showing stats on an invasion
+
+### /{discord_cmd} member help
+
+Get help for command to add, edit, remove and list company members.
+
+### /{discord_cmd} report help
+
+Get help for command to generate reports for the current or previous months.
+'''
+
+help_text['invasion'] = f'''
+# Invasions R Us Stats - Invasion Commands
+
+Bot commands for creating, updating and listing invasions. Typically you would use the /{discord_cmd} ladder or /{discord_cmd} ladders commands, but sometimes you may need to add another screenshot.
+
+Invasions are identified using the date and settlement abrieviation (*YYYYMMDD-SS*). For example `20240918-ef` is an invasion in Everfall on 18 September 2024.
+
+### /{discord_cmd} invasion add *settlement win [date] [notes]*
+
+Register a new invasion for *settlement*, without uploading any screenshots. This will default to today's date if another date is not specified.
+
+### /{discord_cmd} invasion list *[month] [year]*
+
+List all invasions for the current or specified month and year.
+
+### /{discord_cmd} invasion ladder *invasion file*
+
+For the specified invasion, upload and process single ladder file. 
+
+### /{discord_cmd} invasion board *invasion file*
+
+For the specified invasion, upload and process single war roster file.
+
+### /{discord_cmd} invasion screenshots *invasion file1 ... file7*
+
+For the specified invasion, upload and process seven screen shots of the ladder.
+'''
+
+help_text['member'] = f'''
+# Invasions R Us Stats - Member Commands
+
+Bot commands for registering company members to determine which player stats to track.
+
+### /{discord_cmd} member add *name faction [discord-name] [date] [admin] [notes]*
+
+Add a new member to the company specify their New World character name and faction, starting from today (unless another date is specified). The *discord-name* and *admin* flag are ignored at this time.
+
+### /{discord_cmd} member list
+
+List all registered company members at this time.
+
+### /{discord_cmd} member remove *player*
+
+Remove *player* as a company member from this date.
+'''
+
+help_text['report'] = f'''
+# Invasions R Us Stats - Report Commands
+
+Generate reports as CSV files and display summary in discord.
+
+### /{discord_cmd} report invasion *invasion*
+
+Generate the report for a specific invasion. Invasions are identified using the date and settlement abrieviation (*YYYYMMDD-SS*). For example `20240918-ef` is an invasion in Everfall on 18 September 2024.
+
+### /{discord_cmd} report month *[month] [year]*
+
+Generate the invasion statistics report for the current (default) or specified month and year.
+
+### /{discord_cmd} report member *player [month] [year]*
+
+Generate a summary report for a specific player for the current (default) or specified month and year.
+
+### /{discord_cmd} report members *[month] [year]*
+
+Generate a summary report for all current members for the current (default) or specified month and year.
+'''
+
 
 #
 # Authenticate Requests
@@ -104,7 +222,9 @@ def invasion_download_cmd(id: str, token: str, options:list, resolved:dict, meth
 def invasion_cmd(id:str, token:str, options:dict, resolved: dict) -> str:
     logger.info(f'invasion_cmd: {options}')
     name = options['name']
-    if name == 'list':
+    if name == 'help':
+        return help_text['invasion']
+    elif name == 'list':
         return invasion_list_cmd(options['options'])
     elif name == 'add':
         return invasion_add_cmd(options['options']).markdown()
@@ -208,7 +328,9 @@ def member_cmd(options:dict, resolved: dict) -> str:
     logger.info(f'member_cmd: {options}')
 
     name = options['name']
-    if name == 'list':
+    if name == 'help':
+        return help_text['member']
+    elif name == 'list':
         return member_list_cmd()
     elif name == 'add':
         return member_add_cmd(options['options'])
@@ -303,7 +425,9 @@ def report_cmd(options:dict, resolved: dict) -> str:
     logger.info(f'report_cmd: {options}')
 
     name = options['name']
-    if name == 'month':
+    if name == 'help':
+        return help_text['report']
+    elif name == 'month':
         return report_month_cmd(options['options'])
     elif name == 'invasion':
         return report_invasion_cmd(options['options'])
@@ -343,7 +467,9 @@ def lambda_handler(event: dict, context: LambdaContext):
             logger.debug(f'subcommand: {subcommand}')
             resolved = body["data"]["resolved"] if "resolved" in body["data"] else None
 
-            if subcommand["name"] == "invasion":
+            if subcommand["name"] == "help":
+                content = help_text["help"]
+            elif subcommand["name"] == "invasion":
                 content = invasion_cmd(app_id, body['token'], subcommand["options"][0], resolved)
             elif subcommand["name"] == "ladders" or subcommand["name"] == "ladder":
                 invasion = invasion_add_cmd(subcommand["options"])

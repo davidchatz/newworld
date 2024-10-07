@@ -102,7 +102,9 @@ def generate_ladder_ranks(invasion:IrusInvasion, rows:list, members:IrusMemberLi
                     # Are they listed as a company member, this is updated in insert_db
                     'member': True if member else False,
                     # Are these stats from a ladder screenshot import
-                    'ladder': True
+                    'ladder': True,
+                    'adjusted': False,
+                    'error': False
                 })
                 rec.append(result)
             else:
@@ -124,6 +126,7 @@ def generate_ladder_ranks(invasion:IrusInvasion, rows:list, members:IrusMemberLi
                 if numeric(rec[r].rank) > 99:
                     logger.info(f'Fixing rank {r+1} from {rec[r].rank} to {rec[r].rank[:2]}')
                     rec[r].rank = rec[r].rank[:2]
+                    rec[r].adjusted = True
         except Exception as e:
             logger.error(f'Unable to fix rank size: {e}')
 
@@ -133,6 +136,7 @@ def generate_ladder_ranks(invasion:IrusInvasion, rows:list, members:IrusMemberLi
                 if numeric(rec[r].rank) > numeric(rec[r+1].rank):
                     logger.info(f'Fixing rank {r+1} from {rec[r].rank} to {numeric(rec[r+1].rank) - 1}')
                     rec[r].rank = '{0:02d}'.format(numeric(rec[r+1].rank) - 1)
+                    rec[r].adjusted = True
         except Exception as e:
             logger.error(f'Unable to fix rank order: {e}')
 
@@ -141,6 +145,7 @@ def generate_ladder_ranks(invasion:IrusInvasion, rows:list, members:IrusMemberLi
             pos += 1
             if numeric(rec[r].rank) != pos:
                 logger.warning(f'Rank {r} is {rec[r].rank}, expected {pos}')
+                rec[r].error = True
 
     logger.debug(f'scanned table: {rec}')
     return rec
@@ -202,18 +207,7 @@ def generate_roster_ranks(invasion:IrusInvasion, matched:list) -> list:
 
     rank = 1
     for m in matched:
-        result = IrusLadderRank(invasion=invasion, item={
-            'rank': '{0:02d}'.format(rank),
-            'player': m,
-            'score': 0,
-            'kills': 0,
-            'deaths': 0,
-            'assists': 0,
-            'heals': 0,
-            'damage': 0,
-            'member': True,
-            'ladder': False
-        })
+        result = IrusLadderRank.from_roster(invasion=invasion, rank=rank, player=m)
         rec.append(result)
         rank += 1 
 
@@ -310,7 +304,9 @@ class IrusLadder:
                     'heals': int(cols[6]),
                     'damage': int(cols[7]),
                     'member': members.is_member(cols[1]),
-                    'ladder': True
+                    'ladder': True,
+                    'adjusted': False,
+                    'error': False
                 }
                 rec.append(IrusLadderRank(invasion, item))
 
@@ -352,18 +348,20 @@ class IrusLadder:
                 return r
         return None
 
-    def member_list(self) -> str:
+    def list(self, member: bool) -> str:
         mesg = ''
         for r in self.ranks:
-            if r.member:
-                mesg += f'{r.player}, '
-        return mesg
-        
-    def non_member_list(self) -> str:
-        mesg = ''
-        for r in self.ranks:
-            if not r.member:
-                mesg += f'{r.player}, '
+            if r.member == member:
+                if r.error:
+                    mesg += '**'
+                elif r.adjusted:
+                    mesg += '*'
+                mesg += f'[{r.rank}] {r.player}'
+                if r.error:
+                    mesg += '**'
+                elif r.adjusted:
+                    mesg += '*'
+                mesg += ', '                
         return mesg
 
     def str(self) -> str:
@@ -371,9 +369,15 @@ class IrusLadder:
 
     def csv(self) -> str:
         msg = f'ladder for invasion {self.invasion.name}\n'
-        msg += 'rank,player,score,kills,deaths,assists,heals,damage\n'
+        msg += 'rank,player,score,kills,deaths,assists,heals,damage,scan\n'
         for r in self.ranks:
-            msg += f'{r.rank},{r.player},{r.score},{r.kills},{r.deaths},{r.assists},{r.heals},{r.damage}\n'
+            if r.error:
+                scan = 'error'
+            elif r.adjusted:
+                scan = 'adjusted'
+            else:
+                scan = 'ok'
+            msg += f'{r.rank},{r.player},{r.score},{r.kills},{r.deaths},{r.assists},{r.heals},{r.damage},scan\n'
         return msg
 
     def markdown(self) -> str:

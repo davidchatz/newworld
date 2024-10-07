@@ -1,10 +1,16 @@
 - name: irus
   description: Manager company members and invasion stats
   options:
+    - name: help
+      description: Help for the bot commands
+      type: 1
     - name: member
       description: Manage company members (must be an admin)
       type: 2
       options:
+        - name: help
+          description: Help for member commands
+          type: 1
         - name: list
           description: List current members
           type: 1
@@ -306,6 +312,9 @@
       description: Manage a specific invasion
       type: 2
       options:
+        - name: help
+          description: Help for invasion commands
+          type: 1
         - name: list
           description: List all registered invasions (defaults to this month)
           type: 1
@@ -496,6 +505,9 @@
       description: Manage invasion reports
       type: 2
       options:
+        - name: help
+          description: Help for report commands
+          type: 1
         - name: month
           description: Generate/update and fetch summary for a month
           type: 1

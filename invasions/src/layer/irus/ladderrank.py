@@ -23,6 +23,8 @@ class IrusLadderRank:
         self.heals = int(item['heals'])
         self.damage = int(item['damage'])
         self.ladder = bool(item['ladder'])
+        self.adjusted = bool(item['adjusted'])
+        self.error = bool(item['error'])
 
    
     def invasion_key(self) -> str:
@@ -41,7 +43,9 @@ class IrusLadderRank:
             'assists': self.assists,
             'heals': self.heals,
             'damage': self.damage,
-            'ladder': self.ladder
+            'ladder': self.ladder,
+            'adjusted': self.adjusted,
+            'error': self.error
         }
 
     def __dict__(self) -> dict:
@@ -56,9 +60,28 @@ class IrusLadderRank:
             'assists': self.assists,
             'heals': self.heals,
             'damage': self.damage,
-            'ladder': self.ladder
+            'ladder': self.ladder,
+            'adjusted': self.adjusted,
+            'error': self.error
         }
 
+    @classmethod
+    def from_roster(cls, invasion:IrusInvasion, rank:int, player:str):
+        return cls(invasion=invasion, item={
+            'rank': '{0:02d}'.format(rank),
+            'player': player,
+            'score': 0,
+            'kills': 0,
+            'deaths': 0,
+            'assists': 0,
+            'heals': 0,
+            'damage': 0,
+            'member': True,
+            'ladder': False,
+            'adjusted': False,
+            'error': False
+        })
+    
     @classmethod
     def from_invasion_for_member(cls, invasion: IrusInvasion, member: IrusMember):
         logger.info(f'LadderRank.from_invasion_for_member: {invasion} {member}')
@@ -82,7 +105,7 @@ class IrusLadderRank:
 
 
     def __str__(self):
-        return f'{self.rank} {self.player} {self.score} {self.kills} {self.deaths} {self.assists} {self.heals} {self.damage} {self.member} {self.ladder}'
+        return f'{self.rank} {self.player} {self.score} {self.kills} {self.deaths} {self.assists} {self.heals} {self.damage} {self.member} {self.ladder} {self.adjusted} {self.error}'
  
 
     def update_membership(self, member: bool):
