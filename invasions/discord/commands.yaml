@@ -59,6 +59,10 @@
               description: Admin status
               type: 5
               required: false
+            - name: salary
+              description: Earns salary
+              type: 5
+              required: false
             - name: notes
               description: Notes
               type: 3
