@@ -13,8 +13,8 @@ Parameters:
     Default: Australia/Sydney
 
   SsmPrefix:
+    Default: /irustest
     # Default: /chatzinvasionstats
-    Default: /chatzinvasionhttp
     Type: String
 
   PublicKeyPath:
@@ -30,7 +30,7 @@ Parameters:
     Type: String
 
   ServerIdPath:
-    Default: chatzdev/serverid
+    Default: serverid
     Type: String
 
   DiscordCmd:
@@ -40,6 +40,45 @@ Parameters:
   DiscordWebHookURL:
     Default: "https://discord.com/api/v10/webhooks"
     Type: String
+
+  LogLevel:
+    Type: String
+    AllowedValues:
+      - DEBUG
+      - INFO
+      - WARNING
+      - ERROR
+      - CRITICAL
+    Default: INFO
+
+# Mappings:
+  
+  # https://docs.powertools.aws.dev/lambda/python/latest/#local-development
+  # LambdaPowerTools:
+  #   ap-southeast-1:
+  #     ARN: arn:aws:lambda:ap-southeast-1:017000801446:layer:AWSLambdaPowertoolsPythonV2:71
+  #   ap-southeast-2:
+  #     ARN: arn:aws:lambda:ap-southeast-2:017000801446:layer:AWSLambdaPowertoolsPythonV2:71
+
+
+Globals:
+
+  Function:
+    Runtime: python3.11
+    Timeout: 10
+    Layers:
+      # - !FindInMap [ "LambdaPowerTools", !Ref "AWS::Region", "ARN" ]
+      - !GetAtt AwsLambdaPowertoolsPythonLayer.Outputs.LayerVersionArn
+      - !Ref IrusLayer
+    Environment:
+      Variables:
+        POWERTOOLS_LOG_LEVEL: !Ref LogLevel
+        PUBLIC_KEY_PATH: !Sub "${SsmPrefix}/${PublicKeyPath}"
+        APP_ID_PATH: !Sub "${SsmPrefix}/${AppIdPath}"
+        TABLE_NAME: !Ref Table
+        DISCORD_CMD: !Ref DiscordCmd
+        BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+        WEBHOOK_URL: !Ref DiscordWebHookURL
 
 Resources:
 
@@ -93,110 +132,106 @@ Resources:
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
 
-  Ladder:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: ladder.lambda_handler
-      Runtime: python3.11
-      CodeUri: src/ladder
-      Description: 'Scan invasion screen shots'
-      MemorySize: 256
-      Timeout: 10
-      Policies: 
-        - TextractPolicy: {}
-        - S3ReadPolicy:
-            BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
-        - DynamoDBCrudPolicy:
-            TableName: !Ref Table
-      Environment:
-        Variables:
-          TABLE_NAME: !Ref Table
-      Events:
-        ScanLadder:
-          Type: S3
-          Properties:
-            Bucket: !Ref InvasionBucket
-            Events:
-              - s3:ObjectCreated:*
-            Filter:
-              S3Key:
-                Rules:
-                  - Name: prefix
-                    Value: "ladders/"
-                  - Name: suffix
-                    Value: .png
-
-  LadderLogGroup:
-    Type: AWS::Logs::LogGroup
+  # https://docs.powertools.aws.dev/lambda/python/latest/#sar
+  AwsLambdaPowertoolsPythonLayer:
+    Type: AWS::Serverless::Application
     DeletionPolicy: Delete
     UpdateReplacePolicy: Delete
     Properties:
-      LogGroupName: !Sub /aws/lambda/${Ladder}
-      RetentionInDays: 30
+      Location:
+        ApplicationId: arn:aws:serverlessrepo:eu-west-1:057560766410:applications/aws-lambda-powertools-python-layer
+        SemanticVersion: 2.0.0 # change to latest semantic version available in SAR
 
-  Board:
+  IrusLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: src/layer
+      CompatibleRuntimes:
+        - python3.11
+      RetentionPolicy: Delete
+    Metadata:
+      BuildMethod: python3.11
+      BuildArchitecture: x86_64  
+
+  Process:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: board.lambda_handler
+      Handler: process.lambda_handler
       Runtime: python3.11
-      CodeUri: src/board
-      Description: 'Scan invasion roster screen shots'
+      CodeUri: src/process
+      Description: 'Download and scan invasion screen shots'
       MemorySize: 256
-      Timeout: 10
+      Timeout: 20
       Policies: 
         - TextractPolicy: {}
-        - S3ReadPolicy:
-            BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
-        - DynamoDBCrudPolicy:
-            TableName: !Ref Table
-      Environment:
-        Variables:
-          TABLE_NAME: !Ref Table
-      Events:
-        ScanLadder:
-          Type: S3
-          Properties:
-            Bucket: !Ref InvasionBucket
-            Events:
-              - s3:ObjectCreated:*
-            Filter:
-              S3Key:
-                Rules:
-                  - Name: prefix
-                    Value: "boards/"
-                  - Name: suffix
-                    Value: .png
-
-  BoardLogGroup:
-    Type: AWS::Logs::LogGroup
-    DeletionPolicy: Delete
-    UpdateReplacePolicy: Delete
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${Board}
-      RetentionInDays: 30
-
-  Download:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: download.lambda_handler
-      Runtime: python3.11
-      CodeUri: src/download
-      Description: 'Download invasion screen shots from discord'
-      MemorySize: 256
-      Timeout: 10
-      Policies: 
         - S3CrudPolicy:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Table
       Environment:
         Variables:
-          BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+          POWERTOOLS_SERVICE_NAME: Process
 
-  DownloadLogGroup:
+  ProcessLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete
     UpdateReplacePolicy: Delete
     Properties:
-      LogGroupName: !Sub /aws/lambda/${Download}
+      LogGroupName: !Sub /aws/lambda/${Process}
+      RetentionInDays: 30
+
+  Invasion:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: invasion.lambda_handler
+      Runtime: python3.11
+      CodeUri: src/invasion
+      Description: 'Generate invasion report'
+      MemorySize: 256
+      Timeout: 10
+      Environment:
+        Variables:
+          POWERTOOLS_SERVICE_NAME: Invasion
+      Policies: 
+        - TextractPolicy: {}
+        - S3CrudPolicy:
+            BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Table
+
+  InvasionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${Invasion}
+      RetentionInDays: 30
+
+  Month:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: month.lambda_handler
+      Runtime: python3.11
+      CodeUri: src/month
+      Description: 'Generate monthly reports'
+      MemorySize: 256
+      Timeout: 10
+      Environment:
+        Variables:
+          POWERTOOLS_SERVICE_NAME: Month
+      Policies: 
+        - TextractPolicy: {}
+        - S3CrudPolicy:
+            BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Table
+
+  MonthLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${Month}
       RetentionInDays: 30
 
   DiscordConnection:
@@ -211,18 +246,33 @@ Resources:
           ApiKeyName: foo
           ApiKeyValue: bah
 
-  DownloadStepFunction:
+  ProcessStepFunction:
     Type: AWS::Serverless::StateMachine
     Properties:
       DefinitionSubstitutions:
-        DownloadFunctionArn: !GetAtt Download.Arn
+        ProcessFunctionArn: !GetAtt Process.Arn
+        InvasionFunctionArn: !GetAtt Invasion.Arn
+        MonthFunctionArn: !GetAtt Month.Arn
         BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
         DiscordConnection: !GetAtt DiscordConnection.Arn
+        TableName: !Ref Table
       Policies:
         - LambdaInvokePolicy:
-            FunctionName: !Ref Download
+            FunctionName: !Ref Process
+        - LambdaInvokePolicy:
+            FunctionName: !Ref Invasion
+        - LambdaInvokePolicy:
+            FunctionName: !Ref Month
+        - DynamoDBReadPolicy:
+            TableName: !Ref Table
         - S3CrudPolicy:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+        - Statement:
+          - Effect: Allow
+            Action:
+              - "cloudwatch:*"
+              - "logs:*"
+            Resource: "*"
         # https://docs.aws.amazon.com/step-functions/latest/dg/connect-third-party-apis.html#connect-http-task-permissions
         - Statement:
           - Effect: Allow
@@ -243,7 +293,82 @@ Resources:
               - secretsmanager:GetSecretValue
               - secretsmanager:DescribeSecret
             Resource: !Sub "arn:${AWS::Partition}:secretsmanager:*:*:secret:events!connection/*"
-      DefinitionUri: step/downloader.json
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt ProcessStateMachineLogGroup.Arn
+      DefinitionUri: step/process.json
+
+  ProcessStateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Join [ "/", [ "stepfunctions", !Ref AWS::StackName, "processStateMachine"]]
+      RetentionInDays: 30
+
+  DeadHandStepFunction:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionSubstitutions:
+        ProcessStepFunc: !Ref ProcessStepFunction
+        DiscordConnection: !GetAtt DiscordConnection.Arn
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action:
+              - states:StartExecution
+            Resource: !GetAtt ProcessStepFunction.Arn
+          - Effect: Allow
+            Action:
+              - states:DescribeExecution
+              - states:StopExecution
+            Resource: "*"
+        - Statement:
+          - Effect: Allow
+            Action:
+            - events:PutTargets
+            - events:PutRule
+            - events:DescribeRule
+            Resource: !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/StepFunctionsGetEventsForStepFunctionsExecutionRule
+          - Effect: Allow
+            Action:
+              - "cloudwatch:*"
+              - "logs:*"
+            Resource: "*"
+          # https://docs.aws.amazon.com/step-functions/latest/dg/connect-third-party-apis.html#connect-http-task-permissions
+        - Statement:
+          - Effect: Allow
+            Action:
+              - states:InvokeHTTPEndpoint
+            Resource: "*"
+            Condition:
+              "StringEquals":
+                "states:HTTPMethod": "POST"
+              "StringLike":
+                    "states:HTTPEndpoint": !Sub "${DiscordWebHookURL}/*"
+          - Effect: Allow
+            Action:
+              - events:RetrieveConnectionCredentials
+            Resource: !GetAtt DiscordConnection.Arn
+          - Effect: Allow
+            Action:
+              - secretsmanager:GetSecretValue
+              - secretsmanager:DescribeSecret
+            Resource: !Sub "arn:${AWS::Partition}:secretsmanager:*:*:secret:events!connection/*"
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt DeadHandStateMachineLogGroup.Arn
+      DefinitionUri: step/deadhand.json
+
+  DeadHandStateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Join [ "/", [ "stepfunctions", !Ref AWS::StackName, "deadhandStateMachine"]]
+      RetentionInDays: 30
 
   Bot:
     Type: AWS::Serverless::Function
@@ -262,16 +387,11 @@ Resources:
         - S3CrudPolicy:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
         - StepFunctionsExecutionPolicy:
-            StateMachineName: !GetAtt DownloadStepFunction.Name
+            StateMachineName: !GetAtt DeadHandStepFunction.Name
       Environment:
         Variables:
-          PUBLIC_KEY_PATH: !Sub "${SsmPrefix}/${PublicKeyPath}"
-          APP_ID_PATH: !Sub "${SsmPrefix}/${AppIdPath}"
-          TABLE_NAME: !Ref Table
-          DISCORD_CMD: !Ref DiscordCmd
-          BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
-          DOWNLOADER_STEP_FUNC: !Ref DownloadStepFunction
-          WEBHOOK_URL: !Ref DiscordWebHookURL
+          POWERTOOLS_SERVICE_NAME: Bot
+          PROCESS_STEP_FUNC: !Ref DeadHandStepFunction
           TZ: !Ref Timezone
       Events:
         ApiPOSTdiscord:
@@ -328,6 +448,15 @@ Outputs:
   Bucket:
     Description: Invasion Bucket
     Value: !Ref InvasionBucket
+
+  Table:
+    Value: !Ref Table
+
+  DeadHandStepFunctionArn:
+    Value: !Ref DeadHandStepFunction
+
+  ProcessStepFunctionArn:
+    Value: !Ref ProcessStepFunction
 
   InteractionsEndpointUrl:
     Value: !Sub https://${Api}.execute-api.${AWS::Region}.amazonaws.com/prod/discord

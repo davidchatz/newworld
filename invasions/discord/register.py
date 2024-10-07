@@ -6,7 +6,9 @@ import shlex
 import pprint
 import argparse
 
-AWS_PROFILE='newworld'
+DEFAULT_PROFILE='irus-202410'
+DEFAULT_PREFIX='irustest'
+#DEFAULT_PREFIX='chatzinvasionstats'
 
 def dump_response(resp, verbose:bool):
     print(f'Status: {resp.status}')
@@ -25,15 +27,8 @@ def list_options(command, indent='  '):
                     print(f'{indent}  {choice["name"]}: {choice["value"]}')
 
 
-def get_param(param) -> str:
-    return subprocess.run(shlex.split(f'aws ssm get-parameter --with-decryption --name /chatzinvasionstats/{param} --profile {AWS_PROFILE} --query Parameter.Value --output text'), stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
-
-APP_ID = get_param('appid')
-SERVER_ID = get_param('invasionsrusstats/serverid')
-BOT_TOKEN = get_param('bottoken')
-
-url = f'https://discord.com/api/v10/applications/{APP_ID}/guilds/{SERVER_ID}/commands'
-headers = {'Authorization': f'Bot {BOT_TOKEN}', 'Content-Type': 'application/json'}
+def get_param(prefix:str, param:str, profile:str) -> str:
+    return subprocess.run(shlex.split(f'aws ssm get-parameter --with-decryption --name /{prefix}/{param} --profile {profile} --query Parameter.Value --output text'), stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
 
 
 def main():
@@ -44,9 +39,20 @@ def main():
     command.add_argument('--unregister', type=int, help='Unregister command ID')
     command.add_argument('--delete', action='store_true', help='Unregister all commands')
     parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
+    parser.add_argument('--profile', type=str, default=DEFAULT_PROFILE, help='AWS Profile')
+    parser.add_argument('--prefix', type=str, default=DEFAULT_PREFIX, help='Parameter prefix')
     args = parser.parse_args()
 
     verbose = args.verbose
+    profile = args.profile
+    prefix = args.prefix
+
+    APP_ID = get_param(prefix, 'appid', profile)
+    SERVER_ID = get_param(prefix, 'serverid', profile)
+    BOT_TOKEN = get_param(prefix, 'bottoken', profile)
+
+    url = f'https://discord.com/api/v10/applications/{APP_ID}/guilds/{SERVER_ID}/commands'
+    headers = {'Authorization': f'Bot {BOT_TOKEN}', 'Content-Type': 'application/json'}
 
     if args.list:
         print('List of commands:')

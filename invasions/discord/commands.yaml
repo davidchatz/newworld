@@ -1,10 +1,16 @@
 - name: irus
   description: Manager company members and invasion stats
   options:
+    - name: help
+      description: Help for the bot commands
+      type: 1
     - name: member
       description: Manage company members (must be an admin)
       type: 2
       options:
+        - name: help
+          description: Help for member commands
+          type: 1
         - name: list
           description: List current members
           type: 1
@@ -69,10 +75,250 @@
               description: Player to remove from membership
               type: 3
               required: true
+    - name: ladder
+      description: Register invasion, upload single ladder and generate reports
+      type: 1
+      options:
+        - name: settlement
+          description: Settlement
+          type: 3
+          required: true
+          choices:
+            - name: "Brightwood"
+              value: "bw"
+            - name: "Brimstone Sands"
+              value: "bs"
+            - name: "Cutlass Keys"
+              value: "ck"
+            - name: "Ebonscale Reach"
+              value: "er"
+            - name: "Edengrove"
+              value: "eg"
+            - name: "Everfall"
+              value: "ef"
+            - name: "Monarchs Bluff"
+              value: "mb"
+            - name: "Mourningdale"
+              value: "md"
+            - name: "Reekwater"
+              value: "rw"
+            - name: "Restless Shore"
+              value: "rs"
+            - name: "Weavers Fen"
+              value: "wf"
+            - name: "Windsward"
+              value: "ww"
+        - name: win
+          description: Invasion result
+          type: 5
+          required: true
+        - name: file1
+          description: Screenshot 1
+          type: 11
+          required: true
+        - name: file2
+          description: Screenshot 2
+          type: 11
+          required: false
+        - name: file3
+          description: Screenshot 3
+          type: 11
+          required: false
+        - name: file4
+          description: Screenshot 4
+          type: 11
+          required: false
+        - name: file5
+          description: Screenshot 5
+          type: 11
+          required: false
+        - name: file6
+          description: Screenshot 6
+          type: 11
+          required: false
+        - name: file7
+          description: Screenshot 7
+          type: 11
+          required: false
+        - name: day
+          description: Day
+          type: 4
+          min_value: 1
+          max_value: 31
+          required: false
+        - name: month
+          description: Month
+          type: 4
+          min_value: 1
+          max_value: 12
+          required: false
+        - name: year
+          description: Year
+          type: 4
+          min_value: 2024
+          max_value: 2050
+          required: false
+        - name: notes
+          description: Notes
+          type: 3
+          required: false
+    - name: ladders
+      description: Register invasion, upload all ladders and generate reports
+      type: 1
+      options:
+        - name: settlement
+          description: Settlement
+          type: 3
+          required: true
+          choices:
+            - name: "Brightwood"
+              value: "bw"
+            - name: "Brimstone Sands"
+              value: "bs"
+            - name: "Cutlass Keys"
+              value: "ck"
+            - name: "Ebonscale Reach"
+              value: "er"
+            - name: "Edengrove"
+              value: "eg"
+            - name: "Everfall"
+              value: "ef"
+            - name: "Monarchs Bluff"
+              value: "mb"
+            - name: "Mourningdale"
+              value: "md"
+            - name: "Reekwater"
+              value: "rw"
+            - name: "Restless Shore"
+              value: "rs"
+            - name: "Weavers Fen"
+              value: "wf"
+            - name: "Windsward"
+              value: "ww"
+        - name: win
+          description: Invasion result
+          type: 5
+          required: true
+        - name: file1
+          description: Screenshot 1
+          type: 11
+          required: true
+        - name: file2
+          description: Screenshot 2
+          type: 11
+          required: true
+        - name: file3
+          description: Screenshot 3
+          type: 11
+          required: true
+        - name: file4
+          description: Screenshot 4
+          type: 11
+          required: true
+        - name: file5
+          description: Screenshot 5
+          type: 11
+          required: true
+        - name: file6
+          description: Screenshot 6
+          type: 11
+          required: true
+        - name: file7
+          description: Screenshot 7
+          type: 11
+          required: true
+        - name: day
+          description: Day
+          type: 4
+          min_value: 1
+          max_value: 31
+          required: false
+        - name: month
+          description: Month
+          type: 4
+          min_value: 1
+          max_value: 12
+          required: false
+        - name: year
+          description: Year
+          type: 4
+          min_value: 2024
+          max_value: 2050
+          required: false
+        - name: notes
+          description: Notes
+          type: 3
+          required: false
+    - name: roster
+      description: Register invasion, upload roster and generate reports
+      type: 1
+      options:
+        - name: settlement
+          description: Settlement
+          type: 3
+          required: true
+          choices:
+            - name: "Brightwood"
+              value: "bw"
+            - name: "Brimstone Sands"
+              value: "bs"
+            - name: "Cutlass Keys"
+              value: "ck"
+            - name: "Ebonscale Reach"
+              value: "er"
+            - name: "Edengrove"
+              value: "eg"
+            - name: "Everfall"
+              value: "ef"
+            - name: "Monarchs Bluff"
+              value: "mb"
+            - name: "Mourningdale"
+              value: "md"
+            - name: "Reekwater"
+              value: "rw"
+            - name: "Restless Shore"
+              value: "rs"
+            - name: "Weavers Fen"
+              value: "wf"
+            - name: "Windsward"
+              value: "ww"
+        - name: win
+          description: Invasion result
+          type: 5
+          required: true
+        - name: file1
+          description: Roster
+          type: 11
+          required: true
+        - name: day
+          description: Day
+          type: 4
+          min_value: 1
+          max_value: 31
+          required: false
+        - name: month
+          description: Month
+          type: 4
+          min_value: 1
+          max_value: 12
+          required: false
+        - name: year
+          description: Year
+          type: 4
+          min_value: 2024
+          max_value: 2050
+          required: false
+        - name: notes
+          description: Notes
+          type: 3
+          required: false
     - name: invasion
       description: Manage a specific invasion
       type: 2
       options:
+        - name: help
+          description: Help for invasion commands
+          type: 1
         - name: list
           description: List all registered invasions (defaults to this month)
           type: 1
@@ -88,93 +334,6 @@
               type: 4
               min_value: 2024
               max_value: 2050
-              required: false
-        - name: all
-          description: Add a new invasion, uploaded screenshots and generate invasion and monthly reports
-          type: 1
-          options:
-            - name: settlement
-              description: Settlement
-              type: 3
-              required: true
-              choices:
-                - name: "Brightwood"
-                  value: "bw"
-                - name: "Brimstone Sands"
-                  value: "bs"
-                - name: "Cutlass Keys"
-                  value: "ck"
-                - name: "Ebonscale Reach"
-                  value: "er"
-                - name: "Edengrove"
-                  value: "eg"
-                - name: "Everfall"
-                  value: "ef"
-                - name: "Monarchs Bluff"
-                  value: "mb"
-                - name: "Mourningdale"
-                  value: "md"
-                - name: "Reekwater"
-                  value: "rw"
-                - name: "Restless Shore"
-                  value: "rs"
-                - name: "Weavers Fen"
-                  value: "wf"
-                - name: "Windsward"
-                  value: "ww"
-            - name: win
-              description: Invasion result
-              type: 5
-              required: true
-            - name: file1
-              description: Screenshot 1
-              type: 11
-              required: true
-            - name: file2
-              description: Screenshot 2
-              type: 11
-              required: true
-            - name: file3
-              description: Screenshot 3
-              type: 11
-              required: true
-            - name: file4
-              description: Screenshot 4
-              type: 11
-              required: true
-            - name: file5
-              description: Screenshot 5
-              type: 11
-              required: true
-            - name: file6
-              description: Screenshot 6
-              type: 11
-              required: true
-            - name: file7
-              description: Screenshot 7
-              type: 11
-              required: true
-            - name: day
-              description: Day
-              type: 4
-              min_value: 1
-              max_value: 31
-              required: false
-            - name: month
-              description: Month
-              type: 4
-              min_value: 1
-              max_value: 12
-              required: false
-            - name: year
-              description: Year
-              type: 4
-              min_value: 2024
-              max_value: 2050
-              required: false
-            - name: notes
-              description: Notes
-              type: 3
               required: false
         - name: board
           description: Add a new invasion and uploaded a war board screen shot
@@ -350,6 +509,9 @@
       description: Manage invasion reports
       type: 2
       options:
+        - name: help
+          description: Help for report commands
+          type: 1
         - name: month
           description: Generate/update and fetch summary for a month
           type: 1
@@ -374,6 +536,9 @@
               description: Invasion identifier
               type: 3
               required: true
+        - name: members
+          description: Generate and fetch report of all company members
+          type: 1
         - name: member
           description: Stats for a company member from latest monthly report
           type: 1

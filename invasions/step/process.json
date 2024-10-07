@@ -1,0 +1,421 @@
+{
+  "Comment": "A description of my state machine",
+  "StartAt": "CheckInvasionRegistration",
+  "States": {
+      "CheckInvasionRegistration": {
+          "Type": "Task",
+          "Resource": "arn:aws:states:::dynamodb:getItem",
+          "Parameters": {
+              "TableName": "${TableName}",
+              "Key": {
+                  "invasion": {
+                      "S": "#invasion"
+                  },
+                  "id": {
+                      "S.$": "$.invasion"
+                  }
+              }
+          },
+          "Next": "Choice",
+          "ResultPath": "$.CheckInvasionRegistration",
+          "Catch": [
+              {
+                  "ErrorEquals": [
+                      "States.ALL"
+                  ],
+                  "Next": "ErrorInvasionRegistration",
+                  "ResultPath": "$.Error"
+              }
+          ],
+          "ResultSelector": {
+              "Item.$": "$.Item"
+          }
+      },
+      "Choice": {
+          "Type": "Choice",
+          "Choices": [
+              {
+                  "Variable": "$.CheckInvasionRegistration.Item",
+                  "IsPresent": true,
+                  "Next": "FileIterator"
+              }
+          ],
+          "Default": "ErrorInvasionRegistration"
+      },
+      "ErrorInvasionRegistration": {
+          "Type": "Task",
+          "Resource": "arn:aws:states:::http:invoke",
+          "Parameters": {
+              "ApiEndpoint.$": "$.post",
+              "Method": "POST",
+              "RequestBody": {
+                  "content.$": "States.Format('Failed to register invasion {}', $.invasion)"
+              },
+              "Headers": {
+                  "Content-Type": "application/json"
+              },
+              "Authentication": {
+                  "ConnectionArn": "${DiscordConnection}"
+              }
+          },
+          "Retry": [
+              {
+                  "ErrorEquals": [
+                      "States.ALL"
+                  ],
+                  "BackoffRate": 2,
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "JitterStrategy": "FULL"
+              }
+          ],
+          "Next": "Fail"
+      },
+      "FileIterator": {
+          "Type": "Map",
+          "ItemProcessor": {
+              "ProcessorConfig": {
+                  "Mode": "INLINE"
+              },
+              "StartAt": "DownloadAndProcessImage",
+              "States": {
+                  "DownloadAndProcessImage": {
+                      "Type": "Task",
+                      "Resource": "arn:aws:states:::lambda:invoke",
+                      "Parameters": {
+                          "Payload.$": "$",
+                          "FunctionName": "${ProcessFunctionArn}"
+                      },
+                      "Retry": [
+                          {
+                              "ErrorEquals": [
+                                  "Lambda.ServiceException",
+                                  "Lambda.AWSLambdaException",
+                                  "Lambda.SdkClientException",
+                                  "Lambda.TooManyRequestsException"
+                              ],
+                              "IntervalSeconds": 1,
+                              "MaxAttempts": 3,
+                              "BackoffRate": 2
+                          }
+                      ],
+                      "Catch": [
+                          {
+                              "ErrorEquals": [
+                                  "States.ALL"
+                              ],
+                              "Comment": "No point proceeding if file is not downloaded",
+                              "Next": "ErrorDownloadAndProcessingFile",
+                              "ResultPath": "$.Error"
+                          }
+                      ],
+                      "ResultPath": "$.DownloadAndProcess",
+                      "End": true
+                  },
+                  "ErrorDownloadAndProcessingFile": {
+                      "Type": "Task",
+                      "Resource": "arn:aws:states:::http:invoke",
+                      "Parameters": {
+                          "ApiEndpoint.$": "$.post",
+                          "Method": "POST",
+                          "RequestBody": {
+                              "content.$": "States.Format('Failed to download and process {} file {} for invasion {}', $.process, $.filename, $.invasion)"
+                          },
+                          "Headers": {
+                              "Content-Type": "application/json"
+                          },
+                          "Authentication": {
+                              "ConnectionArn": "${DiscordConnection}"
+                          }
+                      },
+                      "Retry": [
+                          {
+                              "ErrorEquals": [
+                                  "States.ALL"
+                              ],
+                              "BackoffRate": 2,
+                              "IntervalSeconds": 1,
+                              "MaxAttempts": 3,
+                              "JitterStrategy": "FULL"
+                          }
+                      ],
+                      "Next": "FailDownloadingAndProcessingFile",
+                      "ResultPath": "$.Error"
+                  },
+                  "FailDownloadingAndProcessingFile": {
+                      "Type": "Fail"
+                  }
+              }
+          },
+          "Next": "FileProcessed",
+          "ItemsPath": "$.files",
+          "ItemSelector": {
+              "post.$": "$.post",
+              "invasion.$": "$.invasion",
+              "filename.$": "$$.Map.Item.Value.filename",
+              "folder.$": "$.folder",
+              "url.$": "$$.Map.Item.Value.url",
+              "process.$": "$.process"
+          },
+          "ResultPath": "$.downloads",
+          "Catch": [
+              {
+                  "ErrorEquals": [
+                      "States.ALL"
+                  ],
+                  "Comment": "Download Failures",
+                  "Next": "PostDownloadFailed",
+                  "ResultPath": "$.FileIterator"
+              }
+          ]
+      },
+      "FileProcessed": {
+          "Type": "Task",
+          "Resource": "arn:aws:states:::http:invoke",
+          "Parameters": {
+              "ApiEndpoint.$": "$.post",
+              "Method": "POST",
+              "RequestBody": {
+                  "content.$": "States.Format('# {} Processing\nInvasion: {}\nFiles downloaded and processed, now updating invasion stats\n', $.process, $.invasion)"
+              },
+              "Headers": {
+                  "Content-Type": "application/json"
+              },
+              "Authentication": {
+                  "ConnectionArn": "${DiscordConnection}"
+              }
+          },
+          "Retry": [
+              {
+                  "ErrorEquals": [
+                      "States.ALL"
+                  ],
+                  "BackoffRate": 2,
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "JitterStrategy": "FULL"
+              }
+          ],
+          "Next": "UpdateInvasionStats",
+          "ResultPath": "$.FileProcessed"
+      },
+      "UpdateInvasionStats": {
+          "Type": "Task",
+          "Resource": "arn:aws:states:::lambda:invoke",
+          "Parameters": {
+              "Payload.$": "$",
+              "FunctionName": "${InvasionFunctionArn}"
+          },
+          "Retry": [
+              {
+                  "ErrorEquals": [
+                      "Lambda.ServiceException",
+                      "Lambda.AWSLambdaException",
+                      "Lambda.SdkClientException",
+                      "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2
+              }
+          ],
+          "Next": "PostInvasionReportLink",
+          "ResultPath": "$.UpdateInvasionStats",
+          "Catch": [
+              {
+                  "ErrorEquals": [
+                      "States.ALL"
+                  ],
+                  "Comment": "Report if we fail to process stats for an invasion",
+                  "Next": "PostInvasionStatsFail",
+                  "ResultPath": "$.Error"
+              }
+          ]
+      },
+      "PostInvasionStatsFail": {
+          "Type": "Task",
+          "Resource": "arn:aws:states:::http:invoke",
+          "Parameters": {
+              "ApiEndpoint.$": "$.post",
+              "Method": "POST",
+              "RequestBody": {
+                  "content.$": "States.Format('Failed to update stats for invasion {}', $.invasion)"
+              },
+              "Headers": {
+                  "Content-Type": "application/json"
+              },
+              "Authentication": {
+                  "ConnectionArn": "${DiscordConnection}"
+              }
+          },
+          "Retry": [
+              {
+                  "ErrorEquals": [
+                      "States.ALL"
+                  ],
+                  "BackoffRate": 2,
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "JitterStrategy": "FULL"
+              }
+          ],
+          "Next": "Fail"
+      },
+      "PostInvasionReportLink": {
+          "Type": "Task",
+          "Resource": "arn:aws:states:::http:invoke",
+          "Parameters": {
+              "ApiEndpoint.$": "$.post",
+              "Method": "POST",
+              "RequestBody": {
+                  "content.$": "States.Format($.UpdateInvasionStats.Payload.body.template, $.UpdateInvasionStats.Payload.body.name, $.UpdateInvasionStats.Payload.body.ranks, $.UpdateInvasionStats.Payload.body.members, $.UpdateInvasionStats.Payload.body.memberlist, $.UpdateInvasionStats.Payload.body.nonmemberlist, $.UpdateInvasionStats.Payload.body.contiguous, $.UpdateInvasionStats.Payload.body.url)"
+              },
+              "Headers": {
+                  "Content-Type": "application/json"
+              },
+              "Authentication": {
+                  "ConnectionArn": "${DiscordConnection}"
+              }
+          },
+          "Retry": [
+              {
+                  "ErrorEquals": [
+                      "States.ALL"
+                  ],
+                  "BackoffRate": 2,
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "JitterStrategy": "FULL"
+              }
+          ],
+          "Next": "UpdateMonthlyStats",
+          "ResultPath": "$.PostInvasionReportLink"
+      },
+      "UpdateMonthlyStats": {
+          "Type": "Task",
+          "Resource": "arn:aws:states:::lambda:invoke",
+          "Parameters": {
+              "Payload.$": "$",
+              "FunctionName": "${MonthFunctionArn}"
+          },
+          "Retry": [
+              {
+                  "ErrorEquals": [
+                      "Lambda.ServiceException",
+                      "Lambda.AWSLambdaException",
+                      "Lambda.SdkClientException",
+                      "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2
+              }
+          ],
+          "Next": "PostMonthlyReportLink",
+          "ResultPath": "$.UpdateMonthlyStats",
+          "Catch": [
+              {
+                  "ErrorEquals": [
+                      "States.ALL"
+                  ],
+                  "Comment": "If monthly stats fail",
+                  "Next": "PostMonthlyStatsFail",
+                  "ResultPath": "$.Error"
+              }
+          ]
+      },
+      "PostMonthlyStatsFail": {
+          "Type": "Task",
+          "Resource": "arn:aws:states:::http:invoke",
+          "Parameters": {
+              "ApiEndpoint.$": "$.post",
+              "Method": "POST",
+              "RequestBody": {
+                  "content.$": "States.Format('Failed to update stats for month {}', $.month)"
+              },
+              "Headers": {
+                  "Content-Type": "application/json"
+              },
+              "Authentication": {
+                  "ConnectionArn": "${DiscordConnection}"
+              }
+          },
+          "Retry": [
+              {
+                  "ErrorEquals": [
+                      "States.ALL"
+                  ],
+                  "BackoffRate": 2,
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "JitterStrategy": "FULL"
+              }
+          ],
+          "Next": "Fail"
+      },
+      "PostDownloadFailed": {
+          "Type": "Task",
+          "Resource": "arn:aws:states:::http:invoke",
+          "Parameters": {
+              "ApiEndpoint.$": "$.post",
+              "Method": "POST",
+              "RequestBody": {
+                  "content.$": "States.Format('One or more ({}) downloads failed for invasion {}', $.process, $.invasion)"
+              },
+              "Headers": {
+                  "Content-Type": "application/json"
+              },
+              "Authentication": {
+                  "ConnectionArn": "${DiscordConnection}"
+              }
+          },
+          "Retry": [
+              {
+                  "ErrorEquals": [
+                      "States.ALL"
+                  ],
+                  "BackoffRate": 2,
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "JitterStrategy": "FULL"
+              }
+          ],
+          "Next": "Fail"
+      },
+      "Fail": {
+          "Type": "Fail"
+      },
+      "PostMonthlyReportLink": {
+          "Type": "Task",
+          "Resource": "arn:aws:states:::http:invoke",
+          "Parameters": {
+              "ApiEndpoint.$": "$.post",
+              "Method": "POST",
+              "RequestBody": {
+                "content.$": "States.Format($.UpdateMonthlyStats.Payload.body.template, $.UpdateMonthlyStats.Payload.body.month, $.UpdateMonthlyStats.Payload.body.invasions, $.UpdateMonthlyStats.Payload.body.members, $.UpdateMonthlyStats.Payload.body.participation, $.UpdateMonthlyStats.Payload.body.url)"
+            },
+              "Headers": {
+                  "Content-Type": "application/json"
+              },
+              "Authentication": {
+                  "ConnectionArn": "${DiscordConnection}"
+              }
+          },
+          "Retry": [
+              {
+                  "ErrorEquals": [
+                      "States.ALL"
+                  ],
+                  "BackoffRate": 2,
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "JitterStrategy": "FULL"
+              }
+          ],
+          "Next": "Success"
+      },
+      "Success": {
+          "Type": "Succeed"
+      }
+  }
+}

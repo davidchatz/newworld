@@ -3,15 +3,15 @@ version = 0.1
 [default]
 [default.global]
 [default.global.parameters]
-stack_name = "invasions"
-profile = "newworld"
+stack_name = "irus"
+profile = "irus-202410"
 
 [default.build.parameters]
 cached = true
 parallel = true
 
 [default.deploy.parameters]
-capabilities = "CAPABILITY_IAM"
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
 confirm_changeset = false
 fail_on_empty_changeset = false
 resolve_s3 = true

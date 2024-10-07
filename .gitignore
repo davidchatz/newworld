@@ -3,5 +3,13 @@
 .DS_Store
 dist
 node_modules
+__pycache__
 
+src/old
+
+.env
+samconfig.toml
 invasions/tmp
+invasions/src/old
+invasions/.env
+invasions/.env.json
