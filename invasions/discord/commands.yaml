@@ -505,6 +505,55 @@
               description: Screenshot
               type: 11
               required: true
+        - name: rank
+          description: Display specified rank from invasion
+          type: 1
+          options:
+            - name: invasion
+              description: Invasion identifier
+              type: 3
+              required: true
+            - name: rank
+              description: Rank
+              type: 4
+              min_value: 1
+              max_value: 55
+              required: true
+
+        - name: edit
+          description: Edit row in ladder from invasion
+          type: 1
+          options:
+            - name: invasion
+              description: Invasion identifier
+              type: 3
+              required: true
+            - name: rank
+              description: Rank to be modified
+              type: 4
+              min_value: 1
+              max_value: 55
+              required: true
+            - name: new_rank
+              description: New rank to move to
+              type: 4
+              min_value: 1
+              max_value: 55
+              required: false
+            - name: member
+              description: Adjust company membership
+              type: 5
+              required: false
+            - name: player
+              description: Adjust player name
+              type: 3
+              required: false
+            - name: score
+              description: Adjust score
+              type: 4
+              min_value: 0
+              required: false
+
     - name: report
       description: Manage invasion reports
       type: 2

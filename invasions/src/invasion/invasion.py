@@ -19,7 +19,6 @@ def lambda_handler(event:dict, context:LambdaContext):
         Members ({}): {}
         Non Members: {}
         Contiguous: {}
-        {}
         ''',
         'name': 'TBD',
         'ranks': '0',
@@ -40,6 +39,14 @@ def lambda_handler(event:dict, context:LambdaContext):
         body['members'] = ladder.members()
         body['memberlist'] = ladder.list(member = True)
         body['nonmemberlist'] = ladder.list(member = False)
+        # if body['members'] > 0:
+        #     body['memberlist'] = ladder.list(member = True)
+        # else:
+        #     body['memberlist'] = 'No Members'
+        # if body['ranks'] != body['members']:
+        #     body['nonmemberlist'] = ladder.list(member = False)
+        # else:
+        #     body['nonmemberlist'] = 'No Non Members'
         contiguous = ladder.contiguous_from_1_until()
         if contiguous != ladder.count():
             body['contiguous'] = f"*Ladder may be incomplete, starting from rank {contiguous}. Have you uploaded all the screen shots?*\n"

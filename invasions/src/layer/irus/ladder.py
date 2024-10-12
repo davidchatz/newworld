@@ -342,6 +342,12 @@ class IrusLadder:
             count += 1 if r.member == True else 0
         return count
     
+    def rank(self, rank:int) -> IrusLadderRank:
+        for r in self.ranks:
+            if int(r.rank) == rank:
+                return r
+        return None
+    
     def member(self, player:str) -> IrusLadderRank:
         for r in self.ranks:
             if r.player == player:
@@ -395,3 +401,66 @@ class IrusLadder:
         except ClientError as err:
             logger.error(f'Failed to delete from table: {err}')
             raise ValueError(f'Failed to delete from table: {err}')
+        
+    def edit(self, rank:int, new_rank, member, player, score) -> str:
+
+        logger.info(f'IrusLadder.edit {rank} {new_rank} {member} {player} {score}')
+        r = self.rank(rank)
+        if r:
+            if new_rank is None:
+                logger.debug(f'IrusLadder.edit -> Updating rank {rank}')
+                msg = f'Updating rank {rank} in invasion {self.invasion.name}: '
+            elif int(new_rank) != rank:
+                logger.debug(f'IrusLadder.edit -> Replacing rank {new_rank} with rank {rank}')
+                msg = f'Replacing rank {new_rank} in invasion {self.invasion.name} : '
+                r.delete_item()
+                r.rank = '{0:02d}'.format(new_rank)
+
+            if member:
+                msg += f'\nmember {r.member} -> {member}'
+                r.member = bool(member)
+                r.adjusted = True
+            if player:
+                msg += f'\nplayer {r.player} -> {player}'
+                r.player = player
+                r.adjusted = True
+            if score:
+                msg += f'\nscore {r.score} -> {score}'
+                r.score = int(score)
+                r.adjusted = True
+            logger.debug(f'IrusLadder.edit -> Applying update {r}')
+            r.update_item()
+            msg += '\n' + r.str()
+        elif player is None:
+            msg = f'Rank {rank} in invasion {self.invasion.name} not found, need to provide player name to add new row'
+        elif new_rank is not None and int(new_rank) != rank:
+            msg = f'Rank {rank} does not exist to replace new rank {new_rank}'
+        else:
+            msg = f'Creating new entry for rank {rank} in invasion {self.invasion.name}'
+
+            item = {
+                'rank': '{0:02d}'.format(rank),
+                'player': player,
+                'score': 0,
+                'kills': 0,
+                'deaths': 0,
+                'assists': 0,
+                'heals': 0,
+                'damage': 0,
+                'member': False,
+                'ladder': False,
+                'adjusted': True,
+                'error': False
+            }
+
+            if score:
+                item['score'] = int(score)
+
+            r = IrusLadderRank(self.invasion, item)
+            r.update_item()
+            self.ranks.append(r)
+            msg += '\n' + r.str()
+
+        logger.debug(f'IrusLadder.edit -> {msg}')
+
+        return msg

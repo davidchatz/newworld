@@ -236,15 +236,19 @@ Resources:
 
   DiscordConnection:
     Type: AWS::Events::Connection
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - W2501
+            # Username and password with Discord webhooks are not used for authentication and are not sensitive
     Properties:
       Description: Connection to send async responses to Discord
-      # Discord does not require authentication, its embedded in the URL path, but eventbridge requires something
-      # to be defined.
-      AuthorizationType: API_KEY
+      AuthorizationType: BASIC
       AuthParameters:
-        ApiKeyAuthParameters:
-          ApiKeyName: foo
-          ApiKeyValue: bah
+        BasicAuthParameters:
+          Username: "foo"
+          Password: "bah"
 
   ProcessStepFunction:
     Type: AWS::Serverless::StateMachine
