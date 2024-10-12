@@ -219,7 +219,7 @@
                   "BackoffRate": 2
               }
           ],
-          "Next": "PostInvasionReportLink",
+          "Next": "PostInvasionReportStats",
           "ResultPath": "$.UpdateInvasionStats",
           "Catch": [
               {
@@ -261,14 +261,14 @@
           ],
           "Next": "Fail"
       },
-      "PostInvasionReportLink": {
+      "PostInvasionReportStats": {
           "Type": "Task",
           "Resource": "arn:aws:states:::http:invoke",
           "Parameters": {
               "ApiEndpoint.$": "$.post",
               "Method": "POST",
               "RequestBody": {
-                  "content.$": "States.Format($.UpdateInvasionStats.Payload.body.template, $.UpdateInvasionStats.Payload.body.name, $.UpdateInvasionStats.Payload.body.ranks, $.UpdateInvasionStats.Payload.body.members, $.UpdateInvasionStats.Payload.body.memberlist, $.UpdateInvasionStats.Payload.body.nonmemberlist, $.UpdateInvasionStats.Payload.body.contiguous, $.UpdateInvasionStats.Payload.body.url)"
+                  "content.$": "States.Format($.UpdateInvasionStats.Payload.body.template, $.UpdateInvasionStats.Payload.body.name, $.UpdateInvasionStats.Payload.body.ranks, $.UpdateInvasionStats.Payload.body.members, $.UpdateInvasionStats.Payload.body.memberlist, $.UpdateInvasionStats.Payload.body.nonmemberlist, $.UpdateInvasionStats.Payload.body.contiguous)"
               },
               "Headers": {
                   "Content-Type": "application/json"
@@ -288,8 +288,38 @@
                   "JitterStrategy": "FULL"
               }
           ],
-          "Next": "UpdateMonthlyStats",
-          "ResultPath": "$.PostInvasionReportLink"
+          "Next": "PostInvasionReportLink",
+          "ResultPath": "$.PostInvasionReportStats"
+      },
+      "PostInvasionReportLink": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::http:invoke",
+        "Parameters": {
+            "ApiEndpoint.$": "$.post",
+            "Method": "POST",
+            "RequestBody": {
+                "content.$": "$.UpdateInvasionStats.Payload.body.url"
+            },
+            "Headers": {
+                "Content-Type": "application/json"
+            },
+            "Authentication": {
+                "ConnectionArn": "${DiscordConnection}"
+            }
+        },
+        "Retry": [
+            {
+                "ErrorEquals": [
+                    "States.ALL"
+                ],
+                "BackoffRate": 2,
+                "IntervalSeconds": 1,
+                "MaxAttempts": 3,
+                "JitterStrategy": "FULL"
+            }
+        ],
+        "Next": "UpdateMonthlyStats",
+        "ResultPath": "$.PostInvasionReportLink"
       },
       "UpdateMonthlyStats": {
           "Type": "Task",

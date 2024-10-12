@@ -86,7 +86,16 @@ For the specified invasion, upload and process single war roster file.
 ### /{discord_cmd} invasion screenshots *invasion file1 ... file7*
 
 For the specified invasion, upload and process seven screen shots of the ladder.
+
+### /{discord_cmd} invasion rank *invasion rank*
+
+Display the ladder entry for *rank*
+
+### /{discord_cmd} invasion edit *invasion rank [new_rank] [member] [player] [score]*
+
+Edit a row in a ladder, adjusting one or more of the rank, member flag, player name or score. This may be needed if the scan failed to correctly identify some characters in the image. If changing the rank, this command will overwrite the existing entry at that position.
 '''
+
 
 help_text['member'] = f'''
 # Invasions R Us Stats - Member Commands
@@ -219,6 +228,63 @@ def invasion_download_cmd(id: str, token: str, options:list, resolved:dict, meth
     return process.start(id, token, invasion, files, method)
 
 
+def invasion_edit_cmd(options:list) -> str:
+    logger.info(f'invasion_edit: {options}')
+
+    invasion = None
+    rank = None
+    new_rank = None
+    member = None
+    player = None
+    score = None
+
+    try:
+        for o in options:
+            if o["name"] == "invasion":
+                invasion = IrusInvasion.from_table(o["value"])
+            elif o["name"] == "rank":
+                rank = int(o["value"])
+            elif o["name"] == "new_rank":
+                new_rank = int(o["value"])
+            elif o["name"] == "member":
+                member = bool(o["value"])
+            elif o["name"] == "player":
+                player = o["value"]
+            elif o["name"] == "score":
+                score = int(o["value"])                
+    except ValueError as e:
+        logger.info(e)
+        return str(e)
+    
+    ladder = IrusLadder.from_invasion(invasion)
+    return ladder.edit(rank=rank, new_rank=new_rank, member=member, player=player, score=score)
+    
+
+def invasion_rank_cmd(options:list) -> str:
+    logger.info(f'invasion_edit: {options}')
+
+    invasion = None
+    rank = None
+
+    try:
+        for o in options:
+            for o in options:
+                if o["name"] == "invasion":
+                    invasion = IrusInvasion.from_table(o["value"])
+                elif o["name"] == "rank":
+                    rank = int(o["value"])             
+    except ValueError as e:
+        logger.info(e)
+        return str(e)
+
+    ladder = IrusLadder.from_invasion(invasion)
+    row = ladder.rank(rank)
+    if row is None:
+        return f'No rank {rank} in invasion {o["name"]}'
+    else:
+        return row.str()
+
+
 def invasion_cmd(id:str, token:str, options:dict, resolved: dict) -> str:
     logger.info(f'invasion_cmd: {options}')
     name = options['name']
@@ -226,6 +292,10 @@ def invasion_cmd(id:str, token:str, options:dict, resolved: dict) -> str:
         return help_text['invasion']
     elif name == 'list':
         return invasion_list_cmd(options['options'])
+    elif name == 'edit':
+        return invasion_edit_cmd(options['options'])
+    elif name == 'rank':
+        return invasion_rank_cmd(options['options'])
     elif name == 'add':
         return invasion_add_cmd(options['options']).markdown()
     elif name == 'ladder' or name == 'screenshots':

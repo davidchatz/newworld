@@ -84,13 +84,14 @@ class IrusLadderRank:
     
     @classmethod
     def from_invasion_for_member(cls, invasion: IrusInvasion, member: IrusMember):
-        logger.info(f'LadderRank.from_invasion_for_member: {invasion} {member}')
+        logger.info(f'LadderRank.from_invasion_for_member: {invasion} {member.str()}')
         ladders = table.query(KeyConditionExpression=Key('invasion').eq(f'#ladder#{invasion.name}'),
                                 ProjectionExpression='id, #n, #r',
                                 FilterExpression=Attr('player').eq(member.player),
                                 ExpressionAttributeNames={'#n': 'name', '#r': 'rank'})
         
-        if ladders.get('Items', None):
+        logger.debug(f'ladders: {ladders}')
+        if ladders.get('Items', None) or len(ladders['Items']) == 0:
             logger.debug(f'Player {member.player} not found in invasion {invasion.name}')
             raise ValueError(f'Player {member.player} not found in invasion {invasion.name}')
         
@@ -107,7 +108,26 @@ class IrusLadderRank:
     def __str__(self):
         return f'{self.rank} {self.player} {self.score} {self.kills} {self.deaths} {self.assists} {self.heals} {self.damage} {self.member} {self.ladder} {self.adjusted} {self.error}'
  
+    def header(self) -> str:
+        return '''
+**`Rank Player           Score Kills Deaths Assists   Heals  Damage Member Ladder Adjusted Error`**'''
 
+    def footer(self) -> str:
+        return '''
+*Member*: True if company member
+*Ladder*: True if from ladder
+*Adjusted*: True if entry corrected by bot or manually, False if unchanged from scan
+*Error*: True if error detected but correct value not known
+'''
+
+    def values(self) -> str:
+        return f'''
+`{self.rank:<4} {self.player:<14} {self.score:>7} {self.kills:>5} {self.deaths:>6} {self.assists:>7} {self.heals:>7} {self.damage:>7} {str(self.member):<6} {str(self.ladder):<6} {str(self.adjusted):<8} {self.error}`
+'''
+    def str(self) -> str:
+        return self.header() + self.values() + self.footer()
+    
+    
     def update_membership(self, member: bool):
         logger.info(f'LadderRank.update_membership: {self} to {member}')
         self.member = member
@@ -122,4 +142,9 @@ class IrusLadderRank:
     # method to put ladder rank into table
     def update_item(self):
         logger.debug(f'LadderRank.update_item: {self}')
-        update = table.put_item(Item=self.__dict__)
+        update = table.put_item(Item=self.__dict__())
+
+    def delete_item(self):
+        logger.debug(f'LadderRank.delete_item: {self}')
+        delete = table.delete_item(Key={'invasion': self.invasion_key(), 'id': self.rank})
+        logger.debug(f'delete_item: {delete}')
