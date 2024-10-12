@@ -144,6 +144,7 @@ Generate a summary report for all current members for the current (default) or s
 #
 logger = IrusResources.logger()
 app_id = IrusSecrets.app_id()
+role_id = IrusSecrets.role_id()
 process = IrusProcess()
 
 def verify_signature(event):
@@ -280,7 +281,7 @@ def invasion_rank_cmd(options:list) -> str:
     ladder = IrusLadder.from_invasion(invasion)
     row = ladder.rank(rank)
     if row is None:
-        return f'No rank {rank} in invasion {o["name"]}'
+        return f'No rank {rank} in invasion {invasion.name}'
     else:
         return row.str()
 
@@ -522,6 +523,7 @@ def lambda_handler(event: dict, context: LambdaContext):
     }
     data = None
     content = None
+    admin = False
 
     try: 
         verify_signature(event)
@@ -536,25 +538,36 @@ def lambda_handler(event: dict, context: LambdaContext):
             subcommand = body["data"]["options"][0]
             logger.debug(f'subcommand: {subcommand}')
             resolved = body["data"]["resolved"] if "resolved" in body["data"] else None
+            roles = body["member"]["roles"]
+            admin = role_id in roles
+            logger.debug(f'admin: {admin} roles: {roles}')
 
-            if subcommand["name"] == "help":
-                content = help_text["help"]
-            elif subcommand["name"] == "invasion":
-                content = invasion_cmd(app_id, body['token'], subcommand["options"][0], resolved)
-            elif subcommand["name"] == "ladders" or subcommand["name"] == "ladder":
-                invasion = invasion_add_cmd(subcommand["options"])
-                invasion_process(app_id, body['token'], invasion, subcommand["options"], resolved, 'Ladder')
-                content = f'In Progress: Registered invasion {invasion.name}, next download file(s)'
-            elif subcommand["name"] == "roster":
-                invasion = invasion_add_cmd(subcommand["options"])
-                invasion_process(app_id, body['token'], invasion, subcommand["options"], resolved, 'Roster')
-                content = f'In Progress: Registered invasion {invasion.name}, next download file(s)'
-            elif subcommand["name"] == "report":
-                content = report_cmd(subcommand["options"][0], resolved)
-            elif subcommand["name"] == "member":
-                content = member_cmd(subcommand["options"][0], resolved)
+            if admin:
+                if subcommand["name"] == "help":
+                    content = help_text["help"]
+                elif subcommand["name"] == "invasion":
+                    content = invasion_cmd(app_id, body['token'], subcommand["options"][0], resolved)
+                elif subcommand["name"] == "ladders" or subcommand["name"] == "ladder":
+                    invasion = invasion_add_cmd(subcommand["options"])
+                    invasion_process(app_id, body['token'], invasion, subcommand["options"], resolved, 'Ladder')
+                    content = f'In Progress: Registered invasion {invasion.name}, next download file(s)'
+                elif subcommand["name"] == "roster":
+                    invasion = invasion_add_cmd(subcommand["options"])
+                    invasion_process(app_id, body['token'], invasion, subcommand["options"], resolved, 'Roster')
+                    content = f'In Progress: Registered invasion {invasion.name}, next download file(s)'
+                elif subcommand["name"] == "report":
+                    content = report_cmd(subcommand["options"][0], resolved)
+                elif subcommand["name"] == "member":
+                    content = member_cmd(subcommand["options"][0], resolved)
+                else:
+                    content = f'Unexpected subcommand {subcommand["name"]}'            
             else:
-                content = f'Unexpected subcommand {subcommand["name"]}'
+                if subcommand["name"] == "help":
+                    content = help_text["report"]
+                elif subcommand["name"] == "report":
+                    content = report_cmd(subcommand["options"][0], resolved)
+                else:
+                    content = f'Unexpected subcommand {subcommand["name"]}'
 
         else:
             content = f'Unexpected interaction type {body["type"]}'
