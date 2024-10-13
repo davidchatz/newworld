@@ -25,6 +25,10 @@ Parameters:
     Default: appid
     Type: String
 
+  RoleIdPath:
+    Default: roleid
+    Type: String
+
   BotTokenPath:
     Default: bottoken
     Type: String
@@ -75,6 +79,7 @@ Globals:
         POWERTOOLS_LOG_LEVEL: !Ref LogLevel
         PUBLIC_KEY_PATH: !Sub "${SsmPrefix}/${PublicKeyPath}"
         APP_ID_PATH: !Sub "${SsmPrefix}/${AppIdPath}"
+        ROLE_ID_PATH: !Sub "${SsmPrefix}/${RoleIdPath}"
         TABLE_NAME: !Ref Table
         DISCORD_CMD: !Ref DiscordCmd
         BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"

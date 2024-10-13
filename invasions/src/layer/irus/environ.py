@@ -108,6 +108,8 @@ class IrusSecrets:
     _public_key_bytes : bytes = None
     _app_id_path : str = None
     _app_id : str = None
+    _role_id_path : str = None
+    _role_id : str = None
 
     @classmethod
     def ssm(cls):
@@ -145,4 +147,15 @@ class IrusSecrets:
             cls._app_id = cls.ssm().get_parameter(Name=cls.app_id_path(), WithDecryption=True)['Parameter']['Value']
         return cls._app_id
 
+    @classmethod
+    def role_id_path(cls) -> str:
+        if cls._role_id_path == None:
+            cls._role_id_path = os.environ['ROLE_ID_PATH']
+        return cls._role_id_path
+    
+    @classmethod
+    def role_id(cls) -> str:
+        if cls._role_id == None:
+            cls._role_id = cls.ssm().get_parameter(Name=cls.role_id_path(), WithDecryption=True)['Parameter']['Value']
+        return cls._role_id
 
