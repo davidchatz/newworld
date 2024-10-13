@@ -39,6 +39,13 @@ class IrusMemberList:
         for m in self.members:
             body += f'- {m.player} ({m.faction}) started {m.start}\n'
         return body
+    
+    def post(self) -> list:
+        items = ['Player          Faction    Start']
+        for m in self.members:
+            items.append(f'{m.player:<14} {m.faction:<6} {m.start}')
+        items.append(f'{len(self.members)} Members')
+        return items
 
     def count(self) -> int:
         return len(self.members)

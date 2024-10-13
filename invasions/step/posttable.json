@@ -15,7 +15,7 @@
               "Type": "Task",
               "Resource": "arn:aws:states:::http:invoke",
               "Parameters": {
-                "ApiEndpoint.$": "$.post",
+                "ApiEndpoint.$": "$.BatchInput.post",
                 "Method": "POST",
                 "RequestBody": {
                   "content.$": "$"
@@ -46,7 +46,10 @@
         "MaxConcurrency": 1,
         "Label": "Interator",
         "ItemBatcher": {
-          "MaxItemsPerBatch": 3
+          "MaxItemsPerBatch": 15,
+          "BatchInput": {
+            "post.$": "$.post"
+          }
         },
         "ItemsPath": "$.table"
       }

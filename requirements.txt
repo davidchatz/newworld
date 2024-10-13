@@ -6,3 +6,4 @@ pyyaml
 urllib3
 pytest
 pytest-dotenv
+python-dotenv

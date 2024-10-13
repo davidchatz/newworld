@@ -125,6 +125,7 @@ Decide on a prefix for your parameters, for example `irus`, and create four **se
 2. `/irus/bottoken`
 3. `/irus/serverid`
 4. `/irus/publickey`
+5. `/irus/roleid`
 
 In another tab navigate to https://discord.com/developers/applications and select the application you created. Under **General Information** you will see both the **Application Id** and the **Public Key**. Add these values to the parameters you created. 
 
@@ -179,6 +180,10 @@ Copy the **GENERATED URL** and open that Url in another tab. Select your server 
 ## Configure serverid
 
 Right click on the server icon in Discord and select `Copy Server ID`. Copy the ID into the `/irustest/serverid` SSM parameter.
+
+## Configure roleid
+
+On the server create a role you will use for those with admin permissions. Once created, copy the Role Id into `/irustest/roleid` SSM parameter.
 
 ## Register slash commands
 

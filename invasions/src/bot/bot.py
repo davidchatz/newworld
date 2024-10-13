@@ -6,7 +6,7 @@ from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
 from aws_lambda_powertools.utilities.typing import LambdaContext
 import irus
-from irus import IrusInvasion, IrusInvasionList, IrusMember, IrusMemberList, IrusLadder, IrusSecrets, IrusFiles, IrusProcess, IrusResources, IrusReport, IrusMonth
+from irus import IrusInvasion, IrusInvasionList, IrusMember, IrusMemberList, IrusLadder, IrusSecrets, IrusFiles, IrusProcess, IrusResources, IrusReport, IrusMonth, IrusPostTable
 
 discord_cmd = os.environ['DISCORD_CMD']
 
@@ -144,7 +144,9 @@ Generate a summary report for all current members for the current (default) or s
 #
 logger = IrusResources.logger()
 app_id = IrusSecrets.app_id()
+role_id = IrusSecrets.role_id()
 process = IrusProcess()
+post_table = IrusPostTable()
 
 def verify_signature(event):
     body = event['body']
@@ -280,7 +282,7 @@ def invasion_rank_cmd(options:list) -> str:
     ladder = IrusLadder.from_invasion(invasion)
     row = ladder.rank(rank)
     if row is None:
-        return f'No rank {rank} in invasion {o["name"]}'
+        return f'No rank {rank} in invasion {invasion.name}'
     else:
         return row.str()
 
@@ -474,7 +476,7 @@ def report_member_cmd(options:list) -> str:
         try:
             report = IrusMonth.from_table(month, year)
         except:
-            mesg = f'*No monthly stats found for {month}/{year}*'
+            mesg = f'*No monthly stats for {player} during {month}/{year}*'
 
         if report:
             mesg += report.member_stats(player)
@@ -510,6 +512,44 @@ def report_cmd(options:dict, resolved: dict) -> str:
         return f'Invalid command {name}'
 
 #
+# Display reports using multiple webhook posts
+#
+
+def display_month_cmd(id: str, token: str) -> str:
+    return "Not implemented yet"
+
+def display_invasion_cmd(id: str, token: str) -> str:
+    return "Not implemented yet"
+
+def display_member_cmd(id: str, token: str) -> str:
+    return "Not implemented yet"
+
+def display_members_cmd(id: str, token: str) -> str:
+    now = datetime.now().strftime("%Y%m%d%H%M%S")
+    members = IrusMemberList()
+    logger.debug(f'report_members_cmd: {members}')
+    return post_table.start(id, token, members.post(), '# Company Members')
+
+
+def display_cmd(id: str, token: str, options:dict, resolved: dict) -> str:
+    logger.info(f'report_cmd: {options}')
+
+    name = options['name']
+    if name == 'help':
+        return help_text['display']
+    elif name == 'month':
+        return display_month_cmd(id, token, options['options'])
+    elif name == 'invasion':
+        return display_invasion_cmd(id, token, options['options'])
+    elif name == 'member':
+        return display_member_cmd(id, token, options['options'])
+    elif name == 'members':
+        return display_members_cmd(id, token)
+    else:
+        logger.error(f'Invalid command {name}')
+        return f'Invalid command {name}'
+
+#
 # Command switch and package results as required by Discord
 #
 
@@ -522,6 +562,7 @@ def lambda_handler(event: dict, context: LambdaContext):
     }
     data = None
     content = None
+    admin = False
 
     try: 
         verify_signature(event)
@@ -536,25 +577,41 @@ def lambda_handler(event: dict, context: LambdaContext):
             subcommand = body["data"]["options"][0]
             logger.debug(f'subcommand: {subcommand}')
             resolved = body["data"]["resolved"] if "resolved" in body["data"] else None
+            roles = body["member"]["roles"]
+            admin = role_id in roles
+            logger.debug(f'admin: {admin} roles: {roles}')
 
-            if subcommand["name"] == "help":
-                content = help_text["help"]
-            elif subcommand["name"] == "invasion":
-                content = invasion_cmd(app_id, body['token'], subcommand["options"][0], resolved)
-            elif subcommand["name"] == "ladders" or subcommand["name"] == "ladder":
-                invasion = invasion_add_cmd(subcommand["options"])
-                invasion_process(app_id, body['token'], invasion, subcommand["options"], resolved, 'Ladder')
-                content = f'In Progress: Registered invasion {invasion.name}, next download file(s)'
-            elif subcommand["name"] == "roster":
-                invasion = invasion_add_cmd(subcommand["options"])
-                invasion_process(app_id, body['token'], invasion, subcommand["options"], resolved, 'Roster')
-                content = f'In Progress: Registered invasion {invasion.name}, next download file(s)'
-            elif subcommand["name"] == "report":
-                content = report_cmd(subcommand["options"][0], resolved)
-            elif subcommand["name"] == "member":
-                content = member_cmd(subcommand["options"][0], resolved)
+            if admin:
+                if subcommand["name"] == "help":
+                    content = help_text["help"]
+                elif subcommand["name"] == "invasion":
+                    content = invasion_cmd(app_id, body['token'], subcommand["options"][0], resolved)
+                elif subcommand["name"] == "ladders" or subcommand["name"] == "ladder":
+                    invasion = invasion_add_cmd(subcommand["options"])
+                    invasion_process(app_id, body['token'], invasion, subcommand["options"], resolved, 'Ladder')
+                    content = f'In Progress: Registered invasion {invasion.name}, next download file(s)'
+                elif subcommand["name"] == "roster":
+                    invasion = invasion_add_cmd(subcommand["options"])
+                    invasion_process(app_id, body['token'], invasion, subcommand["options"], resolved, 'Roster')
+                    content = f'In Progress: Registered invasion {invasion.name}, next download file(s)'
+                elif subcommand["name"] == "report":
+                    content = report_cmd(subcommand["options"][0], resolved)
+                elif subcommand["name"] == "display":
+                    display_cmd(app_id, body['token'], subcommand["options"][0], resolved)
+                    content = f'In Progress:'
+                elif subcommand["name"] == "member":
+                    content = member_cmd(subcommand["options"][0], resolved)
+                else:
+                    content = f'Unexpected subcommand {subcommand["name"]}'            
             else:
-                content = f'Unexpected subcommand {subcommand["name"]}'
+                if subcommand["name"] == "help":
+                    content = help_text["report"]
+                elif subcommand["name"] == "report":
+                    content = report_cmd(subcommand["options"][0], resolved)
+                elif subcommand["name"] == "display":
+                    content = display_cmd(app_id, body['token'], subcommand["options"][0], resolved)
+                else:
+                    content = f'Unexpected subcommand {subcommand["name"]}'
 
         else:
             content = f'Unexpected interaction type {body["type"]}'

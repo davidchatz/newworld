@@ -25,6 +25,10 @@ Parameters:
     Default: appid
     Type: String
 
+  RoleIdPath:
+    Default: roleid
+    Type: String
+
   BotTokenPath:
     Default: bottoken
     Type: String
@@ -75,6 +79,7 @@ Globals:
         POWERTOOLS_LOG_LEVEL: !Ref LogLevel
         PUBLIC_KEY_PATH: !Sub "${SsmPrefix}/${PublicKeyPath}"
         APP_ID_PATH: !Sub "${SsmPrefix}/${AppIdPath}"
+        ROLE_ID_PATH: !Sub "${SsmPrefix}/${RoleIdPath}"
         TABLE_NAME: !Ref Table
         DISCORD_CMD: !Ref DiscordCmd
         BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
@@ -343,6 +348,15 @@ Resources:
               - secretsmanager:GetSecretValue
               - secretsmanager:DescribeSecret
             Resource: !Sub "arn:${AWS::Partition}:secretsmanager:*:*:secret:events!connection/*"
+          - Effect: Allow
+            Action:
+              - states:StartExecution
+            Resource: !Sub "arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:PostTableStepFunction-*"
+          - Effect: Allow
+            Action:
+             - states:DescribeExecution
+             - states:StopExecution
+            Resource: !Sub "arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:execution:stateMachineName:*"
       Logging:
         Destinations:
           - CloudWatchLogsLogGroup:
@@ -438,10 +452,13 @@ Resources:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
         - StepFunctionsExecutionPolicy:
             StateMachineName: !GetAtt DeadHandStepFunction.Name
+        - StepFunctionsExecutionPolicy:
+            StateMachineName: !GetAtt PostTableStepFunction.Name
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: Bot
           PROCESS_STEP_FUNC: !Ref DeadHandStepFunction
+          POST_STEP_FUNC: !Ref PostTableStepFunction
           TZ: !Ref Timezone
       Events:
         ApiPOSTdiscord:
