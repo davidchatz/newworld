@@ -1,0 +1,30 @@
+{
+    "guild_id": "1234567890123456",
+    "id": "1234567890123456",
+    "name": "irus",
+    "options": [
+        {
+            "name": "member",
+            "options": [
+                {
+                    "name": "add",
+                    "options": [
+                        {
+                            "name": "player",
+                            "type": 3,
+                            "value": "Chatz"
+                        },
+                        {
+                            "name": "faction",
+                            "type": 3,
+                            "value": "purple"
+                        }
+                    ],
+                    "type": 1
+                }
+            ],
+            "type": 2
+        }
+    ],
+    "type": 1
+}
