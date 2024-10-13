@@ -24,7 +24,7 @@
                   "Content-Type": "application/json"
                 },
                 "Authentication": {
-                  "ConnectionArn": "arn:aws:events:ap-southeast-1:039612866252:connection/DiscordConnection-jEveDtVfGcz8/5f5d9126-501e-4da1-9159-020f8f6c04b2"
+                  "ConnectionArn": "${DiscordConnection}"
                 }
               },
               "Retry": [
