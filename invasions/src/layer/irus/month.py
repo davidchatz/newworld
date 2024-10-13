@@ -147,7 +147,14 @@ class IrusMonth:
                 body += f'{self.month},{r["id"]},{r["salary"]},{r["invasions"]},{r["ladders"]},{r["wins"]},{r["sum_score"]},{r["sum_kills"]},{r["sum_assists"]},{r["sum_deaths"]},{r["sum_heals"]},{r["sum_damage"]},{r["avg_score"]},{r["avg_kills"]},{r["avg_assists"]},{r["avg_deaths"]},{r["avg_heals"]},{r["avg_damage"]},{r["avg_rank"]},{r["max_score"]},{r["max_kills"]},{r["max_assists"]},{r["max_deaths"]},{r["max_heals"]},{r["max_damage"]},{r["max_rank"]}\n'
         logger.debug(f'csv: {body}')
         return body
-    
+
+    def post(self) -> list:
+        mesg = ['month player            salary invasions ladders wins sum_score sum_kills sum_assists sum_deaths sum_heals sum_damage avg_score avg_kills avg_assists avg_deaths avg_heals avg_damage avg_ranks max_score max_kills max_assists max_deaths max_heals max_damage max_rank']
+        for r in self.report:
+            if r["invasions"] > 0:
+                mesg.append(f'{self.month} {r["id"]:<16} {r["salary"]:<6} {r["invasions"]:<9} {r["ladders"]:<7} {r["wins"]:<4} {r["sum_score"]:<9} {r["sum_kills"]:<9} {r["sum_assists"]:<11} {r["sum_deaths"]:<10} {r["sum_heals"]:<9} {r["sum_damage"]:<10} {r["avg_score"]:<9} {r["avg_kills"]:<9} {r["avg_assists"]:<11} {r["avg_deaths"]:<10} {r["avg_heals"]:<9} {r["avg_damage"]:<10} {r["avg_rank"]:<9} {r["max_score"]:<9} {r["max_kills"]:<9} {r["max_assists"]:<11} {r["max_deaths"]:<10} {r["max_heals"]:<9} {r["max_damage"]:<10} {r["max_rank"]}')
+        return mesg
+
     def delete_from_table(self):
         logger.info(f'IrusMonth.delete_from_table for month {self.month}')
 

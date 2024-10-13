@@ -516,7 +516,20 @@ def report_cmd(options:dict, resolved: dict) -> str:
 #
 
 def display_month_cmd(id: str, token: str, options:list) -> str:
-    return "Not implemented yet"
+
+    now = datetime.now()
+    month = now.month
+    year = now.year
+
+    for o in options:
+        if o["name"] == "month":
+            month = o["value"]
+        elif o["name"] == "year":
+            year = o["value"]
+
+    stats = IrusMonth.from_invasion_stats(month = month, year = year)
+    return post_table.start(id, token, stats.post(), f'# Monthly Stats for {stats.month}')
+
 
 def display_invasion_cmd(id: str, token: str, options:list) -> str:
     name = None
