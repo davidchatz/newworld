@@ -20,10 +20,27 @@ class IrusPostTable:
 
         cmd = {
             'post': f'{self.webhook_url}/{id}/{token}',
-            'table': table
+            'msg': [],
+            'count': 0
         }
 
-        logger.info(f'starting post table step function for {title}')
+        count = 1
+        msg = title + '\n'
+        for t in table:
+            if len(msg) + len(t) > 1995:
+                cmd['msg'].append(msg)
+                msg = '`' + t + '`\n'
+                count += 1
+            else:
+                msg = msg + '`' + t + '`\n'
+        cmd['msg'].append(msg)
+
+        if count > 4:
+            logger.warning(f'Too many rows ({count}) to post {title}')
+
+        cmd['count'] = count
+
+        logger.info(f'Starting table step function for {title} with {len(cmd["msg"])} posts')
 
         try:
             state_machine.start_execution(

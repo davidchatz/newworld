@@ -1,57 +1,162 @@
 {
     "Comment": "A description of my state machine",
-    "StartAt": "Interator",
+    "StartAt": "PostMsg 1",
     "States": {
-      "Interator": {
-        "Type": "Map",
-        "ItemProcessor": {
-          "ProcessorConfig": {
-            "Mode": "DISTRIBUTED",
-            "ExecutionType": "STANDARD"
+      "PostMsg 1": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::http:invoke",
+        "Parameters": {
+          "ApiEndpoint.$": "$.post",
+          "Method": "POST",
+          "RequestBody": {
+            "content.$": "$.msg[0]"
           },
-          "StartAt": "PostMsg",
-          "States": {
-            "PostMsg": {
-              "Type": "Task",
-              "Resource": "arn:aws:states:::http:invoke",
-              "Parameters": {
-                "ApiEndpoint.$": "$.BatchInput.post",
-                "Method": "POST",
-                "RequestBody": {
-                  "content.$": "$"
-                },
-                "Headers": {
-                  "Content-Type": "application/json"
-                },
-                "Authentication": {
-                  "ConnectionArn": "${DiscordConnection}"
-                }
-              },
-              "Retry": [
-                {
-                  "ErrorEquals": [
-                    "States.ALL"
-                  ],
-                  "BackoffRate": 2,
-                  "IntervalSeconds": 1,
-                  "MaxAttempts": 3,
-                  "JitterStrategy": "FULL"
-                }
-              ],
-              "End": true
-            }
+          "Headers": {
+            "Content-Type": "application/json"
+          },
+          "Authentication": {
+            "ConnectionArn": "${DiscordConnection}"
           }
         },
+        "Retry": [
+          {
+            "ErrorEquals": [
+              "States.ALL"
+            ],
+            "BackoffRate": 2,
+            "IntervalSeconds": 1,
+            "MaxAttempts": 3,
+            "JitterStrategy": "FULL"
+          }
+        ],
+        "Next": "Message 2 Defined",
+        "ResultPath": "$.SendOne"
+      },
+      "Message 2 Defined": {
+        "Type": "Choice",
+        "Choices": [
+          {
+            "Variable": "$.count",
+            "NumericGreaterThan": 1,
+            "Next": "PostMsg 2"
+          }
+        ],
+        "Default": "Done"
+      },
+      "PostMsg 2": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::http:invoke",
+        "Parameters": {
+          "ApiEndpoint.$": "$.post",
+          "Method": "POST",
+          "RequestBody": {
+            "content.$": "$.msg[1]"
+          },
+          "Headers": {
+            "Content-Type": "application/json"
+          },
+          "Authentication": {
+            "ConnectionArn": "${DiscordConnection}"
+          }
+        },
+        "Retry": [
+          {
+            "ErrorEquals": [
+              "States.ALL"
+            ],
+            "BackoffRate": 2,
+            "IntervalSeconds": 1,
+            "MaxAttempts": 3,
+            "JitterStrategy": "FULL"
+          }
+        ],
+        "Next": "Message 3 Defined",
+        "ResultPath": "$.SendTwo"
+      },
+      "Message 3 Defined": {
+        "Type": "Choice",
+        "Choices": [
+          {
+            "Variable": "$.count",
+            "NumericGreaterThan": 2,
+            "Next": "PostMsg 3"
+          }
+        ],
+        "Default": "Done"
+      },
+      "PostMsg 3": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::http:invoke",
+        "Parameters": {
+          "ApiEndpoint.$": "$.post",
+          "Method": "POST",
+          "RequestBody": {
+            "content.$": "$.msg[2]"
+          },
+          "Headers": {
+            "Content-Type": "application/json"
+          },
+          "Authentication": {
+            "ConnectionArn": "${DiscordConnection}"
+          }
+        },
+        "Retry": [
+          {
+            "ErrorEquals": [
+              "States.ALL"
+            ],
+            "BackoffRate": 2,
+            "IntervalSeconds": 1,
+            "MaxAttempts": 3,
+            "JitterStrategy": "FULL"
+          }
+        ],
+        "Next": "Message 4 Defined",
+        "ResultPath": "$.SendThree"
+      },
+      "Message 4 Defined": {
+        "Type": "Choice",
+        "Choices": [
+          {
+            "Variable": "$.count",
+            "NumericGreaterThan": 3,
+            "Next": "PostMsg 4"
+          }
+        ],
+        "Default": "Done"
+      },
+      "PostMsg 4": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::http:invoke",
+        "Parameters": {
+          "ApiEndpoint.$": "$.post",
+          "Method": "POST",
+          "RequestBody": {
+            "content.$": "$.msg[3]"
+          },
+          "Headers": {
+            "Content-Type": "application/json"
+          },
+          "Authentication": {
+            "ConnectionArn": "${DiscordConnection}"
+          }
+        },
+        "Retry": [
+          {
+            "ErrorEquals": [
+              "States.ALL"
+            ],
+            "BackoffRate": 2,
+            "IntervalSeconds": 1,
+            "MaxAttempts": 3,
+            "JitterStrategy": "FULL"
+          }
+        ],
         "End": true,
-        "MaxConcurrency": 1,
-        "Label": "Interator",
-        "ItemBatcher": {
-          "MaxItemsPerBatch": 15,
-          "BatchInput": {
-            "post.$": "$.post"
-          }
-        },
-        "ItemsPath": "$.table"
+        "ResultPath": "$.SendFour"
+      },
+      "Done": {
+        "Type": "Succeed"
       }
     }
   }

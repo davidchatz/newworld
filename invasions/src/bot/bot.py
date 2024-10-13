@@ -515,13 +515,24 @@ def report_cmd(options:dict, resolved: dict) -> str:
 # Display reports using multiple webhook posts
 #
 
-def display_month_cmd(id: str, token: str) -> str:
+def display_month_cmd(id: str, token: str, options:list) -> str:
     return "Not implemented yet"
 
-def display_invasion_cmd(id: str, token: str) -> str:
-    return "Not implemented yet"
+def display_invasion_cmd(id: str, token: str, options:list) -> str:
+    name = None
+    for o in options:
+        if o["name"] == "invasion":
+            name = o["value"]
 
-def display_member_cmd(id: str, token: str) -> str:
+    if not name:
+        return 'Missing invasion from request'
+
+    invasion = IrusInvasion.from_table(name)
+    ladder = IrusLadder.from_invasion(invasion)    
+    return post_table.start(id, token, ladder.post(), '# Invasion Stats')
+
+
+def display_member_cmd(id: str, token: str, options:list) -> str:
     return "Not implemented yet"
 
 def display_members_cmd(id: str, token: str) -> str:

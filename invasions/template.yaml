@@ -348,15 +348,6 @@ Resources:
               - secretsmanager:GetSecretValue
               - secretsmanager:DescribeSecret
             Resource: !Sub "arn:${AWS::Partition}:secretsmanager:*:*:secret:events!connection/*"
-          - Effect: Allow
-            Action:
-              - states:StartExecution
-            Resource: !Sub "arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:PostTableStepFunction-*"
-          - Effect: Allow
-            Action:
-             - states:DescribeExecution
-             - states:StopExecution
-            Resource: !Sub "arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:execution:stateMachineName:*"
       Logging:
         Destinations:
           - CloudWatchLogsLogGroup:

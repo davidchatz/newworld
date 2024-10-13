@@ -115,6 +115,15 @@ class IrusInvasion:
             msg += f'Notes: {self.notes}\n'
         return msg
 
+    def post(self) -> list:
+        msg = [f'Invasion: {self.name}']
+        msg.append(f'Settlement: {self.settlement_map[self.settlement]}')
+        msg.append(f'Date: {self.date}')
+        msg.append(f'Win: {self.win}')
+        if self.notes:
+            msg.append(f'Notes: {self.notes}')
+        return msg
+
     def delete_from_table(self):
         logger.info(f'Delete {self.name} from table')
         table.delete_item(Key=self.key())

@@ -108,11 +108,10 @@ class IrusLadderRank:
     def __str__(self):
         return f'{self.rank} {self.player} {self.score} {self.kills} {self.deaths} {self.assists} {self.heals} {self.damage} {self.member} {self.ladder} {self.adjusted} {self.error}'
  
-    def header(self) -> str:
-        return '''
-**`Rank Player           Score Kills Deaths Assists   Heals  Damage Member Ladder Adjusted Error`**'''
+    def header() -> str:
+        return 'Rank Player             Score Kills Deaths Assists   Heals  Damage Member Ladder Adjusted Error'
 
-    def footer(self) -> str:
+    def footer() -> str:
         return '''
 *Member*: True if company member
 *Ladder*: True if from ladder
@@ -120,12 +119,12 @@ class IrusLadderRank:
 *Error*: True if error detected but correct value not known
 '''
 
-    def values(self) -> str:
-        return f'''
-`{self.rank:<4} {self.player:<14} {self.score:>7} {self.kills:>5} {self.deaths:>6} {self.assists:>7} {self.heals:>7} {self.damage:>7} {str(self.member):<6} {str(self.ladder):<6} {str(self.adjusted):<8} {self.error}`
-'''
+    def post(self) -> str:
+        return f'{self.rank:<4} {self.player:<16} {self.score:>7} {self.kills:>5} {self.deaths:>6} {self.assists:>7} {self.heals:>7} {self.damage:>7} {str(self.member):<6} {str(self.ladder):<6} {str(self.adjusted):<8} {self.error}'
+
+
     def str(self) -> str:
-        return self.header() + self.values() + self.footer()
+        return '**`' + IrusLadderRank.header()+ '`**\n`' + self.post() + '`\n' + IrusLadderRank.footer() + '\n'
     
     
     def update_membership(self, member: bool):

@@ -392,6 +392,15 @@ class IrusLadder:
         msg += self.invasion.markdown()
         return msg
 
+    def post(self) -> list:
+        msg = self.invasion.post()
+        msg.append(f'Ranks: {self.count()}')
+        msg.append(IrusLadderRank.header())
+        for r in self.ranks:
+            msg.append(r.post())
+        msg.append(IrusLadderRank.footer())
+        return msg
+
     def delete_from_table(self):
         logger.info(f'IrusLadder.delete_from_table for {self.invasion.name}')
         try:

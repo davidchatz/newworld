@@ -41,11 +41,12 @@ class IrusMemberList:
         return body
     
     def post(self) -> list:
-        items = ['Player          Faction    Start']
+        msg = ['Player         Faction Start']
         for m in self.members:
-            items.append(f'{m.player:<14} {m.faction:<6} {m.start}')
-        items.append(f'{len(self.members)} Members')
-        return items
+            msg.append(f'{m.player:<14} {m.faction:<7} {m.start}')
+        msg.append(' ')
+        msg.append(f'{len(self.members)} members in clan.')
+        return msg
 
     def count(self) -> int:
         return len(self.members)
