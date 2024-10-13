@@ -40,34 +40,23 @@ class IrusFiles:
         return f'{len(self.files)} files'
 
 
-class IrusProcess:
+class IrusPostTable:
 
     def __init__(self) -> None:
-        self.step_func_arn = IrusResources.process_step_function_arn()
+        self.step_func_arn = IrusResources.post_step_function_arn()
         self.webhook_url = IrusResources.webhook_url()
 
 
-    def start(self, id: str, token: str, invasion: IrusInvasion, files: IrusFiles, process: str) -> str:
+    def start(self, id: str, token: str, table:list, title:str) -> str:
 
-        logger.info(f'Process.start: invasion: {invasion.name} files: {files.str()} process: {process}')
+        logger.info(f'PostTable.start: table {title} with {len(table)} rows')
 
         cmd = {
             'post': f'{self.webhook_url}/{id}/{token}',
-            'invasion': invasion.name,
-            'folder': 'tbd',
-            'files': files.get(),
-            'process': process,
-            'month': invasion.month_prefix()
+            'table': table
         }
 
-        if process == "Ladder":
-            cmd['folder'] = invasion.path_ladders()
-        elif process == "Roster":
-            cmd['folder'] = invasion.path_roster()
-        else:
-            raise ValueError(f'invasion_screenshots: Unknown process {process}')
-
-        logger.info(f'starting process with: {cmd}')
+        logger.info(f'starting post table step function for {title}')
 
         try:
             state_machine.start_execution(
@@ -76,7 +65,7 @@ class IrusProcess:
             )
 
         except ClientError as e:
-            logger.warning(f'Failed to call process step function: {e}')
-            return f'Failed to call process step function: {e}'
+            logger.warning(f'Failed to call post table step function: {e}')
+            return f'Failed to call post table step function: {e}'
 
-        return f'In Progress: Downloading and processing screenshot(s)'
+        return title

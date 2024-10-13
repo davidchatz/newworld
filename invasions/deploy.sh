@@ -5,7 +5,7 @@ tmp=/tmp/$$
 cmd=`basename $0`
 pids=""
 
-AWS_PROFILE=irus-202410
+AWS_PROFILE=dev-202410
 STACK_NAME=irus
 LOG_LEVEL=info
 

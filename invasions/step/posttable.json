@@ -1,0 +1,54 @@
+{
+    "Comment": "A description of my state machine",
+    "StartAt": "Interator",
+    "States": {
+      "Interator": {
+        "Type": "Map",
+        "ItemProcessor": {
+          "ProcessorConfig": {
+            "Mode": "DISTRIBUTED",
+            "ExecutionType": "STANDARD"
+          },
+          "StartAt": "PostMsg",
+          "States": {
+            "PostMsg": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::http:invoke",
+              "Parameters": {
+                "ApiEndpoint.$": "$.post",
+                "Method": "POST",
+                "RequestBody": {
+                  "content.$": "$"
+                },
+                "Headers": {
+                  "Content-Type": "application/json"
+                },
+                "Authentication": {
+                  "ConnectionArn": "arn:aws:events:ap-southeast-1:039612866252:connection/DiscordConnection-jEveDtVfGcz8/5f5d9126-501e-4da1-9159-020f8f6c04b2"
+                }
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "States.ALL"
+                  ],
+                  "BackoffRate": 2,
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "JitterStrategy": "FULL"
+                }
+              ],
+              "End": true
+            }
+          }
+        },
+        "End": true,
+        "MaxConcurrency": 1,
+        "Label": "Interator",
+        "ItemBatcher": {
+          "MaxItemsPerBatch": 3
+        },
+        "ItemsPath": "$.table"
+      }
+    }
+  }

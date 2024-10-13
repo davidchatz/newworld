@@ -6,7 +6,7 @@ import shlex
 import pprint
 import argparse
 
-DEFAULT_PROFILE='irus-202410'
+DEFAULT_PROFILE='dev-202410'
 DEFAULT_PREFIX='irustest'
 #DEFAULT_PREFIX='chatzinvasionstats'
 

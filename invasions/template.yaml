@@ -311,6 +311,52 @@ Resources:
       LogGroupName: !Join [ "/", [ "stepfunctions", !Ref AWS::StackName, "processStateMachine"]]
       RetentionInDays: 30
 
+  PostTableStepFunction:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionSubstitutions:
+        DiscordConnection: !GetAtt DiscordConnection.Arn
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action:
+              - "cloudwatch:*"
+              - "logs:*"
+            Resource: "*"
+        # https://docs.aws.amazon.com/step-functions/latest/dg/connect-third-party-apis.html#connect-http-task-permissions
+        - Statement:
+          - Effect: Allow
+            Action:
+              - states:InvokeHTTPEndpoint
+            Resource: "*"
+            Condition:
+              "StringEquals":
+                "states:HTTPMethod": "POST"
+              "StringLike":
+                    "states:HTTPEndpoint": !Sub "${DiscordWebHookURL}/*"
+          - Effect: Allow
+            Action:
+              - events:RetrieveConnectionCredentials
+            Resource: !GetAtt DiscordConnection.Arn
+          - Effect: Allow
+            Action:
+              - secretsmanager:GetSecretValue
+              - secretsmanager:DescribeSecret
+            Resource: !Sub "arn:${AWS::Partition}:secretsmanager:*:*:secret:events!connection/*"
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt PostTableStateMachineLogGroup.Arn
+      DefinitionUri: step/posttable.json
+
+  PostTableStateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Join [ "/", [ "stepfunctions", !Ref AWS::StackName, "postTableStateMachine"]]
+      RetentionInDays: 30
+
   DeadHandStepFunction:
     Type: AWS::Serverless::StateMachine
     Properties:
@@ -461,6 +507,9 @@ Outputs:
 
   ProcessStepFunctionArn:
     Value: !Ref ProcessStepFunction
+
+  PostTableStepFunctionArn:
+    Value: !Ref PostTableStepFunction  
 
   InteractionsEndpointUrl:
     Value: !Sub https://${Api}.execute-api.${AWS::Region}.amazonaws.com/prod/discord

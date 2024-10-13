@@ -8,4 +8,5 @@ from .ladder import IrusLadder
 from .process import IrusFiles, IrusProcess
 from .report import IrusReport
 from .month import IrusMonth
+from .posttable import IrusPostTable
 from .utilities import update_invasions_for_new_member

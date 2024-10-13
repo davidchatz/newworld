@@ -13,7 +13,8 @@ class IrusResources:
     _table_name : str = None
     _table = None
     _state_machine = None
-    _step_function_arn : str = None
+    _process_step_function_arn : str = None
+    _post_step_function_arn : str = None
     _textract = None
     _webhook_url : str = None
 
@@ -77,13 +78,21 @@ class IrusResources:
         return cls._state_machine
     
     @classmethod
-    def step_function_arn(cls) -> str:
-        if cls._step_function_arn == None:
-            cls._step_function_arn = os.environ.get('PROCESS_STEP_FUNC')
-            if cls._step_function_arn == None:
+    def process_step_function_arn(cls) -> str:
+        if cls._process_step_function_arn == None:
+            cls._process_step_function_arn = os.environ.get('PROCESS_STEP_FUNC')
+            if cls._process_step_function_arn == None:
                 raise ValueError('PROCESS_STEP_FUNC environment variable is not set')
-        return cls._step_function_arn
-    
+        return cls._process_step_function_arn
+
+    @classmethod
+    def post_step_function_arn(cls) -> str:
+        if cls._post_step_function_arn == None:
+            cls._post_step_function_arn = os.environ.get('POST_STEP_FUNC')
+            if cls._post_step_function_arn == None:
+                raise ValueError('POST_STEP_FUNC environment variable is not set')
+        return cls._post_step_function_arn
+
     @classmethod
     def textract(cls):
         if cls._textract == None:
