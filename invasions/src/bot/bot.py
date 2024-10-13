@@ -475,7 +475,7 @@ def report_member_cmd(options:list) -> str:
         try:
             report = IrusMonth.from_table(month, year)
         except:
-            mesg = f'*No monthly stats found for {month}/{year}*'
+            mesg = f'*No monthly stats for {player} during {month}/{year}*'
 
         if report:
             mesg += report.member_stats(player)
