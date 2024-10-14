@@ -118,19 +118,23 @@ class IrusMonth:
         date = f'{year}{zero_month}'
 
         response = table.query(
-            KeyConditionExpression=Key('invasion').eq(f'#month#{month}'),
+            KeyConditionExpression=Key('invasion').eq(f'#month#{date}'),
             Select='ALL_ATTRIBUTES'
         )
 
-        if response.Count == 0:
+        if response["Count"] == 0:
             logger.info(f'Note no data found for month {date}')
             raise ValueError(f'Note no data found for month {date}')
         
+        invCount = table.query(
+            KeyConditionExpression=Key('invasion').eq('#invasion') & Key('id').begins_with(date),
+            Select='COUNT'
+        )
+
         report = response['Items']
+        logger.info(f'Retrieved report for {date} based on {invCount["Count"]} invasions: {report}')
 
-        logger.debug(f'Retrieved report for {date}: {report}')
-
-        return cls(date, report)
+        return cls(month=date, invasions=invCount["Count"], report=report)
 
 
     def str(self) -> str:
@@ -169,22 +173,23 @@ class IrusMonth:
         
     def member(self, player: str) -> dict:
         for r in self.report:
+            logger.debug(f'IrusMonth.member: Checking {r["id"]} against {player}')
             if r["id"] == player:
                 return r
         return None
     
     def member_stats(self, player: str) -> str:
         item = self.member(player)
-        mesg = f'## Stats for {self.month}\n'
         if item:
+            mesg = f'## Stats for {self.month}\n'
             mesg += 'Invasions (Wins): {invasions} ({wins})\n'.format_map(item)
-            mesg += 'Sum / Max / Average\n'
-            mesg += '- Score: {sum_score} / {max_score} / {avg_score}\n'.format_map(item)
-            mesg += '- Kills: {sum_kills} / {max_kills} / {avg_kills}\n'.format_map(item)
-            mesg += '- Assists: {sum_assists} / {max_assists} / {avg_assists}\n'.format_map(item)
-            mesg += '- Deaths: {sum_deaths} / {max_deaths} / {avg_deaths}\n'.format_map(item)
-            mesg += '- Heals: {sum_heals} / {max_heals} / {avg_heals}\n'.format_map(item)
-            mesg += '- Damage: {sum_damage} / {max_damage} / {avg_damage}\n'.format_map(item)
+            mesg += f'`                Sum /        Max /    Average`\n'
+            mesg += '`Score:   {sum_score:>10} / {max_score:>10} / {avg_score:>10}`\n'.format_map(item)
+            mesg += '`Kills:   {sum_kills:>10} / {max_kills:>10} / {avg_kills:>10}`\n'.format_map(item)
+            mesg += '`Assists: {sum_assists:>10} / {max_assists:>10} / {avg_assists:>10}`\n'.format_map(item)
+            mesg += '`Deaths:  {sum_deaths:>10} / {max_deaths:>10} / {avg_deaths:>10}`\n'.format_map(item)
+            mesg += '`Heals:   {sum_heals:>10} / {max_heals:>10} / {avg_heals:>10}`\n'.format_map(item)
+            mesg += '`Damage:  {sum_damage:>10} / {max_damage:>10} / {avg_damage:>10}`\n'.format_map(item)
         else:
             mesg = f'*No stats found for {player} in {self.month}*\n'
 
