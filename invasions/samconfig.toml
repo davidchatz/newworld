@@ -4,7 +4,7 @@ version = 0.1
 [default.global]
 [default.global.parameters]
 stack_name = "irus"
-profile = "dev-202410"
+profile = "irus-202410"
 
 [default.build.parameters]
 cached = true

@@ -6,8 +6,8 @@ import shlex
 import pprint
 import argparse
 
-DEFAULT_PROFILE='dev-202410'
-DEFAULT_PREFIX='irustest'
+DEFAULT_PROFILE='irus-202410'
+DEFAULT_PREFIX='irus'
 #DEFAULT_PREFIX='chatzinvasionstats'
 
 def dump_response(resp, verbose:bool):
