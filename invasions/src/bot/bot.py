@@ -16,10 +16,58 @@ discord_cmd = os.environ['DISCORD_CMD']
 #
 
 help_text = {}
-help_text['help'] = f'''
+help_text['admin'] = f'''
 # Invasions R Us Stats
 
 Bot for capturing, tracking and reporting invasion stats for the Invasions R Us company.
+
+## Examples
+
+Add a new member *Chatz01* with faction *Purple* to the company:
+
+`/{discord_cmd} member add player:Chatz01 faction:Purple`
+
+Upload the results of an invasion in Everfall that we won and a singe image screen shot (or use *ladders* if there are multiple screen shots):
+
+`/{discord_cmd} ladder settlement:ef win:true file:screen.png`
+
+See the summary and scanned ladder for an invasion *20241014-ef*:
+
+`/{discord_cmd} display invasion invasion:20241014-ef`
+
+Fix the name for player *Chatz01* at rank *41* in invasion *20241014-ef* that failed to scan correctly:
+
+`/{discord_cmd} invasion edit invasion:20241014-ef rank:41 player:Chatz01`
+
+Download the monthly stats for this month as a CSV:
+
+`/{discord_cmd} report month`
+
+## Top Level Commands
+
+Required arguments are in *italics*, optional have square *[brackets]*. Commands default to today if no other dates are provided.
+
+Register an invasion, upload one or more ladder screen shots and generate reports:
+**/{discord_cmd} ladder *settlement win file1 [files] [date] [notes]***
+
+Register an invasion, upload seven ladder screen shots and generate reports after a near full/full invasion. This command should be used when seven individual screen shots were used to capture the ladder. The command requires the settlement name, was it a win:
+**/{discord_cmd} ladders *settlement win file1 ... file7 [date] [notes]***
+
+Register an invasion where only the war board roster was captured:
+**/{discord_cmd} roster *settlement win file1 [date] [notes]***
+
+Get help for other commands including **invasion**, **member**, **report** and **display**:
+**/{discord_cmd} *command* help**
+
+If you see errors like *didn't respond in time*, please contact **Chatz** on discord.
+'''
+
+help_text['invasion'] = f'''
+# Invasions R Us Stats - Invasion Commands
+
+Bot commands for creating, updating and listing invasions. Typically you would use the /{discord_cmd} ladder or /{discord_cmd} ladders commands, but sometimes you may need to add another screenshot.
+
+Invasions are identified using the date and settlement abrieviation (*YYYYMMDD-SS*). For example `20240918-ef` is an invasion in Everfall on 18 September 2024.
 
 Settlements are specified using an abrieviation:
 - Brightwood: bw
@@ -35,65 +83,26 @@ Settlements are specified using an abrieviation:
 - Weavers Fen: wf
 - Windsward: ww
 
-### /{discord_cmd} ladder *settlement win file1 [files] [date] [notes]*
+Register a new invasion for *settlement*, without uploading any screenshots. This will default to today's date if another date is not specified:
+**/{discord_cmd} invasion add *settlement win [date] [notes]***
 
-Register an invasion, upload one or more ladder screen shots and generate reports. This commands should be used when the entire ladder is captured as a single image, or when there are less than seven screen shots (ie when the invasion was not full). The command requires the settlement name, was it a win, and will default to today's date if no other date is specified.
+List all invasions for the current or specified month and year:
+**/{discord_cmd} invasion list *[month] [year]***
 
-### /{discord_cmd} ladders *settlement win file1 ... file7 [date] [notes]*
+For the specified invasion, upload and process single ladder file:
+**/{discord_cmd} invasion ladder *invasion file***
 
-Register an invasion, upload seven ladder screen shots and generate reports after a near full/full invasion. This command should be used when seven individual screen shots were used to capture the ladder. The command requires the settlement name, was it a win, and will default to today's date if no other date is specified.
+For the specified invasion, upload and process single war roster file:
+**/{discord_cmd} invasion board *invasion file***
 
-### /{discord_cmd} roster *settlement win file1 [date] [notes]*
+For the specified invasion, upload and process seven screen shots of the ladder:
+**/{discord_cmd} invasion screenshots *invasion file1 ... file7***
 
-Register an invasion where only the war board roster was captured. If only a war board roster screen was captured, use this command to register the invasion. The command requires the settlement name, was it a win, and will default to today's date if no other date is specified.
+Display the ladder entry for *rank*:
+**/{discord_cmd} invasion rank *invasion rank***
 
-### /{discord_cmd} invasion help
-
-Get help for commands showing stats on an invasion
-
-### /{discord_cmd} member help
-
-Get help for command to add, edit, remove and list company members.
-
-### /{discord_cmd} report help
-
-Get help for command to generate reports for the current or previous months.
-'''
-
-help_text['invasion'] = f'''
-# Invasions R Us Stats - Invasion Commands
-
-Bot commands for creating, updating and listing invasions. Typically you would use the /{discord_cmd} ladder or /{discord_cmd} ladders commands, but sometimes you may need to add another screenshot.
-
-Invasions are identified using the date and settlement abrieviation (*YYYYMMDD-SS*). For example `20240918-ef` is an invasion in Everfall on 18 September 2024.
-
-### /{discord_cmd} invasion add *settlement win [date] [notes]*
-
-Register a new invasion for *settlement*, without uploading any screenshots. This will default to today's date if another date is not specified.
-
-### /{discord_cmd} invasion list *[month] [year]*
-
-List all invasions for the current or specified month and year.
-
-### /{discord_cmd} invasion ladder *invasion file*
-
-For the specified invasion, upload and process single ladder file. 
-
-### /{discord_cmd} invasion board *invasion file*
-
-For the specified invasion, upload and process single war roster file.
-
-### /{discord_cmd} invasion screenshots *invasion file1 ... file7*
-
-For the specified invasion, upload and process seven screen shots of the ladder.
-
-### /{discord_cmd} invasion rank *invasion rank*
-
-Display the ladder entry for *rank*
-
-### /{discord_cmd} invasion edit *invasion rank [new_rank] [member] [player] [score]*
-
-Edit a row in a ladder, adjusting one or more of the rank, member flag, player name or score. This may be needed if the scan failed to correctly identify some characters in the image. If changing the rank, this command will overwrite the existing entry at that position.
+Edit a row in a ladder, adjusting one or more of the rank, member flag, player name or score. This may be needed if the scan failed to correctly identify some characters in the image. If changing the rank, this command will overwrite the existing entry at that position:
+**/{discord_cmd} invasion edit *invasion rank [new_rank] [member] [player] [score]***
 '''
 
 
@@ -102,39 +111,63 @@ help_text['member'] = f'''
 
 Bot commands for registering company members to determine which player stats to track.
 
-### /{discord_cmd} member add *name faction [discord-name] [date] [admin] [notes]*
+Add a new member to the company specify their New World character name and faction, starting from today (unless another date is specified). The *discord-name* and *admin* flag are ignored at this time:
+**/{discord_cmd} member add *name faction [discord-name] [date] [admin] [notes]***
 
-Add a new member to the company specify their New World character name and faction, starting from today (unless another date is specified). The *discord-name* and *admin* flag are ignored at this time.
+List all registered company members at this time:
+**/{discord_cmd} member list**
 
-### /{discord_cmd} member list
-
-List all registered company members at this time.
-
-### /{discord_cmd} member remove *player*
-
-Remove *player* as a company member from this date.
+Remove *player* as a company member from this date:
+**/{discord_cmd} member remove *player***
 '''
 
 help_text['report'] = f'''
 # Invasions R Us Stats - Report Commands
 
-Generate reports as CSV files and display summary in discord.
+Generate reports as CSV files and display summary in discord. The links to the files are valid for up to an hour, after that you will need to rerun the command to generate a new link.
 
-### /{discord_cmd} report invasion *invasion*
+Invasions are identified using the date and settlement abrieviation (*YYYYMMDD-SS*). For example `20240918-ef` is an invasion in Everfall on 18 September 2024.
 
-Generate the report for a specific invasion. Invasions are identified using the date and settlement abrieviation (*YYYYMMDD-SS*). For example `20240918-ef` is an invasion in Everfall on 18 September 2024.
+Generate the report for a specific invasion.:
+**/{discord_cmd} report invasion *invasion***
 
-### /{discord_cmd} report month *[month] [year]*
+Generate the invasion statistics report for the current (default) or specified month and year:
+**/{discord_cmd} report month *[month] [year]***
 
-Generate the invasion statistics report for the current (default) or specified month and year.
+Generate a summary report for a specific player for the current (default) or specified month and year:
+**/{discord_cmd} report member *player [month] [year]***
 
-### /{discord_cmd} report member *player [month] [year]*
+Generate a summary report for all current members for the current (default) or specified month and year:
+**/{discord_cmd} report members *[month] [year]***
+'''
 
-Generate a summary report for a specific player for the current (default) or specified month and year.
+help_text['display'] = f'''
+# Invasions R Us Stats - Report Commands
 
-### /{discord_cmd} report members *[month] [year]*
+Display stats in discord by sending multiple responses to a request. Discord limits the responses to 2000 characters, so multiple responses are used to get around this limitation.
 
-Generate a summary report for all current members for the current (default) or specified month and year.
+Invasions are identified using the date and settlement abrieviation (*YYYYMMDD-SS*). For example `20240918-ef` is an invasion in Everfall on 18 September 2024.
+
+Display the report for a specific invasion:
+**/{discord_cmd} display invasion *invasion***
+
+Display the invasion statistics report for the current (default) or specified month and year:
+**/{discord_cmd} report month *[month] [year]***
+
+Display the summary report for all current members for the current (default) or specified month and year:
+**/{discord_cmd} report members *[month] [year]***
+'''
+
+help_text['user'] = f'''
+# Invasions R Us Stats
+
+As a company member you can display and access reports from company invasions.
+
+List all the commands for downloading a report as a CSV file:
+**/{discord_cmd} report help**
+
+List all the commands for displaying statistics:
+**/{discord_cmd} display help**
 '''
 
 
@@ -562,16 +595,18 @@ def display_cmd(id: str, token: str, options:dict, resolved: dict) -> str:
     if name == 'help':
         return help_text['display']
     elif name == 'month':
-        return display_month_cmd(id, token, options['options'])
+        display_month_cmd(id, token, options['options'])
     elif name == 'invasion':
-        return display_invasion_cmd(id, token, options['options'])
+        display_invasion_cmd(id, token, options['options'])
     elif name == 'member':
-        return display_member_cmd(id, token, options['options'])
+        display_member_cmd(id, token, options['options'])
     elif name == 'members':
-        return display_members_cmd(id, token)
+        display_members_cmd(id, token)
     else:
         logger.error(f'Invalid command {name}')
         return f'Invalid command {name}'
+    
+    return 'In Progress:'
 
 #
 # Command switch and package results as required by Discord
@@ -607,7 +642,7 @@ def lambda_handler(event: dict, context: LambdaContext):
 
             if admin:
                 if subcommand["name"] == "help":
-                    content = help_text["help"]
+                    content = help_text["admin"]
                 elif subcommand["name"] == "invasion":
                     content = invasion_cmd(app_id, body['token'], subcommand["options"][0], resolved)
                 elif subcommand["name"] == "ladders" or subcommand["name"] == "ladder":
@@ -621,15 +656,14 @@ def lambda_handler(event: dict, context: LambdaContext):
                 elif subcommand["name"] == "report":
                     content = report_cmd(subcommand["options"][0], resolved)
                 elif subcommand["name"] == "display":
-                    display_cmd(app_id, body['token'], subcommand["options"][0], resolved)
-                    content = f'In Progress:'
+                    content = display_cmd(app_id, body['token'], subcommand["options"][0], resolved)
                 elif subcommand["name"] == "member":
                     content = member_cmd(subcommand["options"][0], resolved)
                 else:
                     content = f'Unexpected subcommand {subcommand["name"]}'            
             else:
                 if subcommand["name"] == "help":
-                    content = help_text["report"]
+                    content = help_text["user"]
                 elif subcommand["name"] == "report":
                     content = report_cmd(subcommand["options"][0], resolved)
                 elif subcommand["name"] == "display":
@@ -651,7 +685,7 @@ def lambda_handler(event: dict, context: LambdaContext):
         content = f"Unexpected exception: {e}"
 
     finally:
-        logger.debug(f"content: {content}")
+        logger.debug(f"content (length {len(content)} chars): {content}")
     
         if data is None:
             data = {
