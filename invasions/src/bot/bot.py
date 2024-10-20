@@ -685,7 +685,8 @@ def lambda_handler(event: dict, context: LambdaContext):
         content = f"Unexpected exception: {e}"
 
     finally:
-        logger.debug(f"content (length {len(content)} chars): {content}")
+        if content is not None:
+            logger.debug(f"content (length {len(content)} chars): {content}")
     
         if data is None:
             data = {
