@@ -84,14 +84,17 @@ class IrusLadderRank:
     
     @classmethod
     def from_invasion_for_member(cls, invasion: IrusInvasion, member: IrusMember):
-        logger.info(f'LadderRank.from_invasion_for_member: {invasion} {member.str()}')
+        logger.info(f'LadderRank.from_invasion_for_member: {invasion} {member.player}')
+        # ladders = table.query(KeyConditionExpression=Key('invasion').eq(f'#ladder#{invasion.name}'),
+        #                         ProjectionExpression='id, #n, #r',
+        #                         FilterExpression=Attr('player').eq(member.player),
+        #                         ExpressionAttributeNames={'#n': 'name', '#r': 'rank'})
+
         ladders = table.query(KeyConditionExpression=Key('invasion').eq(f'#ladder#{invasion.name}'),
-                                ProjectionExpression='id, #n, #r',
-                                FilterExpression=Attr('player').eq(member.player),
-                                ExpressionAttributeNames={'#n': 'name', '#r': 'rank'})
-        
+                                FilterExpression=Attr('player').eq(member.player))
+
         logger.debug(f'ladders: {ladders}')
-        if ladders.get('Items', None) or len(ladders['Items']) == 0:
+        if ladders.get('Items', None) is None or len(ladders['Items']) == 0:
             logger.debug(f'Player {member.player} not found in invasion {invasion.name}')
             raise ValueError(f'Player {member.player} not found in invasion {invasion.name}')
         

@@ -11,7 +11,7 @@ logger = IrusResources.logger()
 
 
 def update_invasions_for_new_member(member: IrusMember) -> str:
-    logger.info(f'Ladder.update_invasions: {member}')
+    logger.info(f'Ladder.update_invasions_for_new_member: {member.str()}')
     invasionlist = IrusInvasionList.from_start(member.start)
     logger.debug(f'Invasions on or after {invasionlist.start}: {invasionlist.str()}')
 
