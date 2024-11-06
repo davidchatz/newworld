@@ -156,6 +156,9 @@ Display the invasion statistics report for the current (default) or specified mo
 
 Display the summary report for all current members for the current (default) or specified month and year:
 **/{discord_cmd} report members *[month] [year]***
+
+Display a summary of a specific player for the current (default) or specified month and year:
+**/{discord_cmd} display member *player [month] [year]***
 '''
 
 help_text['user'] = f'''
@@ -579,10 +582,38 @@ def display_invasion_cmd(id: str, token: str, options:list) -> str:
 
 
 def display_member_cmd(id: str, token: str, options:list) -> str:
-    return "Not implemented yet"
+    return report_member_cmd(options)
+    # player = None
+    # now = datetime.now()
+    # month = now.month
+    # year = now.year
+    # msg = []
+
+    # for o in options:
+    #     if o["name"] == "month":
+    #         month = o["value"]
+    #     elif o["name"] == "year":
+    #         year = o["value"]
+    #     elif o["name"] == "player":
+    #         player = o["value"]
+
+    # if not player:
+    #     return 'Missing player name from request'
+
+    # try:
+    #     member = IrusMember.from_table(player)
+    # except:
+    #     logger.debug(f'Player {player} not found')
+    #     return f'Player {player} not found'
+
+    # msg = member.post()
+
+    # stats = IrusMonth.from_invasion_stats(month = month, year = year)
+
+    # return post_table.start(id, token, msg, f'# Player {player}')
+
 
 def display_members_cmd(id: str, token: str) -> str:
-    now = datetime.now().strftime("%Y%m%d%H%M%S")
     members = IrusMemberList()
     logger.debug(f'report_members_cmd: {members}')
     return post_table.start(id, token, members.post(), '# Company Members')
@@ -595,18 +626,21 @@ def display_cmd(id: str, token: str, options:dict, resolved: dict) -> str:
     if name == 'help':
         return help_text['display']
     elif name == 'month':
-        display_month_cmd(id, token, options['options'])
+        msg = display_month_cmd(id, token, options['options'])
     elif name == 'invasion':
-        display_invasion_cmd(id, token, options['options'])
+        msg = display_invasion_cmd(id, token, options['options'])
     elif name == 'member':
-        display_member_cmd(id, token, options['options'])
+        msg = display_member_cmd(id, token, options['options'])
     elif name == 'members':
-        display_members_cmd(id, token)
+        msg = display_members_cmd(id, token)
     else:
         logger.error(f'Invalid command {name}')
         return f'Invalid command {name}'
     
-    return 'In Progress:'
+    if len(msg) > 0:
+        return msg
+    else:
+        return 'In Progress:'
 
 #
 # Command switch and package results as required by Discord
@@ -640,36 +674,39 @@ def lambda_handler(event: dict, context: LambdaContext):
             admin = role_id in roles
             logger.debug(f'admin: {admin} roles: {roles}')
 
+            name = subcommand["name"]
             if admin:
-                if subcommand["name"] == "help":
+                if name == "help":
                     content = help_text["admin"]
-                elif subcommand["name"] == "invasion":
+                elif name == "invasion":
                     content = invasion_cmd(app_id, body['token'], subcommand["options"][0], resolved)
-                elif subcommand["name"] == "ladders" or subcommand["name"] == "ladder":
+                elif name == "ladders" or name == "ladder":
                     invasion = invasion_add_cmd(subcommand["options"])
                     invasion_process(app_id, body['token'], invasion, subcommand["options"], resolved, 'Ladder')
                     content = f'In Progress: Registered invasion {invasion.name}, next download file(s)'
-                elif subcommand["name"] == "roster":
+                elif name == "roster":
                     invasion = invasion_add_cmd(subcommand["options"])
                     invasion_process(app_id, body['token'], invasion, subcommand["options"], resolved, 'Roster')
                     content = f'In Progress: Registered invasion {invasion.name}, next download file(s)'
-                elif subcommand["name"] == "report":
+                elif name == "report":
                     content = report_cmd(subcommand["options"][0], resolved)
-                elif subcommand["name"] == "display":
+                elif name == "display":
                     content = display_cmd(app_id, body['token'], subcommand["options"][0], resolved)
-                elif subcommand["name"] == "member":
+                elif name == "member":
                     content = member_cmd(subcommand["options"][0], resolved)
                 else:
-                    content = f'Unexpected subcommand {subcommand["name"]}'            
+                    content = f'Unexpected command /{discord_cmd} {name}. To see list of commands availale to you, run: /{discord_cmd} help'            
             else:
-                if subcommand["name"] == "help":
+                if name == "help":
                     content = help_text["user"]
-                elif subcommand["name"] == "report":
+                elif name == "report":
                     content = report_cmd(subcommand["options"][0], resolved)
-                elif subcommand["name"] == "display":
+                elif name == "display":
                     content = display_cmd(app_id, body['token'], subcommand["options"][0], resolved)
+                elif name == "member" or name == "roster" or name == "invasion" or name == "ladder" or name == "ladders":
+                    content = f'You do not have permissions to run command /{discord_cmd} {name}. To see list of commands availale to you, run: /{discord_cmd} help'
                 else:
-                    content = f'Unexpected subcommand {subcommand["name"]}'
+                    content = f'Unexpected command /{discord_cmd} {name}'
 
         else:
             content = f'Unexpected interaction type {body["type"]}'

@@ -115,3 +115,12 @@ class IrusMember:
         logger.info(mesg)
         return mesg
 
+    def post(self) -> list:
+        msg = []
+        msg.append(f'Faction: {self.faction}')
+        msg.append(f'Starting: {self.start}')
+        msg.append(f'Admin: {self.admin}')
+        msg.append(f'Earns salary: {self.salary}')
+        if len(self.notes) > 0:
+            msg.append(f'Notes: {self.notes}')
+        return msg

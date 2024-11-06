@@ -52,4 +52,4 @@ class IrusPostTable:
             logger.warning(f'Failed to call post table step function: {e}')
             return f'Failed to call post table step function: {e}'
 
-        return title
+        return ''
