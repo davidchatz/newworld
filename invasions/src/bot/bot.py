@@ -231,7 +231,7 @@ def invasion_add_cmd(options:list) -> IrusInvasion:
         elif o["name"] == "settlement":
             settlement = o["value"]
         elif o["name"] == "win":
-            win = bool(["value"])
+            win = bool(o["value"])
         elif o["name"] == "notes":
             notes = o["value"]
 
