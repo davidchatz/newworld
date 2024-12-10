@@ -116,9 +116,6 @@ Add a new member to the company specify their New World character name and facti
 
 List all registered company members at this time:
 **/{discord_cmd} member list**
-
-Remove *player* as a company member from this date:
-**/{discord_cmd} member remove *player***
 '''
 
 help_text['report'] = f'''
@@ -589,7 +586,7 @@ def display_invasion_cmd(id: str, token: str, options:list) -> str:
     return post_table.start(id, token, ladder.post(), '# Invasion Stats')
 
 
-def display_member_cmd(id: str, token: str, options:list) -> str:
+def display_player_cmd(id: str, token: str, options:list) -> str:
     return report_member_cmd(options)
     # player = None
     # now = datetime.now()
@@ -642,8 +639,8 @@ def display_cmd(id: str, token: str, options:dict, resolved: dict) -> str:
         msg = display_month_cmd(id, token, options['options'])
     elif name == 'invasion':
         msg = display_invasion_cmd(id, token, options['options'])
-    elif name == 'member':
-        msg = display_member_cmd(id, token, options['options'])
+    elif name == 'player':
+        msg = display_player_cmd(id, token, options['options'])
     elif name == 'members':
         msg = display_members_cmd(id, token, options['options'])
     else:

@@ -667,7 +667,7 @@
                   value: "purple"
                 - name: "Yellow"
                   value: "yellow"
-        - name: member
+        - name: player
           description: Stats for a company member from latest monthly report
           type: 1
           options:
