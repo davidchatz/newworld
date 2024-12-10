@@ -367,8 +367,16 @@ def invasion_process(id: str, token: str, invasion: IrusInvasion, options:list, 
 # Member Commands
 #
 
-def member_list_cmd() -> str:
-    return IrusMemberList().markdown()
+def member_list_cmd(options:list) -> str:
+
+    return "**Deprecated**: Please use *display members* command.\n"
+
+    # faction = None
+    # for o in options:
+    #     if o["name"] == "faction":
+    #         faction = o["value"]
+
+    # return IrusMemberList().markdown(faction = faction)
 
 
 def member_add_cmd(options:list) -> str:
@@ -439,7 +447,7 @@ def member_cmd(options:dict, resolved: dict) -> str:
     if name == 'help':
         return help_text['member']
     elif name == 'list':
-        return member_list_cmd()
+        return member_list_cmd(options['options'])
     elif name == 'add':
         return member_add_cmd(options['options'])
     elif name == 'remove':
@@ -613,10 +621,15 @@ def display_member_cmd(id: str, token: str, options:list) -> str:
     # return post_table.start(id, token, msg, f'# Player {player}')
 
 
-def display_members_cmd(id: str, token: str) -> str:
+def display_members_cmd(id: str, token: str, options:dict) -> str:
+    faction = None
+    for o in options:
+        if o["name"] == "faction":
+            faction = o["value"]
+
     members = IrusMemberList()
     logger.debug(f'report_members_cmd: {members}')
-    return post_table.start(id, token, members.post(), '# Company Members')
+    return post_table.start(id, token, members.post(faction = faction), '# Company Members')
 
 
 def display_cmd(id: str, token: str, options:dict, resolved: dict) -> str:
@@ -632,7 +645,7 @@ def display_cmd(id: str, token: str, options:dict, resolved: dict) -> str:
     elif name == 'member':
         msg = display_member_cmd(id, token, options['options'])
     elif name == 'members':
-        msg = display_members_cmd(id, token)
+        msg = display_members_cmd(id, token, options['options'])
     else:
         logger.error(f'Invalid command {name}')
         return f'Invalid command {name}'

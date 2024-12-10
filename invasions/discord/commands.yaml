@@ -14,6 +14,18 @@
         - name: list
           description: List current members
           type: 1
+          options:
+            - name: faction
+              description: Faction to list members of
+              type: 3
+              required: false
+              choices:
+                - name: "Green"
+                  value: "green"
+                - name: "Purple"
+                  value: "purple"
+                - name: "Yellow"
+                  value: "yellow"
         - name: add
           description: Add a new member
           type: 1
@@ -643,6 +655,18 @@
         - name: members
           description: Generate and fetch report of all company members
           type: 1
+          options:
+            - name: faction
+              description: Faction to list members of
+              type: 3
+              required: false
+              choices:
+                - name: "Green"
+                  value: "green"
+                - name: "Purple"
+                  value: "purple"
+                - name: "Yellow"
+                  value: "yellow"
         - name: member
           description: Stats for a company member from latest monthly report
           type: 1

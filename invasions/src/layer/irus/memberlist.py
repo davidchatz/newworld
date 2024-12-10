@@ -28,24 +28,50 @@ class IrusMemberList:
     
     def csv(self) -> str:
         body = f"player,faction,start\n"
-        for m in self.members:
-            body += f'{m.player},{m.faction},{m.start}\n'
+        for f in [ "green", "purple", "yellow" ]:
+            for m in self.members:
+                if m.faction == f:
+                    body += f'{m.player},{m.faction},{m.start}\n'
         return body
 
-    def markdown(self) -> str:
-        body = f"# Member List\n"
-        body += f'Members: {len(self.members)}\n'
-        body += "*Note: This list may be truncated, run **report members** to get full list.*\n"
-        for m in self.members:
-            body += f'- {m.player} ({m.faction}) started {m.start}\n'
+    def markdown(self, faction:str = None) -> str:
+
+        if faction is None:
+            body = f"# Member List\n"
+        else:
+            body = f"# Member List for {faction}\n"
+
+        body += "*Note: This list may be truncated if too long, run **report members** if count not shown.*\n"
+        count = 0
+
+        for f in [ "green", "purple", "yellow" ]:
+            if faction is not None and f != faction:
+                continue
+            for m in self.members:
+                if m.faction != f:
+                    continue
+                body += f'- {m.player} ({m.faction}) started {m.start}\n'
+                count += 1
+        body += f'\nCount: {count}\n'
+    
         return body
     
-    def post(self) -> list:
+    def post(self, faction:str = None) -> list:
         msg = ['Player         Faction Start']
-        for m in self.members:
-            msg.append(f'{m.player:<14} {m.faction:<7} {m.start}')
+        count = 0
+        for f in [ "green", "purple", "yellow" ]:
+            if faction is not None and f != faction:
+                continue
+            for m in self.members:
+                if m.faction != f:
+                    continue
+                msg.append(f'{m.player:<14} {m.faction:<7} {m.start}')
+                count += 1
         msg.append(' ')
-        msg.append(f'{len(self.members)} members in clan.')
+        if faction is None:
+            msg.append(f'{count} members in clan.')
+        else:
+            msg.append(f'{count} members in clan for faction {faction}.')
         return msg
 
     def count(self) -> int:

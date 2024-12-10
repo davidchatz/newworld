@@ -23,11 +23,13 @@ class IrusMonth:
         self.month = month
         self.invasions = invasions
         self.participation = 0
+        self.active = 0
         for r in report:
             logger.debug(f'IrusMonth.__init__: {r["id"]} {r["wins"]} {r["salary"]} {self.participation}')
             if r["salary"] == True:
                 self.participation += r["wins"]
-
+            if r["invasions"] > 0:
+                self.active += 1
 
     def invasion_key(self) -> str:
         return f'#month#{self.month}'
@@ -53,7 +55,8 @@ class IrusMonth:
             report.append({'invasion': f'#month#{date}', 'id': member.player, 'salary': member.salary, 'invasions': Decimal(0), 'ladders': Decimal(0), 'wins': Decimal(0),
                             'sum_score': 0, 'sum_kills': 0, 'sum_assists': 0, 'sum_deaths': 0, 'sum_heals': 0, 'sum_damage': 0,
                             'avg_score': Decimal(0.0), 'avg_kills': Decimal(0.0), 'avg_assists': Decimal(0.0), 'avg_deaths': Decimal(0.0), 'avg_heals': Decimal(0.0), 'avg_damage': Decimal(0.0), 'avg_rank': Decimal(0.0),
-                            'max_score': Decimal(0.0), 'max_kills': Decimal(0.0), 'max_assists': Decimal(0.0), 'max_deaths': Decimal(0.0), 'max_heals': Decimal(0.0), 'max_damage': Decimal(0.0), 'max_rank': Decimal(100.0)
+                            'max_score': Decimal(0.0), 'max_kills': Decimal(0.0), 'max_assists': Decimal(0.0), 'max_deaths': Decimal(0.0), 'max_heals': Decimal(0.0), 'max_damage': Decimal(0.0), 'max_rank': Decimal(100.0),
+                            'list': []
                         })
 
         for i in invasions.range():
@@ -67,6 +70,7 @@ class IrusMonth:
                     r["invasions"] += 1
                     if invasion.win == True:
                         r["wins"] += 1
+                        r["list"].append(invasion.name)
                     if rank.ladder == True:
                         r["ladders"] += 1
                         r["sum_score"] += rank.score
@@ -140,23 +144,23 @@ class IrusMonth:
     def str(self) -> str:
         mesg = f'# Monthly report for {self.month}\n'
         mesg += f'- Invasions: {self.invasions}\n'
-        mesg += f'- Active Members (1 or more invasions): {len(self.report)}\n'
+        mesg += f'- Active Members (1 or more invasions): {self.active} of {len(self.report)}\n'
         mesg += f'- Participation (sum of members across invasions won): {self.participation}\n'
         return mesg
 
     def csv(self) -> str:
-        body = 'month,name,salary,invasions,ladders,wins,sum_score,sum_kills,sum_assists,sum_deaths,sum_heals,sum_damage,avg_score,avg_kills,avg_assists,avg_deaths,avg_heals,avg_damage,avg_ranks,max_score,max_kills,max_assists,max_deaths,max_heals,max_damage,max_rank\n'
+        body = 'month,name,salary,invasions,wins,sum_score,sum_kills,sum_assists,sum_deaths,sum_heals,sum_damage,avg_score,avg_kills,avg_assists,avg_deaths,avg_heals,avg_damage,avg_ranks,max_score,max_kills,max_assists,max_deaths,max_heals,max_damage,max_rank\n'
         for r in self.report:
             if r["invasions"] > 0:
-                body += f'{self.month},{r["id"]},{r["salary"]},{r["invasions"]},{r["ladders"]},{r["wins"]},{r["sum_score"]},{r["sum_kills"]},{r["sum_assists"]},{r["sum_deaths"]},{r["sum_heals"]},{r["sum_damage"]},{r["avg_score"]},{r["avg_kills"]},{r["avg_assists"]},{r["avg_deaths"]},{r["avg_heals"]},{r["avg_damage"]},{r["avg_rank"]},{r["max_score"]},{r["max_kills"]},{r["max_assists"]},{r["max_deaths"]},{r["max_heals"]},{r["max_damage"]},{r["max_rank"]}\n'
+                body += f'{self.month},{r["id"]},{r["salary"]},{r["invasions"]},{r["wins"]},{r["sum_score"]},{r["sum_kills"]},{r["sum_assists"]},{r["sum_deaths"]},{r["sum_heals"]},{r["sum_damage"]},{r["avg_score"]},{r["avg_kills"]},{r["avg_assists"]},{r["avg_deaths"]},{r["avg_heals"]},{r["avg_damage"]},{r["avg_rank"]},{r["max_score"]},{r["max_kills"]},{r["max_assists"]},{r["max_deaths"]},{r["max_heals"]},{r["max_damage"]},{r["max_rank"]}\n'
         logger.debug(f'csv: {body}')
         return body
 
     def post(self) -> list:
-        mesg = ['month player            salary invasions ladders wins sum_score sum_kills sum_assists sum_deaths sum_heals sum_damage avg_score avg_kills avg_assists avg_deaths avg_heals avg_damage avg_ranks max_score max_kills max_assists max_deaths max_heals max_damage max_rank']
+        mesg = ['month player            salary invasions wins sum_score sum_kills sum_assists sum_deaths sum_heals sum_damage avg_score avg_kills avg_assists avg_deaths avg_heals avg_damage avg_ranks max_score max_kills max_assists max_deaths max_heals max_damage max_rank']
         for r in self.report:
             if r["invasions"] > 0:
-                mesg.append(f'{self.month} {r["id"]:<16} {r["salary"]:>6} {r["invasions"]:>9} {r["ladders"]:>7} {r["wins"]:>4} {r["sum_score"]:>9} {r["sum_kills"]:>9} {r["sum_assists"]:>11} {r["sum_deaths"]:>10} {r["sum_heals"]:>9} {r["sum_damage"]:>10} {r["avg_score"]:>9} {r["avg_kills"]:>9} {r["avg_assists"]:>11} {r["avg_deaths"]:>10} {r["avg_heals"]:>9} {r["avg_damage"]:>10} {r["avg_rank"]:>9} {r["max_score"]:>9} {r["max_kills"]:>9} {r["max_assists"]:>11} {r["max_deaths"]:>10} {r["max_heals"]:>9} {r["max_damage"]:>10} {r["max_rank"]:>8}')
+                mesg.append(f'{self.month} {r["id"]:<16} {r["salary"]:>6} {r["invasions"]:>9} {r["wins"]:>4} {r["sum_score"]:>9} {r["sum_kills"]:>9} {r["sum_assists"]:>11} {r["sum_deaths"]:>10} {r["sum_heals"]:>9} {r["sum_damage"]:>10} {r["avg_score"]:>9} {r["avg_kills"]:>9} {r["avg_assists"]:>11} {r["avg_deaths"]:>10} {r["avg_heals"]:>9} {r["avg_damage"]:>10} {r["avg_rank"]:>9} {r["max_score"]:>9} {r["max_kills"]:>9} {r["max_assists"]:>11} {r["max_deaths"]:>10} {r["max_heals"]:>9} {r["max_damage"]:>10} {r["max_rank"]:>8}')
         return mesg
 
     def delete_from_table(self):
@@ -182,7 +186,10 @@ class IrusMonth:
         item = self.member(player)
         if item:
             mesg = f'## Stats for {self.month}\n'
-            mesg += 'Invasions (Wins): {invasions} ({wins})\n'.format_map(item)
+            mesg += 'Invasions Wins: {wins} of {invasions}\n'.format_map(item)
+            if 'list' in item:
+                for l in item['list']:
+                    mesg += f'- {l}\n'
             mesg += f'`                Sum /        Max /    Average`\n'
             mesg += '`Score:   {sum_score:>10} / {max_score:>10} / {avg_score:>10}`\n'.format_map(item)
             mesg += '`Kills:   {sum_kills:>10} / {max_kills:>10} / {avg_kills:>10}`\n'.format_map(item)

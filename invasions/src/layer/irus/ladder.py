@@ -348,9 +348,10 @@ class IrusLadder:
                 return r
         return None
     
+    # Return a row in the ladder for a player who was a member at the time of the invasion
     def member(self, player:str) -> IrusLadderRank:
         for r in self.ranks:
-            if r.player == player:
+            if r.player == player and r.member == True:
                 return r
         return None
 
