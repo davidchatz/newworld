@@ -152,8 +152,49 @@
             "JitterStrategy": "FULL"
           }
         ],
-        "End": true,
+        "Next": "Message 5 Defined",
         "ResultPath": "$.SendFour"
+      },      
+      "Message 5 Defined": {
+        "Type": "Choice",
+        "Choices": [
+          {
+            "Variable": "$.count",
+            "NumericGreaterThan": 4,
+            "Next": "PostMsg 5"
+          }
+        ],
+        "Default": "Done"
+      },
+      "PostMsg 5": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::http:invoke",
+        "Parameters": {
+          "ApiEndpoint.$": "$.post",
+          "Method": "POST",
+          "RequestBody": {
+            "content.$": "$.msg[4]"
+          },
+          "Headers": {
+            "Content-Type": "application/json"
+          },
+          "Authentication": {
+            "ConnectionArn": "${DiscordConnection}"
+          }
+        },
+        "Retry": [
+          {
+            "ErrorEquals": [
+              "States.ALL"
+            ],
+            "BackoffRate": 2,
+            "IntervalSeconds": 1,
+            "MaxAttempts": 3,
+            "JitterStrategy": "FULL"
+          }
+        ],
+        "End": true,
+        "ResultPath": "$.SendFive"
       },
       "Done": {
         "Type": "Succeed"

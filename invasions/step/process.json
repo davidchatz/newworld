@@ -422,7 +422,7 @@
               "ApiEndpoint.$": "$.post",
               "Method": "POST",
               "RequestBody": {
-                "content.$": "States.Format($.UpdateMonthlyStats.Payload.body.template, $.UpdateMonthlyStats.Payload.body.month, $.UpdateMonthlyStats.Payload.body.invasions, $.UpdateMonthlyStats.Payload.body.members, $.UpdateMonthlyStats.Payload.body.participation, $.UpdateMonthlyStats.Payload.body.url)"
+                "content.$": "States.Format($.UpdateMonthlyStats.Payload.body.template, $.UpdateMonthlyStats.Payload.body.month, $.UpdateMonthlyStats.Payload.body.invasions, $.UpdateMonthlyStats.Payload.body.active, $.UpdateMonthlyStats.Payload.body.members, $.UpdateMonthlyStats.Payload.body.participation, $.UpdateMonthlyStats.Payload.body.url)"
             },
               "Headers": {
                   "Content-Type": "application/json"

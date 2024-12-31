@@ -26,9 +26,10 @@ class IrusReport:
         return cls(path = 'reports/invasion/', name = f'{ladder.invasion.name}.csv', report = ladder.csv())
 
     @classmethod
-    def from_month(cls, month:IrusMonth):
+    def from_month(cls, month:IrusMonth, gold:int):
         logger.debug(f'IrusReport.from_month: {month.month}')
-        return cls(path = 'reports/month/', name = f'{month.month}.csv', report = month.csv())
+        #return cls(path = 'reports/month/', name = f'{month.month}.csv', report = month.csv())
+        return cls(path = 'reports/month/', name = f'{month.month}.csv', report = month.csv2(gold))
 
     @classmethod
     def from_members(cls, timestamp:int, report:str):

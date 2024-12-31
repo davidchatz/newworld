@@ -17,11 +17,12 @@ prec = Decimal("1.0")
 
 class IrusMonth:
 
-    def __init__(self, month: str, invasions: int, report:list):
+    def __init__(self, month: str, invasions: int, report:list, names:list):
         logger.info(f'IrusMonth.__init__: {month}')
         self.report = report
         self.month = month
         self.invasions = invasions
+        self.names = names
         self.participation = 0
         self.active = 0
         for r in report:
@@ -49,18 +50,28 @@ class IrusMonth:
             logger.info(f'Note no members found')
 
         report = []
+        initial = {'invasion': f'#month#{date}', 'id': 'initial', 'salary': Decimal(0), 'invasions': Decimal(0), 'ladders': Decimal(0), 'wins': Decimal(0),
+                            'sum_score': 0, 'sum_kills': 0, 'sum_assists': 0, 'sum_deaths': 0, 'sum_heals': 0, 'sum_damage': 0,
+                            'avg_score': Decimal(0.0), 'avg_kills': Decimal(0.0), 'avg_assists': Decimal(0.0), 'avg_deaths': Decimal(0.0), 'avg_heals': Decimal(0.0), 'avg_damage': Decimal(0.0), 'avg_rank': Decimal(0.0),
+                            'max_score': Decimal(0.0), 'max_kills': Decimal(0.0), 'max_assists': Decimal(0.0), 'max_deaths': Decimal(0.0), 'max_heals': Decimal(0.0), 'max_damage': Decimal(0.0), 'max_rank': Decimal(100.0)
+                        }
+        for i in invasions.range():
+            invasion = invasions.get(i)
+            initial[invasion.name] = '-'
+
+        logger.info(f'IrusMonth.from_invasion_stats initial: {initial}')
+
         for m in members.range():
             member = members.get(m)
             logger.debug(f'IrusMonth.from_invasion_stats: Adding {member.player} {member.salary}')
-            report.append({'invasion': f'#month#{date}', 'id': member.player, 'salary': member.salary, 'invasions': Decimal(0), 'ladders': Decimal(0), 'wins': Decimal(0),
-                            'sum_score': 0, 'sum_kills': 0, 'sum_assists': 0, 'sum_deaths': 0, 'sum_heals': 0, 'sum_damage': 0,
-                            'avg_score': Decimal(0.0), 'avg_kills': Decimal(0.0), 'avg_assists': Decimal(0.0), 'avg_deaths': Decimal(0.0), 'avg_heals': Decimal(0.0), 'avg_damage': Decimal(0.0), 'avg_rank': Decimal(0.0),
-                            'max_score': Decimal(0.0), 'max_kills': Decimal(0.0), 'max_assists': Decimal(0.0), 'max_deaths': Decimal(0.0), 'max_heals': Decimal(0.0), 'max_damage': Decimal(0.0), 'max_rank': Decimal(100.0),
-                            'list': []
-                        })
+            initial['id'] = member.player
+            initial['salary'] = member.salary
+            report.append(initial.copy())
 
+        names = []
         for i in invasions.range():
             invasion = invasions.get(i)
+            names.append(invasion.name)
             ladder = IrusLadder.from_invasion(invasion)
 
             for r in report:
@@ -70,7 +81,9 @@ class IrusMonth:
                     r["invasions"] += 1
                     if invasion.win == True:
                         r["wins"] += 1
-                        r["list"].append(invasion.name)
+                        r[invasion.name] = 'W'
+                    else:
+                        r[invasion.name] = 'L'
                     if rank.ladder == True:
                         r["ladders"] += 1
                         r["sum_score"] += rank.score
@@ -111,7 +124,7 @@ class IrusMonth:
                     count += 1
                     batch.put_item(Item=r)
 
-        return cls(date, invasions.count(), report)
+        return cls(date, invasions.count(), report, names)
     
 
     @classmethod
@@ -129,16 +142,23 @@ class IrusMonth:
         if response["Count"] == 0:
             logger.info(f'Note no data found for month {date}')
             raise ValueError(f'Note no data found for month {date}')
-        
-        invCount = table.query(
+
+        invasions = table.query(
             KeyConditionExpression=Key('invasion').eq('#invasion') & Key('id').begins_with(date),
-            Select='COUNT'
+            Select='ALL_ATTRIBUTES'
         )
 
-        report = response['Items']
-        logger.info(f'Retrieved report for {date} based on {invCount["Count"]} invasions: {report}')
+        logger.info(f'IrusMonth.from_table: {invasions}')
+        invCount = invasions["Count"]
+        names = []
+        if invCount > 0:
+            for i in invasions["Items"]:
+                names.append(i["id"])
 
-        return cls(month=date, invasions=invCount["Count"], report=report)
+        report = response['Items']
+        logger.debug(f'Retrieved report for {date} based on {invCount} invasions: {names}')
+
+        return cls(month=date, invasions=invCount, report=report, names=names)
 
 
     def str(self) -> str:
@@ -156,12 +176,71 @@ class IrusMonth:
         logger.debug(f'csv: {body}')
         return body
 
+    # improve csv output that has less stats but maps all the invasions in the month
+    def csv2(self, gold:int) -> str:
+        body = 'month,name,payment,invasions,wins,avg_score,avg_kills,avg_assists,avg_deaths,avg_heals,avg_damage,avg_ranks'
+        mapping = f'{self.month},'
+        mapping += '{id},{payment},{invasions},{wins},{avg_score},{avg_kills},{avg_assists},{avg_deaths},{avg_heals},{avg_damage},{avg_rank}'
+
+        # invasions = IrusInvasionList.from_month(month = int(self.month[4:]), year = int(self.month[:4]))
+        # for i in invasions.range():
+        #     invasion = invasions.get(i)
+        #     body += f',{invasion.name[6:]}'
+        #     mapping += ',{' + f'{invasion.name}' + '}'
+        # body += '\n'
+
+        for n in self.names:
+            body += f',{n[6:]}'
+            mapping += ',{' + f'{n}' + '}'
+        body += '\n'
+
+        logger.debug(f'csv2 body: {body}')
+        logger.debug(f'csv2 mapping: {mapping}')
+
+        for r in self.report:
+            if r["invasions"] > 0:
+                if gold > 0 and r["salary"] == True:
+                    r["payment"] = round((r["wins"] * gold) / self.participation, 0)
+                else:
+                    r["payment"] = 0
+                body += mapping.format(**r)
+                body += '\n'
+        logger.debug(f'csv: {body}')
+        return body
+
+
     def post(self) -> list:
         mesg = ['month player            salary invasions wins sum_score sum_kills sum_assists sum_deaths sum_heals sum_damage avg_score avg_kills avg_assists avg_deaths avg_heals avg_damage avg_ranks max_score max_kills max_assists max_deaths max_heals max_damage max_rank']
         for r in self.report:
             if r["invasions"] > 0:
                 mesg.append(f'{self.month} {r["id"]:<16} {r["salary"]:>6} {r["invasions"]:>9} {r["wins"]:>4} {r["sum_score"]:>9} {r["sum_kills"]:>9} {r["sum_assists"]:>11} {r["sum_deaths"]:>10} {r["sum_heals"]:>9} {r["sum_damage"]:>10} {r["avg_score"]:>9} {r["avg_kills"]:>9} {r["avg_assists"]:>11} {r["avg_deaths"]:>10} {r["avg_heals"]:>9} {r["avg_damage"]:>10} {r["avg_rank"]:>9} {r["max_score"]:>9} {r["max_kills"]:>9} {r["max_assists"]:>11} {r["max_deaths"]:>10} {r["max_heals"]:>9} {r["max_damage"]:>10} {r["max_rank"]:>8}')
         return mesg
+
+
+    def post2(self, gold:int) -> list:
+        header = 'player           payment inv wins     score kills assist deaths     heals     damage rank'
+        mapping = '{id:<16} {payment:>7} {invasions:>3} {wins:>4} {avg_score:>9} {avg_kills:>5} {avg_assists:>6} {avg_deaths:>6} {avg_heals:>9} {avg_damage:>10} {avg_rank:>4}'
+
+        # invasions = IrusInvasionList.from_month(month = int(self.month[4:]), year = int(self.month[:4]))
+        # for i in invasions.range():
+        #     invasion = invasions.get(i)
+        #     header += f' {invasion.name[6:8]}{invasion.name[9:11]}'
+        #     mapping += '   {' + f'{invasion.name}' + '} '
+
+        for n in self.names:
+            header += f' {n[6:8]}{n[9:11]}'
+            mapping += '   {' + f'{n}' + '} '
+
+        mesg = [header]
+        for r in self.report:
+            if r["invasions"] > 0:
+                if gold > 0 and r["salary"] == True:
+                    r["payment"] = round((r["wins"] * gold) / self.participation, 0)
+                else:
+                    r["payment"] = 0
+                mesg.append(mapping.format(**r))
+        return mesg
+
 
     def delete_from_table(self):
         logger.info(f'IrusMonth.delete_from_table for month {self.month}')
@@ -186,10 +265,12 @@ class IrusMonth:
         item = self.member(player)
         if item:
             mesg = f'## Stats for {self.month}\n'
-            mesg += 'Invasions Wins: {wins} of {invasions}\n'.format_map(item)
-            if 'list' in item:
-                for l in item['list']:
-                    mesg += f'- {l}\n'
+            mesg += 'Invasion Wins: {wins} of {invasions}\n'.format_map(item)
+
+            for n in self.names:
+                if n in item and item[n] == 'W':
+                    mesg += f'- {n}\n'
+
             mesg += f'`                Sum /        Max /    Average`\n'
             mesg += '`Score:   {sum_score:>10} / {max_score:>10} / {avg_score:>10}`\n'.format_map(item)
             mesg += '`Kills:   {sum_kills:>10} / {max_kills:>10} / {avg_kills:>10}`\n'.format_map(item)

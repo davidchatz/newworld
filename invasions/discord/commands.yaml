@@ -589,6 +589,11 @@
               min_value: 2024
               max_value: 2050
               required: false
+            - name: gold
+              description: Total pool of gold to disperse
+              type: 4
+              min_value: 0
+              required: false
         - name: invasion
           description: Generate and fetch report for specific invasion
           type: 1
@@ -643,6 +648,11 @@
               type: 4
               min_value: 2024
               max_value: 2050
+              required: false
+            - name: gold
+              description: Total pool of gold to disperse
+              type: 4
+              min_value: 0
               required: false
         - name: invasion
           description: Generate and fetch report for specific invasion

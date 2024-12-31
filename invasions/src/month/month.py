@@ -19,12 +19,13 @@ def lambda_handler(event:dict, context:LambdaContext):
         'template': '''
         # Report for Month {}
         Invasions: {}
-        Active Members: {}
+        Active Members: {} of {}
         Participation (sum of members across invasions): {}
         {}
         ''',
         'month': month,
         'invasions': '0',
+        'active': '0',
         'members': '0',
         'participation': '0',
         'url': 'TBD'
@@ -33,6 +34,7 @@ def lambda_handler(event:dict, context:LambdaContext):
     try:
         report = IrusMonth.from_invasion_stats(month=int(month[4:6]), year=int(month[:4]))
         body['invasions'] = report.invasions
+        body['active'] = report.active
         body['members'] = len(report.report)
         body['participation'] = report.participation
 

@@ -145,7 +145,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:eu-west-1:057560766410:applications/aws-lambda-powertools-python-layer
-        SemanticVersion: 2.0.0 # change to latest semantic version available in SAR
+        SemanticVersion: 2.43.1 # change to latest semantic version available in SAR
 
   IrusLayer:
     Type: AWS::Serverless::LayerVersion
@@ -432,7 +432,7 @@ Resources:
       Runtime: python3.11
       CodeUri: src/bot
       Description: 'Discord Invasion Bot'
-      MemorySize: 256
+      MemorySize: 1024
       Timeout: 10
       Policies: 
         - SSMParameterReadPolicy:

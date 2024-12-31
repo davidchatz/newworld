@@ -462,15 +462,18 @@ def report_month_cmd(options:list) -> str:
     now = datetime.now()
     month = now.month
     year = now.year
+    gold = 0
 
     for o in options:
         if o["name"] == "month":
             month = o["value"]
         elif o["name"] == "year":
             year = o["value"]
+        elif o["name"] == "gold":
+            gold = o["value"]
 
     stats = IrusMonth.from_invasion_stats(month = month, year = year)
-    report = IrusReport.from_month(stats)
+    report = IrusReport.from_month(month=stats, gold=gold)
     return stats.str() + report.msg
 
 
@@ -522,7 +525,7 @@ def report_member_cmd(options:list) -> str:
         if report:
             mesg += report.member_stats(player)
 
-    logger.debug(mesg)
+    logger.info(mesg)
     return mesg
 
 
@@ -561,15 +564,18 @@ def display_month_cmd(id: str, token: str, options:list) -> str:
     now = datetime.now()
     month = now.month
     year = now.year
+    gold = 0
 
     for o in options:
         if o["name"] == "month":
             month = o["value"]
         elif o["name"] == "year":
             year = o["value"]
+        elif o["name"] == "gold":
+            gold = o["value"]
 
     stats = IrusMonth.from_invasion_stats(month = month, year = year)
-    return post_table.start(id, token, stats.post(), f'# Monthly Stats for {stats.month}')
+    return post_table.start(id, token, stats.post2(gold), f'# Monthly Average Stats for {stats.month}')
 
 
 def display_invasion_cmd(id: str, token: str, options:list) -> str:
