@@ -38,7 +38,7 @@ def lambda_handler(event:dict, context:LambdaContext):
         body['members'] = len(report.report)
         body['participation'] = report.participation
 
-        export = IrusReport.from_month(report)
+        export = IrusReport.from_month(report, gold=0)
         body['url'] = export.msg
 
     except Exception as e:
