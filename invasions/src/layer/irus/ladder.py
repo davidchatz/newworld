@@ -106,7 +106,12 @@ def generate_ladder_ranks(invasion:IrusInvasion, rows:list, members:IrusMemberLi
                     'adjusted': False,
                     'error': False
                 })
-                rec.append(result)
+
+                # If score and damage is zero, assume they did not participate
+                if result.score > 0:
+                    rec.append(result)
+                else:
+                    logger.info(f'Skipping {result} as score is 0')
             else:
                 logger.info(f'Skipping {row_index} with {col_indices} items: {cols}')
 
@@ -336,10 +341,11 @@ class IrusLadder:
     def count(self) -> int:
         return len(self.ranks)
     
+    # only count members that scored in the invasion
     def members(self) -> int:
         count = 0
         for r in self.ranks:
-            count += 1 if r.member == True else 0
+            count += 1 if (r.member == True and (r.ladder == False or (r.ladder == True and r.score > 0))) else 0
         return count
     
     def rank(self, rank:int) -> IrusLadderRank:
@@ -348,10 +354,10 @@ class IrusLadder:
                 return r
         return None
     
-    # Return a row in the ladder for a player who was a member at the time of the invasion
+    # Return a row in the ladder for a player who was a member at the time of the invasion and scored
     def member(self, player:str) -> IrusLadderRank:
         for r in self.ranks:
-            if r.player == player and r.member == True:
+            if r.player == player and r.member == True and (r.ladder == False or (r.ladder == True and r.score > 0)):
                 return r
         return None
 
