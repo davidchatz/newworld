@@ -36,3 +36,15 @@ class IrusReport:
         logger.debug(f'IrusReport.from_members: {timestamp}\n{report}')
         return cls(path = 'reports/members/', name = f'{timestamp}.csv', report = report)
 
+    # @classmethod
+    # def from_year(cls, year:int, member:str):
+    #     logger.debug(f'IrusReport.from_year: {year}\n{member}')
+    #     report = ''
+    #     for m in range(1, 12):
+    #         try:
+    #             month = IrusMonth.from_table(month = m, year = year)
+    #         except ValueError as e:
+    #             logger.error(f'No results for month {m} in year {year}, skipping')
+    #         report += month.member_stats(member)
+
+    #     return cls(path = 'reports/members/', name = f'{year}.csv', report = report)

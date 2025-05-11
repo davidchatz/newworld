@@ -282,3 +282,13 @@ class IrusMonth:
             mesg = f'*No stats found for {player} in {self.month}*\n'
 
         return mesg
+    
+    def member_line_header() -> str:
+        return 'month  invasions wins avg_score avg_kills avg_assists avg_deaths avg_heals avg_damage avg_rank max_score max_kills max_assists max_deaths max_heals max_damage max_rank'
+
+    def member_line(self, player:str) -> str:
+        item = self.member(player)
+        mesg = f'{self.month}         0'
+        if item:
+            mesg = f'{self.month} {item["invasions"]:>9} {item["wins"]:>4} {item["avg_score"]:>9} {item["avg_kills"]:>9} {item["avg_assists"]:>11} {item["avg_deaths"]:>10} {item["avg_heals"]:>9} {item["avg_damage"]:>10} {item["avg_rank"]:>8} {item["max_score"]:>9} {item["max_kills"]:>9} {item["max_assists"]:>11} {item["max_deaths"]:>10} {item["max_heals"]:>9} {item["max_damage"]:>10} {item["max_rank"]:>8}'
+        return mesg

@@ -89,7 +89,13 @@ def generate_ladder_ranks(invasion:IrusInvasion, rows:list, members:IrusMemberLi
             if col_indices >= 8 or col_indices <= 10:
                 # Name may flow into score, so be more aggresive filtering this value
                 player = cols[2+offset].rstrip()
-                member = members.is_member(player)
+                # allow partial matches, but flag it as adjusted
+                adjusted=False
+                member = members.is_member(player, partial=False)
+                if not member:
+                    member = members.is_member(player, partial=True)
+                    if member:
+                        adjusted=True
                 result = IrusLadderRank(invasion=invasion, item={
                     'rank': '{0:02d}'.format(numeric(cols[1])),
                     'player': member if member else player,
@@ -103,7 +109,7 @@ def generate_ladder_ranks(invasion:IrusInvasion, rows:list, members:IrusMemberLi
                     'member': True if member else False,
                     # Are these stats from a ladder screenshot import
                     'ladder': True,
-                    'adjusted': False,
+                    'adjusted': adjusted,
                     'error': False
                 })
 
@@ -432,7 +438,7 @@ class IrusLadder:
                 r.delete_item()
                 r.rank = '{0:02d}'.format(new_rank)
 
-            if member:
+            if member is not None:
                 msg += f'\nmember {r.member} -> {member}'
                 r.member = bool(member)
                 r.adjusted = True

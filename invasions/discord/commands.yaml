@@ -697,3 +697,17 @@
               min_value: 2024
               max_value: 2050
               required: false
+        - name: year
+          description: Monthly stats for a company member
+          type: 1
+          options:
+            - name: player
+              description: New World player name
+              type: 3
+              required: true
+            - name: year
+              description: Year (defaults to this year)
+              type: 4
+              min_value: 2024
+              max_value: 2050
+              required: false

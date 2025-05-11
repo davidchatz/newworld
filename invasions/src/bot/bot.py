@@ -156,6 +156,9 @@ Display the summary report for all current members for the current (default) or 
 
 Display a summary of a specific player for the current (default) or specified month and year:
 **/{discord_cmd} display member *player [month] [year]***
+
+Display the month stat summary for a player over the current (default) year:
+**/{discord_cmd} display year *player [year]***
 '''
 
 help_text['user'] = f'''
@@ -635,6 +638,42 @@ def display_members_cmd(id: str, token: str, options:dict) -> str:
     return post_table.start(id, token, members.post(faction = faction), '# Company Members')
 
 
+def display_year_cmd(id: str, token: str, options:list) -> str:
+    now = datetime.now()
+    year = now.year
+    player = None
+    member = None
+    mesg = []
+
+    for o in options:
+        if o["name"] == "year":
+            year = o["value"]
+        elif o["name"] == "player":
+            player = o["value"]
+
+    try:
+        member = IrusMember.from_table(player)
+    except:
+        mesg.append(f'*Member {player} not found*')
+
+    if member:
+        mesg.append(IrusMonth.member_line_header())
+
+        for m in range(1, 12):
+            report = None
+            try:
+                report = IrusMonth.from_table(month = m, year = year)
+
+            except ValueError as e:
+                logger.info(f'No results for player {player} in month {m} in year {year}, skipping')
+
+            if report:
+                mesg.append(report.member_line(player))
+
+    logger.info(mesg)
+    return post_table.start(id, token, mesg, f'# Yearly Stats for {player} in {year}')
+
+
 def display_cmd(id: str, token: str, options:dict, resolved: dict) -> str:
     logger.info(f'report_cmd: {options}')
 
@@ -649,6 +688,8 @@ def display_cmd(id: str, token: str, options:dict, resolved: dict) -> str:
         msg = display_player_cmd(id, token, options['options'])
     elif name == 'members':
         msg = display_members_cmd(id, token, options['options'])
+    elif name == 'year':
+        msg = display_year_cmd(id, token, options['options'])
     else:
         logger.error(f'Invalid command {name}')
         return f'Invalid command {name}'
