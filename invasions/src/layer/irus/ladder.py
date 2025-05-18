@@ -477,6 +477,8 @@ class IrusLadder:
 
             if score:
                 item['score'] = int(score)
+            if member is not None:
+                item['member'] = bool(member)
 
             r = IrusLadderRank(self.invasion, item)
             r.update_item()
