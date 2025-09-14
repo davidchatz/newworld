@@ -6,6 +6,7 @@ from .ladderrank import IrusLadderRank
 from .environ import IrusResources
 from .invasion import IrusInvasion
 from .memberlist import IrusMemberList
+from .imageprep import ImagePreprocessor
 
 logger = IrusResources.logger()
 table = IrusResources.table()
@@ -18,9 +19,13 @@ textract = IrusResources.textract()
 
 # define function that takes s3 bucket and key and calls textract to import table
 def import_ladder_table(bucket, key):
-    # call textract
+    # preprocess image for better OCR
+    preprocessor = ImagePreprocessor()
+    processed_key = preprocessor.preprocess_s3_image(bucket, key)
+    
+    # call textract on processed image
     response = textract.analyze_document(
-        Document={'S3Object': {'Bucket': bucket, 'Name': key}},
+        Document={'S3Object': {'Bucket': bucket, 'Name': processed_key}},
         FeatureTypes=['TABLES']
     )
     return response
@@ -166,11 +171,14 @@ def generate_ladder_ranks(invasion:IrusInvasion, rows:list, members:IrusMemberLi
 #
 
 def import_roster_table(bucket, key):
-    # call textract
+    # preprocess image for better OCR
+    preprocessor = ImagePreprocessor()
+    processed_key = preprocessor.preprocess_s3_image(bucket, key)
+    
+    # call textract on processed image
     response = textract.detect_document_text(
-        Document={'S3Object': {'Bucket': bucket, 'Name': key}}
+        Document={'S3Object': {'Bucket': bucket, 'Name': processed_key}}
     )
-    # print(response)
     return response
 
 
