@@ -69,7 +69,7 @@ Globals:
 
   Function:
     Runtime: python3.11
-    Timeout: 10
+    Timeout: 120
     Layers:
       # - !FindInMap [ "LambdaPowerTools", !Ref "AWS::Region", "ARN" ]
       - !GetAtt AwsLambdaPowertoolsPythonLayer.Outputs.LayerVersionArn
@@ -165,8 +165,8 @@ Resources:
       Runtime: python3.11
       CodeUri: src/process
       Description: 'Download and scan invasion screen shots'
-      MemorySize: 256
-      Timeout: 20
+      MemorySize: 1024
+      Timeout: 120
       Policies: 
         - TextractPolicy: {}
         - S3CrudPolicy:
@@ -192,8 +192,8 @@ Resources:
       Runtime: python3.11
       CodeUri: src/invasion
       Description: 'Generate invasion report'
-      MemorySize: 256
-      Timeout: 10
+      MemorySize: 1024
+      Timeout: 120
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: Invasion
@@ -219,8 +219,8 @@ Resources:
       Runtime: python3.11
       CodeUri: src/month
       Description: 'Generate monthly reports'
-      MemorySize: 256
-      Timeout: 10
+      MemorySize: 1024
+      Timeout: 120
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: Month
@@ -433,7 +433,7 @@ Resources:
       CodeUri: src/bot
       Description: 'Discord Invasion Bot'
       MemorySize: 1024
-      Timeout: 10
+      Timeout: 120
       Policies: 
         - SSMParameterReadPolicy:
             ParameterName: "*"
