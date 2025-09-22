@@ -1,4 +1,4 @@
-from PIL import Image, ImageEnhance
+from PIL import Image, ImageEnhance, ImageOps
 import io
 from .environ import IrusResources
 
@@ -36,13 +36,15 @@ class ImagePreprocessor:
             if img.mode != 'RGB':
                 img = img.convert('RGB')
             
-            # Increase contrast
-            enhancer = ImageEnhance.Contrast(img)
-            img = enhancer.enhance(self.contrast_factor)
-            
             # Decrease saturation
             enhancer = ImageEnhance.Color(img)
             img = enhancer.enhance(self.saturation_factor)
+            
+            img = ImageOps.autocontrast(img, cutoff=(50,0))
+
+            # Increase contrast
+            enhancer = ImageEnhance.Contrast(img)
+            img = enhancer.enhance(self.contrast_factor)
             
             # Save to bytes
             output = io.BytesIO()

@@ -57,12 +57,12 @@ Parameters:
 
   ImageContrastFactor:
     Type: Number
-    Default: 5.0
+    Default: 2.0
     Description: Image contrast enhancement factor
 
   ImageSaturationFactor:
     Type: Number
-    Default: 0.1
+    Default: 0.0
     Description: Image saturation reduction factor
 
 Mappings:
