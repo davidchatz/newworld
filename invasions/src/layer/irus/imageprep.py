@@ -7,9 +7,9 @@ s3 = IrusResources.s3()
 
 class ImagePreprocessor:
     
-    def __init__(self, contrast_factor=2.0, saturation_factor=0.1):
-        self.contrast_factor = contrast_factor
-        self.saturation_factor = saturation_factor
+    def __init__(self, contrast_factor=None, saturation_factor=None):
+        self.contrast_factor = contrast_factor or IrusResources.image_contrast_factor()
+        self.saturation_factor = saturation_factor or IrusResources.image_saturation_factor()
     
     def preprocess_s3_image(self, bucket: str, key: str) -> str:
         """Download, preprocess, and upload image back to S3. Returns new key."""

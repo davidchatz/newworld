@@ -55,7 +55,17 @@ Parameters:
       - CRITICAL
     Default: INFO
 
-# Mappings:
+  ImageContrastFactor:
+    Type: Number
+    Default: 5.0
+    Description: Image contrast enhancement factor
+
+  ImageSaturationFactor:
+    Type: Number
+    Default: 0.1
+    Description: Image saturation reduction factor
+
+Mappings:
   
   # https://docs.powertools.aws.dev/lambda/python/latest/#local-development
   # LambdaPowerTools:
@@ -64,6 +74,14 @@ Parameters:
   #   ap-southeast-2:
   #     ARN: arn:aws:lambda:ap-southeast-2:017000801446:layer:AWSLambdaPowertoolsPythonV2:71
 
+  # https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Lambda-Insights-extension-versionsx86-64.html
+  LambdaInsights:
+    ap-southeast-1:
+      ARN: arn:aws:lambda:ap-southeast-1:580247275435:layer:LambdaInsightsExtension:56
+    ap-southeast-2:
+      ARN: arn:aws:lambda:ap-southeast-2:580247275435:layer:LambdaInsightsExtension:56
+
+
 
 Globals:
 
@@ -71,6 +89,7 @@ Globals:
     Runtime: python3.11
     Timeout: 120
     Layers:
+      - !FindInMap [ "LambdaInsights", !Ref "AWS::Region", "ARN" ]
       # - !FindInMap [ "LambdaPowerTools", !Ref "AWS::Region", "ARN" ]
       - !GetAtt AwsLambdaPowertoolsPythonLayer.Outputs.LayerVersionArn
       - !Ref IrusLayer
@@ -84,6 +103,8 @@ Globals:
         DISCORD_CMD: !Ref DiscordCmd
         BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
         WEBHOOK_URL: !Ref DiscordWebHookURL
+        IMAGE_CONTRAST_FACTOR: !Ref ImageContrastFactor
+        IMAGE_SATURATION_FACTOR: !Ref ImageSaturationFactor
 
 Resources:
 
@@ -144,8 +165,9 @@ Resources:
     UpdateReplacePolicy: Delete
     Properties:
       Location:
-        ApplicationId: arn:aws:serverlessrepo:eu-west-1:057560766410:applications/aws-lambda-powertools-python-layer
-        SemanticVersion: 2.43.1 # change to latest semantic version available in SAR
+        # ApplicationId: arn:aws:serverlessrepo:eu-west-1:057560766410:applications/aws-lambda-powertools-python-layer
+        ApplicationId: arn:aws:serverlessrepo:eu-west-1:057560766410:applications/aws-lambda-powertools-python-layer-v3-python311-x86-64
+        SemanticVersion: 3.16.0 # change to latest semantic version available in SAR
 
   IrusLayer:
     Type: AWS::Serverless::LayerVersion
@@ -173,6 +195,7 @@ Resources:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
         - DynamoDBCrudPolicy:
             TableName: !Ref Table
+        - CloudWatchLambdaInsightsExecutionRolePolicy
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: Process
@@ -203,6 +226,7 @@ Resources:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
         - DynamoDBCrudPolicy:
             TableName: !Ref Table
+        - CloudWatchLambdaInsightsExecutionRolePolicy
 
   InvasionLogGroup:
     Type: AWS::Logs::LogGroup
@@ -230,6 +254,7 @@ Resources:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
         - DynamoDBCrudPolicy:
             TableName: !Ref Table
+        - CloudWatchLambdaInsightsExecutionRolePolicy
 
   MonthLogGroup:
     Type: AWS::Logs::LogGroup
@@ -445,6 +470,7 @@ Resources:
             StateMachineName: !GetAtt DeadHandStepFunction.Name
         - StepFunctionsExecutionPolicy:
             StateMachineName: !GetAtt PostTableStepFunction.Name
+        - CloudWatchLambdaInsightsExecutionRolePolicy
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: Bot

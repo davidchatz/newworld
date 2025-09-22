@@ -2,6 +2,8 @@ from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 from dataclasses import dataclass
 from decimal import Decimal
+import json
+import time
 from .ladderrank import IrusLadderRank
 from .environ import IrusResources
 from .invasion import IrusInvasion
@@ -11,11 +13,27 @@ from .imageprep import ImagePreprocessor
 logger = IrusResources.logger()
 table = IrusResources.table()
 textract = IrusResources.textract()
+s3 = IrusResources.s3()
 
 #
 # Ladder image processing
 # based on https://docs.aws.amazon.com/textract/latest/dg/examples-export-table-csv.html
 #
+
+def save_enhanced_debug(bucket: str, key: str, response: dict, parsed_data: dict = None):
+    """Save both raw response and parsed data for debugging"""
+    debug_data = {
+        'textract_response': response,
+        'parsed_data': parsed_data,
+        'timestamp': time.ctime()
+    }
+    debug_key = key.replace('.png', '_debug.json')
+    s3.put_object(
+        Bucket=bucket, 
+        Key=debug_key, 
+        Body=json.dumps(debug_data, indent=2, default=str)
+    )
+    logger.info(f'Enhanced debug saved to {bucket}/{debug_key}')
 
 # define function that takes s3 bucket and key and calls textract to import table
 def import_ladder_table(bucket, key):
@@ -55,9 +73,10 @@ def get_text(result, blocks_map):
                             text += '"' + word['Text'] + '"' + ' '
                         else:
                             text += word['Text'] + ' '
-                    if word['BlockType'] == 'SELECTION_ELEMENT':
-                        if word['SelectionStatus'] =='SELECTED':
-                            text +=  'X '
+                    # ignore selections
+                    # if word['BlockType'] == 'SELECTION_ELEMENT':
+                    #     if word['SelectionStatus'] =='SELECTED':
+                    #         text +=  'X '
     return text
 
 def get_rows_columns_map(table_result, blocks_map):
@@ -80,7 +99,11 @@ def get_rows_columns_map(table_result, blocks_map):
 
 
 def numeric(orig:str) -> int:
-    return int("".join(filter(str.isnumeric, orig)))
+    # Replace common OCR misreads with correct digits
+    cleaned = orig.replace('o', '0').replace('O', '0').replace('l', '1').replace('I', '1')
+    # Extract only numeric characters
+    digits = "".join(filter(str.isnumeric, cleaned))
+    return int(digits) if digits else 0
 
 def generate_ladder_ranks(invasion:IrusInvasion, rows:list, members:IrusMemberList) -> list:
     rec = []
@@ -260,8 +283,23 @@ class IrusLadder:
 
         rows = get_rows_columns_map(table_blocks[0], blocks_map)
         rec = generate_ladder_ranks(invasion, rows, members)
-
+        
         try:
+            # save enhanced debug info after processing
+            save_enhanced_debug(bucket, key, response, {
+                'table_blocks_count': len(table_blocks),
+                'parsed_rows': rows,
+                'blocks_map_keys': list(blocks_map.keys())[:10],
+                'processed_ladder': [{
+                    'rank': r.rank,
+                    'player': r.player,
+                    'score': r.score,
+                    'member': r.member,
+                    'adjusted': r.adjusted,
+                    'error': r.error
+                } for r in rec]
+            })
+
             table.put_item(Item={'invasion': f'#upload#{invasion.name}', 'id': key})
             with table.batch_writer() as batch:
                 for item in rec:
@@ -281,8 +319,20 @@ class IrusLadder:
         candidates = reduce_list(response)
         matched = member_match(candidates, members)
         rec = generate_roster_ranks(invasion, matched)
-
+        
         try:
+            # save enhanced debug info after processing
+            save_enhanced_debug(bucket, key, response, {
+                'candidates': candidates,
+                'matched': matched,
+                'unmatched': [c for c in candidates if c not in matched],
+                'processed_roster': [{
+                    'rank': r.rank,
+                    'player': r.player,
+                    'member': r.member
+                } for r in rec]
+            })
+
             table.put_item(Item={'invasion': f'#upload#{invasion.name}', 'id': key})
             with table.batch_writer() as batch:
                 for item in rec:

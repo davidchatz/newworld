@@ -17,6 +17,8 @@ class IrusResources:
     _post_step_function_arn : str = None
     _textract = None
     _webhook_url : str = None
+    _image_contrast_factor : float = None
+    _image_saturation_factor : float = None
 
 
     @classmethod
@@ -106,6 +108,18 @@ class IrusResources:
             if cls._webhook_url == None:
                 raise ValueError('WEBHOOK_URL environment variable is not set')
         return cls._webhook_url
+    
+    @classmethod
+    def image_contrast_factor(cls) -> float:
+        if cls._image_contrast_factor == None:
+            cls._image_contrast_factor = float(os.environ.get('IMAGE_CONTRAST_FACTOR', '1.5'))
+        return cls._image_contrast_factor
+    
+    @classmethod
+    def image_saturation_factor(cls) -> float:
+        if cls._image_saturation_factor == None:
+            cls._image_saturation_factor = float(os.environ.get('IMAGE_SATURATION_FACTOR', '0.7'))
+        return cls._image_saturation_factor
 
 
 
