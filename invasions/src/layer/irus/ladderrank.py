@@ -1,152 +1,274 @@
-from boto3.dynamodb.conditions import Key, Attr
-from dataclasses import dataclass
-from decimal import Decimal
-from .invasion import IrusInvasion
-from .member import IrusMember
-from .environ import IrusResources
+"""Backward compatibility facade for IrusLadderRank.
 
-logger = IrusResources.logger()
-table = IrusResources.table()
+This module provides backward compatibility for the legacy IrusLadderRank class
+while internally using the new repository pattern architecture.
+
+DEPRECATED: This facade is provided for backward compatibility only.
+New code should use irus.models.ladderrank.IrusLadderRank and irus.repositories.ladder.LadderRepository directly.
+"""
+
+import warnings
+
+from .models.ladderrank import IrusLadderRank as PureLadderRank
+from .repositories.ladder import LadderRepository
+
+# Issue deprecation warning when this module is imported
+warnings.warn(
+    "irus.ladderrank module is deprecated. Use irus.models.ladderrank.IrusLadderRank and "
+    "irus.repositories.ladder.LadderRepository instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
 
 class IrusLadderRank:
+    """Legacy IrusLadderRank class for backward compatibility.
 
-    def __init__(self, invasion: IrusInvasion, item: dict):
-        logger.debug(f'LadderRank.__init__: {invasion} {item}')
+    This class wraps the new repository pattern implementation to maintain
+    backward compatibility with existing code.
+
+    DEPRECATED: Use irus.models.ladderrank.IrusLadderRank and irus.repositories.ladder.LadderRepository instead.
+    """
+
+    def __init__(self, invasion, item: dict):
+        """Initialize from invasion and item dictionary (legacy API).
+
+        Args:
+            invasion: Invasion object (legacy)
+            item: DynamoDB item dictionary
+        """
+        # Extract invasion name from invasion object
+        invasion_name = getattr(invasion, "name", str(invasion))
+
+        # Create the pure model from the item
+        self._model = PureLadderRank(
+            invasion_name=invasion_name,
+            rank=item.get("rank", "01"),
+            player=item.get("player", ""),
+            score=int(item.get("score", 0)),
+            kills=int(item.get("kills", 0)),
+            deaths=int(item.get("deaths", 0)),
+            assists=int(item.get("assists", 0)),
+            heals=int(item.get("heals", 0)),
+            damage=int(item.get("damage", 0)),
+            member=bool(item.get("member", False)),
+            ladder=bool(item.get("ladder", False)),
+            adjusted=bool(item.get("adjusted", False)),
+            error=bool(item.get("error", False)),
+        )
+
+        # Store invasion reference for legacy compatibility
         self.invasion = invasion
-        self.rank = item['rank']
-        self.member = bool(item['member'])
-        self.player = item['player']
-        self.score = int(item['score'])
-        self.kills = int(item['kills'])
-        self.deaths = int(item['deaths'])
-        self.assists = int(item['assists'])
-        self.heals = int(item['heals'])
-        self.damage = int(item['damage'])
-        self.ladder = bool(item['ladder'])
-        self.adjusted = bool(item['adjusted'])
-        self.error = bool(item['error'])
 
-   
+        # Create repository for database operations
+        self._repository = LadderRepository()
+
+    @property
+    def rank(self) -> str:
+        """Get rank position."""
+        return self._model.rank
+
+    @rank.setter
+    def rank(self, value: str):
+        """Set rank position."""
+        self._model.rank = f"{int(value):02d}" if value.isdigit() else value
+
+    @property
+    def player(self) -> str:
+        """Get player name."""
+        return self._model.player
+
+    @player.setter
+    def player(self, value: str):
+        """Set player name."""
+        self._model.player = value
+
+    @property
+    def score(self) -> int:
+        """Get score."""
+        return self._model.score
+
+    @score.setter
+    def score(self, value: int):
+        """Set score."""
+        self._model.score = int(value)
+
+    @property
+    def kills(self) -> int:
+        """Get kills."""
+        return self._model.kills
+
+    @kills.setter
+    def kills(self, value: int):
+        """Set kills."""
+        self._model.kills = int(value)
+
+    @property
+    def deaths(self) -> int:
+        """Get deaths."""
+        return self._model.deaths
+
+    @deaths.setter
+    def deaths(self, value: int):
+        """Set deaths."""
+        self._model.deaths = int(value)
+
+    @property
+    def assists(self) -> int:
+        """Get assists."""
+        return self._model.assists
+
+    @assists.setter
+    def assists(self, value: int):
+        """Set assists."""
+        self._model.assists = int(value)
+
+    @property
+    def heals(self) -> int:
+        """Get heals."""
+        return self._model.heals
+
+    @heals.setter
+    def heals(self, value: int):
+        """Set heals."""
+        self._model.heals = int(value)
+
+    @property
+    def damage(self) -> int:
+        """Get damage."""
+        return self._model.damage
+
+    @damage.setter
+    def damage(self, value: int):
+        """Set damage."""
+        self._model.damage = int(value)
+
+    @property
+    def member(self) -> bool:
+        """Get member status."""
+        return self._model.member
+
+    @member.setter
+    def member(self, value: bool):
+        """Set member status."""
+        self._model.member = bool(value)
+
+    @property
+    def ladder(self) -> bool:
+        """Get ladder status."""
+        return self._model.ladder
+
+    @ladder.setter
+    def ladder(self, value: bool):
+        """Set ladder status."""
+        self._model.ladder = bool(value)
+
+    @property
+    def adjusted(self) -> bool:
+        """Get adjusted status."""
+        return self._model.adjusted
+
+    @adjusted.setter
+    def adjusted(self, value: bool):
+        """Set adjusted status."""
+        self._model.adjusted = bool(value)
+
+    @property
+    def error(self) -> bool:
+        """Get error status."""
+        return self._model.error
+
+    @error.setter
+    def error(self, value: bool):
+        """Set error status."""
+        self._model.error = bool(value)
+
     def invasion_key(self) -> str:
-        return f'#ladder#{self.invasion.name}'
-
+        """Get DynamoDB invasion key (legacy compatibility)."""
+        return f"#ladder#{self._model.invasion_name}"
 
     def item(self) -> dict:
-        return {
-            'invasion': self.invasion_key(),
-            'id': self.rank,
-            'member': self.member,
-            'player': self.player,
-            'score': self.score,
-            'kills': self.kills,
-            'deaths': self.deaths,
-            'assists': self.assists,
-            'heals': self.heals,
-            'damage': self.damage,
-            'ladder': self.ladder,
-            'adjusted': self.adjusted,
-            'error': self.error
-        }
+        """Get item dictionary for DynamoDB (legacy compatibility)."""
+        return self._model.to_dict()
 
     def __dict__(self) -> dict:
-        return {
-            'invasion': self.invasion_key(),
-            'id': self.rank,
-            'member': self.member,
-            'player': self.player,
-            'score': self.score,
-            'kills': self.kills,
-            'deaths': self.deaths,
-            'assists': self.assists,
-            'heals': self.heals,
-            'damage': self.damage,
-            'ladder': self.ladder,
-            'adjusted': self.adjusted,
-            'error': self.error
+        """Get dictionary representation (legacy compatibility)."""
+        return self._model.to_dict()
+
+    @classmethod
+    def from_roster(cls, invasion, rank: int, player: str):
+        """Create ladder rank from roster data (legacy compatibility)."""
+        item = {
+            "rank": f"{rank:02d}",
+            "player": player,
+            "score": 0,
+            "kills": 0,
+            "deaths": 0,
+            "assists": 0,
+            "heals": 0,
+            "damage": 0,
+            "member": True,
+            "ladder": False,
+            "adjusted": False,
+            "error": False,
         }
+        return cls(invasion=invasion, item=item)
 
     @classmethod
-    def from_roster(cls, invasion:IrusInvasion, rank:int, player:str):
-        return cls(invasion=invasion, item={
-            'rank': '{0:02d}'.format(rank),
-            'player': player,
-            'score': 0,
-            'kills': 0,
-            'deaths': 0,
-            'assists': 0,
-            'heals': 0,
-            'damage': 0,
-            'member': True,
-            'ladder': False,
-            'adjusted': False,
-            'error': False
-        })
-    
-    @classmethod
-    def from_invasion_for_member(cls, invasion: IrusInvasion, member: IrusMember):
-        logger.info(f'LadderRank.from_invasion_for_member: {invasion} {member.player}')
-        # ladders = table.query(KeyConditionExpression=Key('invasion').eq(f'#ladder#{invasion.name}'),
-        #                         ProjectionExpression='id, #n, #r',
-        #                         FilterExpression=Attr('player').eq(member.player),
-        #                         ExpressionAttributeNames={'#n': 'name', '#r': 'rank'})
+    def from_invasion_for_member(cls, invasion, member):
+        """Get ladder rank for a specific member (legacy compatibility)."""
+        repository = LadderRepository()
+        invasion_name = getattr(invasion, "name", str(invasion))
+        player_name = getattr(member, "player", str(member))
 
-        ladders = table.query(KeyConditionExpression=Key('invasion').eq(f'#ladder#{invasion.name}'),
-                                FilterExpression=Attr('player').eq(member.player))
+        rank = repository.get_rank_by_player(invasion_name, player_name)
+        if rank is None:
+            raise ValueError(
+                f"Player {player_name} not found in invasion {invasion_name}"
+            )
 
-        logger.debug(f'ladders: {ladders}')
-        if ladders.get('Items', None) is None or len(ladders['Items']) == 0:
-            logger.debug(f'Player {member.player} not found in invasion {invasion.name}')
-            raise ValueError(f'Player {member.player} not found in invasion {invasion.name}')
-        
-        items = ladders['Items']
-        if len(items) > 1:
-            logger.error(f'Player {member.player} matched multiple times in {invasion.name}')
-            raise ValueError(f'Player {member.player} matched multiple times in {invasion.name}')
-        
-        # Maybe we should just store both id and rank, even though they are the same in the ladder rank
-        items[0]['rank'] = items[0]['id']
-        return cls(invasion, items[0])
-
+        # Convert back to legacy format
+        item = rank.to_dict()
+        item["rank"] = item["id"]  # Legacy expects 'rank' field
+        return cls(invasion, item)
 
     def __str__(self):
-        return f'{self.rank} {self.player} {self.score} {self.kills} {self.deaths} {self.assists} {self.heals} {self.damage} {self.member} {self.ladder} {self.adjusted} {self.error}'
- 
-    def header() -> str:
-        return 'Rank Player             Score Kills Deaths Assists   Heals  Damage Member Ladder Adjusted Error'
+        """String representation (legacy compatibility)."""
+        return (
+            f"{self.rank} {self.player} {self.score} {self.kills} {self.deaths} "
+            f"{self.assists} {self.heals} {self.damage} {self.member} {self.ladder} "
+            f"{self.adjusted} {self.error}"
+        )
 
+    @staticmethod
+    def header() -> str:
+        """Get header string (legacy compatibility)."""
+        return PureLadderRank.header()
+
+    @staticmethod
     def footer() -> str:
-        return '''
-*Member*: True if company member
-*Ladder*: True if from ladder
-*Adjusted*: True if entry corrected by bot or manually, False if unchanged from scan
-*Error*: True if error detected but correct value not known
-'''
+        """Get footer string (legacy compatibility)."""
+        return PureLadderRank.footer()
 
     def post(self) -> str:
-        return f'{self.rank:<4} {self.player:<16} {self.score:>7} {self.kills:>5} {self.deaths:>6} {self.assists:>7} {self.heals:>7} {self.damage:>7} {str(self.member):<6} {str(self.ladder):<6} {str(self.adjusted):<8} {self.error}'
-
+        """Format for posting (legacy compatibility)."""
+        return self._model.post()
 
     def str(self) -> str:
-        return '**`' + IrusLadderRank.header()+ '`**\n`' + self.post() + '`\n' + IrusLadderRank.footer() + '\n'
-    
-    
+        """Format as markdown string (legacy compatibility)."""
+        return self._model.str()
+
     def update_membership(self, member: bool):
-        logger.info(f'LadderRank.update_membership: {self} to {member}')
+        """Update membership status (legacy compatibility)."""
         self.member = member
-        update = table.update_item(Key={'invasion': self.invasion_key(), 'id': self.rank},
-                                    UpdateExpression='set #m = :m',
-                                    ExpressionAttributeNames={'#m': 'member'},
-                                    ExpressionAttributeValues={':m': member},
-                                    ReturnValues='UPDATED_NEW')
-        logger.debug(f'update_item: {update}')
+        self._repository.update_rank_membership(
+            self._model.invasion_name, self._model.rank, member
+        )
 
-
-    # method to put ladder rank into table
     def update_item(self):
-        logger.debug(f'LadderRank.update_item: {self}')
-        update = table.put_item(Item=self.__dict__())
+        """Save to database (legacy compatibility)."""
+        self._repository.save_rank(self._model)
 
     def delete_item(self):
-        logger.debug(f'LadderRank.delete_item: {self}')
-        delete = table.delete_item(Key={'invasion': self.invasion_key(), 'id': self.rank})
-        logger.debug(f'delete_item: {delete}')
+        """Delete from database (legacy compatibility)."""
+        self._repository.delete_rank(self._model.invasion_name, self._model.rank)

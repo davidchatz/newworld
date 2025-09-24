@@ -1,548 +1,525 @@
-from boto3.dynamodb.conditions import Key
-from botocore.exceptions import ClientError
-from dataclasses import dataclass
-from decimal import Decimal
+"""Backward compatibility facade for IrusLadder.
+
+This module provides backward compatibility for the legacy IrusLadder class
+while internally using the new repository pattern architecture.
+
+DEPRECATED: This facade is provided for backward compatibility only.
+New code should use irus.models.ladder.IrusLadder and irus.repositories.ladder.LadderRepository directly.
+"""
+
+import builtins
 import json
 import time
-from .ladderrank import IrusLadderRank
+import warnings
+
 from .environ import IrusResources
-from .invasion import IrusInvasion
-from .memberlist import IrusMemberList
 from .imageprep import ImagePreprocessor
+from .ladderrank import IrusLadderRank  # Legacy facade
+from .models.ladder import IrusLadder as PureLadder
+from .models.ladderrank import IrusLadderRank as PureLadderRank
+from .repositories.ladder import LadderRepository
+
+# Issue deprecation warning when this module is imported
+warnings.warn(
+    "irus.ladder module is deprecated. Use irus.models.ladder.IrusLadder and "
+    "irus.repositories.ladder.LadderRepository instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+
+class IrusLadder:
+    """Legacy IrusLadder class for backward compatibility.
+
+    This class wraps the new repository pattern implementation to maintain
+    backward compatibility with existing code.
+
+    DEPRECATED: Use irus.models.ladder.IrusLadder and irus.repositories.ladder.LadderRepository instead.
+    """
+
+    def __init__(self, invasion, ranks: list):
+        """Initialize from invasion and rank list (legacy API).
+
+        Args:
+            invasion: Invasion object (legacy)
+            ranks: List of IrusLadderRank instances
+        """
+        # Extract invasion name from invasion object
+        invasion_name = getattr(invasion, "name", str(invasion))
+
+        # Convert legacy ranks to pure models if needed
+        pure_ranks = []
+        for rank in ranks:
+            if hasattr(rank, "_model"):  # It's a legacy facade
+                pure_ranks.append(rank._model)
+            elif isinstance(rank, PureLadderRank):  # It's already pure
+                pure_ranks.append(rank)
+            else:  # It's a raw dict or other format
+                # Try to convert from dict-like object
+                item = {
+                    "rank": getattr(rank, "rank", "01"),
+                    "player": getattr(rank, "player", ""),
+                    "score": getattr(rank, "score", 0),
+                    "kills": getattr(rank, "kills", 0),
+                    "deaths": getattr(rank, "deaths", 0),
+                    "assists": getattr(rank, "assists", 0),
+                    "heals": getattr(rank, "heals", 0),
+                    "damage": getattr(rank, "damage", 0),
+                    "member": getattr(rank, "member", False),
+                    "ladder": getattr(rank, "ladder", False),
+                    "adjusted": getattr(rank, "adjusted", False),
+                    "error": getattr(rank, "error", False),
+                }
+                pure_ranks.append(PureLadderRank(invasion_name=invasion_name, **item))
+
+        # Create the pure model
+        self._model = PureLadder(invasion_name=invasion_name, ranks=pure_ranks)
+
+        # Store invasion and ranks for legacy compatibility
+        self.invasion = invasion
+        self.ranks = [IrusLadderRank(invasion, rank.to_dict()) for rank in pure_ranks]
+
+        # Create repository for database operations
+        self._repository = LadderRepository()
+
+    def invasion_key(self) -> str:
+        """Get DynamoDB invasion key (legacy compatibility)."""
+        return f"#ladder#{self._model.invasion_name}"
+
+    @classmethod
+    def from_ladder_image(cls, invasion, members, bucket: str, key: str):
+        """Create ladder from image processing (legacy compatibility)."""
+        # This method requires significant image processing logic that should be
+        # moved to a service layer. For now, import and use the original functions.
+        from . import ladder as ladder_module
+
+        # Use the original processing functions
+        response = ladder_module.import_ladder_table(bucket, key)
+        table_blocks, blocks_map = ladder_module.extract_blocks(response)
+
+        if len(table_blocks) == 0:
+            raise ValueError(f"No invasion ladder not found in {bucket}/{key}")
+        elif len(table_blocks) > 1:
+            raise ValueError(f"Do not recognise invasion ladder in {bucket}/{key}")
+
+        rows = ladder_module.get_rows_columns_map(table_blocks[0], blocks_map)
+        ranks = ladder_module.generate_ladder_ranks(invasion, rows, members)
+
+        # Create instance and save to database
+        ladder = cls(invasion, ranks)
+        repository = LadderRepository()
+        repository.save_ladder_from_processing(ladder._model, key)
+
+        return ladder
+
+    @classmethod
+    def from_roster_image(cls, invasion, members, bucket: str, key: str):
+        """Create ladder from roster image (legacy compatibility)."""
+        from . import ladder as ladder_module
+
+        response = ladder_module.import_roster_table(bucket, key)
+        candidates = ladder_module.reduce_list(response)
+        matched = ladder_module.member_match(candidates, members)
+        ranks = ladder_module.generate_roster_ranks(invasion, matched)
+
+        # Create instance and save to database
+        ladder = cls(invasion, ranks)
+        repository = LadderRepository()
+        repository.save_ladder_from_processing(ladder._model, key)
+
+        return ladder
+
+    @classmethod
+    def from_invasion(cls, invasion):
+        """Load ladder from database (legacy compatibility)."""
+        repository = LadderRepository()
+        invasion_name = getattr(invasion, "name", str(invasion))
+
+        pure_ladder = repository.get_ladder(invasion_name)
+        if pure_ladder is None:
+            return cls(invasion, [])
+
+        return cls(invasion, pure_ladder.ranks)
+
+    @classmethod
+    def from_csv(cls, invasion, csv: str, members):
+        """Create ladder from CSV data (legacy compatibility)."""
+        invasion_name = getattr(invasion, "name", str(invasion))
+        ranks = []
+        lines = csv.splitlines()
+
+        for line in lines[1:]:  # Skip header
+            cols = line.split(",")
+            if len(cols) == 8:
+                item = {
+                    "rank": cols[0],
+                    "player": cols[1],
+                    "score": int(cols[2]),
+                    "kills": int(cols[3]),
+                    "deaths": int(cols[4]),
+                    "assists": int(cols[5]),
+                    "heals": int(cols[6]),
+                    "damage": int(cols[7]),
+                    "member": getattr(members, "is_member", lambda x: False)(cols[1]),
+                    "ladder": True,
+                    "adjusted": False,
+                    "error": False,
+                }
+                ranks.append(PureLadderRank(invasion_name=invasion_name, **item))
+
+        # Create instance and save to database
+        ladder = cls(invasion, ranks)
+        repository = LadderRepository()
+        repository.save_ladder_from_processing(ladder._model, "csv")
+
+        return ladder
+
+    def contiguous_from_1_until(self) -> int:
+        """Get contiguous rank count from 1 (legacy compatibility)."""
+        return self._model.contiguous_from_1_until()
+
+    def count(self) -> int:
+        """Get total rank count (legacy compatibility)."""
+        return self._model.count
+
+    def members(self) -> int:
+        """Get member count (legacy compatibility)."""
+        return self._model.member_count
+
+    def rank(self, rank: int):
+        """Get rank by position (legacy compatibility)."""
+        pure_rank = self._model.get_rank_by_position(rank)
+        if pure_rank is None:
+            return None
+        return IrusLadderRank(self.invasion, pure_rank.to_dict())
+
+    def member(self, player: str):
+        """Get member rank (legacy compatibility)."""
+        pure_rank = self._model.get_member_rank(player)
+        if pure_rank is None:
+            return None
+        return IrusLadderRank(self.invasion, pure_rank.to_dict())
+
+    def list(self, member: bool) -> str:
+        """Get formatted player list (legacy compatibility)."""
+        return self._model.list_members(member)
+
+    def str(self) -> str:
+        """Get string summary (legacy compatibility)."""
+        return self._model.str()
+
+    def csv(self) -> str:
+        """Export to CSV (legacy compatibility)."""
+        return self._model.to_csv()
+
+    def markdown(self) -> str:
+        """Export to markdown (legacy compatibility)."""
+        return self._model.to_markdown()
+
+    def post(self) -> builtins.list[str]:
+        """Format for Discord posting (legacy compatibility)."""
+        return self._model.post()
+
+    def delete_from_table(self):
+        """Delete ladder from database (legacy compatibility)."""
+        self._repository.delete_ladder(self._model.invasion_name)
+
+    def edit(
+        self, rank: int, new_rank=None, member=None, player=None, score=None
+    ) -> str:
+        """Edit ladder rank (legacy compatibility)."""
+        rank_obj = self.rank(rank)
+        msg = ""
+
+        if rank_obj:
+            if new_rank is None:
+                msg = f"Updating rank {rank} in invasion {self._model.invasion_name}: "
+            elif int(new_rank) != rank:
+                msg = f"Replacing rank {new_rank} in invasion {self._model.invasion_name} : "
+                # Delete old rank
+                self._repository.delete_rank(self._model.invasion_name, f"{rank:02d}")
+                rank_obj.rank = f"{new_rank:02d}"
+
+            # Apply updates
+            if member is not None:
+                msg += f"\nmember {rank_obj.member} -> {member}"
+                rank_obj.member = bool(member)
+                rank_obj.adjusted = True
+
+            if player:
+                msg += f"\nplayer {rank_obj.player} -> {player}"
+                rank_obj.player = player
+                rank_obj.adjusted = True
+
+            if score:
+                msg += f"\nscore {rank_obj.score} -> {score}"
+                rank_obj.score = int(score)
+                rank_obj.adjusted = True
+
+            # Save changes
+            rank_obj.update_item()
+            msg += "\n" + rank_obj.str()
+
+        elif player is None:
+            msg = f"Rank {rank} in invasion {self._model.invasion_name} not found, need to provide player name to add new row"
+        elif new_rank is not None and int(new_rank) != rank:
+            msg = f"Rank {rank} does not exist to replace new rank {new_rank}"
+        else:
+            # Create new rank
+            msg = f"Creating new entry for rank {rank} in invasion {self._model.invasion_name}"
+
+            item = {
+                "rank": f"{rank:02d}",
+                "player": player,
+                "score": int(score) if score else 0,
+                "kills": 0,
+                "deaths": 0,
+                "assists": 0,
+                "heals": 0,
+                "damage": 0,
+                "member": bool(member) if member is not None else False,
+                "ladder": False,
+                "adjusted": True,
+                "error": False,
+            }
+
+            new_rank_obj = IrusLadderRank(self.invasion, item)
+            new_rank_obj.update_item()
+            self.ranks.append(new_rank_obj)
+            msg += "\n" + new_rank_obj.str()
+
+        return msg
+
+
+# Import the original image processing functions for backward compatibility
+# These should eventually be moved to a service layer
 
 logger = IrusResources.logger()
 table = IrusResources.table()
 textract = IrusResources.textract()
 s3 = IrusResources.s3()
 
-#
-# Ladder image processing
-# based on https://docs.aws.amazon.com/textract/latest/dg/examples-export-table-csv.html
-#
+# Original image processing functions (should be moved to service layer)
 
-def save_enhanced_debug(bucket: str, key: str, response: dict, parsed_data: dict = None):
+
+def save_enhanced_debug(
+    bucket: str, key: str, response: dict, parsed_data: dict = None
+):
     """Save both raw response and parsed data for debugging"""
     debug_data = {
-        'textract_response': response,
-        'parsed_data': parsed_data,
-        'timestamp': time.ctime()
+        "textract_response": response,
+        "parsed_data": parsed_data,
+        "timestamp": time.ctime(),
     }
-    debug_key = key.replace('.png', '_debug.json')
+    debug_key = key.replace(".png", "_debug.json")
     s3.put_object(
-        Bucket=bucket, 
-        Key=debug_key, 
-        Body=json.dumps(debug_data, indent=2, default=str)
+        Bucket=bucket, Key=debug_key, Body=json.dumps(debug_data, indent=2, default=str)
     )
-    logger.info(f'Enhanced debug saved to {bucket}/{debug_key}')
+    logger.info(f"Enhanced debug saved to {bucket}/{debug_key}")
 
-# define function that takes s3 bucket and key and calls textract to import table
+
 def import_ladder_table(bucket, key):
     # preprocess image for better OCR
     preprocessor = ImagePreprocessor()
     processed_key = preprocessor.preprocess_s3_image(bucket, key)
-    
+
     # call textract on processed image
     response = textract.analyze_document(
-        Document={'S3Object': {'Bucket': bucket, 'Name': processed_key}},
-        FeatureTypes=['TABLES']
+        Document={"S3Object": {"Bucket": bucket, "Name": processed_key}},
+        FeatureTypes=["TABLES"],
     )
     return response
 
+
 def extract_blocks(response: dict):
-    blocks=response['Blocks']
+    blocks = response["Blocks"]
     blocks_map = {}
     table_blocks = []
     for block in blocks:
-        blocks_map[block['Id']] = block
-        if block['BlockType'] == "TABLE":
+        blocks_map[block["Id"]] = block
+        if block["BlockType"] == "TABLE":
             table_blocks.append(block)
-
-    # print(f'extract_blocks table_blocks: {table_blocks}')
-    # print(f'extract_blocks blocks_map: {blocks_map}')
     return table_blocks, blocks_map
 
+
 def get_text(result, blocks_map):
-    text = ''
-    if 'Relationships' in result:
-        for relationship in result['Relationships']:
-            if relationship['Type'] == 'CHILD':
-                for child_id in relationship['Ids']:
+    text = ""
+    if "Relationships" in result:
+        for relationship in result["Relationships"]:
+            if relationship["Type"] == "CHILD":
+                for child_id in relationship["Ids"]:
                     word = blocks_map[child_id]
-                    if word['BlockType'] == 'WORD':
-                        if "," in word['Text'] and word['Text'].replace(",", "").isnumeric():
-                            text += '"' + word['Text'] + '"' + ' '
+                    if word["BlockType"] == "WORD":
+                        if (
+                            "," in word["Text"]
+                            and word["Text"].replace(",", "").isnumeric()
+                        ):
+                            text += '"' + word["Text"] + '"' + " "
                         else:
-                            text += word['Text'] + ' '
-                    # ignore selections
-                    # if word['BlockType'] == 'SELECTION_ELEMENT':
-                    #     if word['SelectionStatus'] =='SELECTED':
-                    #         text +=  'X '
+                            text += word["Text"] + " "
     return text
+
 
 def get_rows_columns_map(table_result, blocks_map):
     rows = {}
-    for relationship in table_result['Relationships']:
-        if relationship['Type'] == 'CHILD':
-            for child_id in relationship['Ids']:
+    for relationship in table_result["Relationships"]:
+        if relationship["Type"] == "CHILD":
+            for child_id in relationship["Ids"]:
                 cell = blocks_map[child_id]
-                if cell['BlockType'] == 'CELL':
-                    row_index = cell['RowIndex']
-                    col_index = cell['ColumnIndex']
+                if cell["BlockType"] == "CELL":
+                    row_index = cell["RowIndex"]
+                    col_index = cell["ColumnIndex"]
                     if row_index not in rows:
-                        # create new row
                         rows[row_index] = {}
-                        
-                    # get the text value
                     rows[row_index][col_index] = get_text(cell, blocks_map)
-    logger.debug(f'get_rows_columns_map rows: {rows}')
+    logger.debug(f"get_rows_columns_map rows: {rows}")
     return rows
 
 
-def numeric(orig:str) -> int:
-    # Replace common OCR misreads with correct digits
-    cleaned = orig.replace('o', '0').replace('O', '0').replace('l', '1').replace('I', '1')
-    # Extract only numeric characters
+def numeric(orig: str) -> int:
+    cleaned = (
+        orig.replace("o", "0").replace("O", "0").replace("l", "1").replace("I", "1")
+    )
     digits = "".join(filter(str.isnumeric, cleaned))
     return int(digits) if digits else 0
 
-def generate_ladder_ranks(invasion:IrusInvasion, rows:list, members:IrusMemberList) -> list:
+
+def generate_ladder_ranks(invasion, rows: list, members) -> list:
     rec = []
 
     for row_index, cols in rows.items():
         col_indices = len(cols.items())
-        
+
         try:
-            # sometimes textextract treats icon as a column, so check columns detected
             offset = 0 if col_indices == 8 else 1
             if col_indices >= 8 or col_indices <= 10:
-                # Name may flow into score, so be more aggresive filtering this value
-                player = cols[2+offset].rstrip()
-                # allow partial matches, but flag it as adjusted
-                adjusted=False
-                member = members.is_member(player, partial=False)
+                player = cols[2 + offset].rstrip()
+                adjusted = False
+                member = getattr(members, "is_member", lambda x, **kw: False)(
+                    player, partial=False
+                )
                 if not member:
-                    member = members.is_member(player, partial=True)
+                    member = getattr(members, "is_member", lambda x, **kw: False)(
+                        player, partial=True
+                    )
                     if member:
-                        adjusted=True
-                result = IrusLadderRank(invasion=invasion, item={
-                    'rank': '{0:02d}'.format(numeric(cols[1])),
-                    'player': member if member else player,
-                    'score': numeric(cols[3+offset]),
-                    'kills': numeric(cols[4+offset]),
-                    'deaths': numeric(cols[5+offset]),
-                    'assists': numeric(cols[6+offset]),
-                    'heals': numeric(cols[7+offset]),
-                    'damage': numeric(cols[8+offset]),
-                    # Are they listed as a company member, this is updated in insert_db
-                    'member': True if member else False,
-                    # Are these stats from a ladder screenshot import
-                    'ladder': True,
-                    'adjusted': adjusted,
-                    'error': False
-                })
+                        adjusted = True
 
-                # If score and damage is zero, assume they did not participate
+                result = IrusLadderRank(
+                    invasion=invasion,
+                    item={
+                        "rank": f"{numeric(cols[1]):02d}",
+                        "player": member if member else player,
+                        "score": numeric(cols[3 + offset]),
+                        "kills": numeric(cols[4 + offset]),
+                        "deaths": numeric(cols[5 + offset]),
+                        "assists": numeric(cols[6 + offset]),
+                        "heals": numeric(cols[7 + offset]),
+                        "damage": numeric(cols[8 + offset]),
+                        "member": True if member else False,
+                        "ladder": True,
+                        "adjusted": adjusted,
+                        "error": False,
+                    },
+                )
+
                 if result.score > 0:
                     rec.append(result)
                 else:
-                    logger.info(f'Skipping {result} as score is 0')
+                    logger.info(f"Skipping {result} as score is 0")
             else:
-                logger.info(f'Skipping {row_index} with {col_indices} items: {cols}')
+                logger.info(f"Skipping {row_index} with {col_indices} items: {cols}")
 
         except Exception as e:
-            logger.info(f'Skipping row {row_index} with {cols}, unable to scan: {e}')
+            logger.info(f"Skipping row {row_index} with {cols}, unable to scan: {e}")
 
-    # With larger scans textract struggles with the rank column
-    # Traverse the list of ranks and try to correct any values which are clearly wrong
-    # This is particularly trick if the first row is wrong...
-
-    # If we scanned 3 or less don't try to fix as we don't have enough context
+    # Rank correction logic
     if len(rec) > 3:
-
-        # check ranks are in range as they sometimes get an extra number on the end
         try:
             for r in range(0, len(rec)):
                 if numeric(rec[r].rank) > 99:
-                    logger.info(f'Fixing rank {r+1} from {rec[r].rank} to {rec[r].rank[:2]}')
+                    logger.info(
+                        f"Fixing rank {r + 1} from {rec[r].rank} to {rec[r].rank[:2]}"
+                    )
                     rec[r].rank = rec[r].rank[:2]
                     rec[r].adjusted = True
         except Exception as e:
-            logger.error(f'Unable to fix rank size: {e}')
+            logger.error(f"Unable to fix rank size: {e}")
 
-        # now check order
         try:
-            for r in range(0, len(rec)-1):
-                if numeric(rec[r].rank) > numeric(rec[r+1].rank):
-                    logger.info(f'Fixing rank {r+1} from {rec[r].rank} to {numeric(rec[r+1].rank) - 1}')
-                    rec[r].rank = '{0:02d}'.format(numeric(rec[r+1].rank) - 1)
+            for r in range(0, len(rec) - 1):
+                if numeric(rec[r].rank) > numeric(rec[r + 1].rank):
+                    logger.info(
+                        f"Fixing rank {r + 1} from {rec[r].rank} to {numeric(rec[r + 1].rank) - 1}"
+                    )
+                    rec[r].rank = f"{numeric(rec[r + 1].rank) - 1:02d}"
                     rec[r].adjusted = True
         except Exception as e:
-            logger.error(f'Unable to fix rank order: {e}')
+            logger.error(f"Unable to fix rank order: {e}")
 
         pos = numeric(rec[0].rank)
         for r in range(1, len(rec)):
             pos += 1
             if numeric(rec[r].rank) != pos:
-                logger.warning(f'Rank {r} is {rec[r].rank}, expected {pos}')
+                logger.warning(f"Rank {r} is {rec[r].rank}, expected {pos}")
                 rec[r].error = True
 
-    logger.debug(f'scanned table: {rec}')
+    logger.debug(f"scanned table: {rec}")
     return rec
 
-#
-# Roster image processing
-#
 
 def import_roster_table(bucket, key):
-    # preprocess image for better OCR
     preprocessor = ImagePreprocessor()
     processed_key = preprocessor.preprocess_s3_image(bucket, key)
-    
-    # call textract on processed image
+
     response = textract.detect_document_text(
-        Document={'S3Object': {'Bucket': bucket, 'Name': processed_key}}
+        Document={"S3Object": {"Bucket": bucket, "Name": processed_key}}
     )
     return response
 
 
 def reduce_list(table: dict) -> list:
-    logger.debug(f'IrusLadder.reduce_list')
+    logger.debug("IrusLadder.reduce_list")
     response = []
 
-    for block in table['Blocks']:
-        if block['BlockType'] != 'PAGE':
-            text = block['Text']
-
-            if not (text.isnumeric() or text == ':' or text.startswith('GROUP')):
+    for block in table["Blocks"]:
+        if block["BlockType"] != "PAGE":
+            text = block["Text"]
+            if not (text.isnumeric() or text == ":" or text.startswith("GROUP")):
                 response.append(text)
 
-    logger.debug(f'reduce_list: {response}')
+    logger.debug(f"reduce_list: {response}")
     return response
 
 
-def member_match(candidates: list, members:IrusMemberList) -> list:
-
+def member_match(candidates: list, members) -> list:
     matched = []
     unmatched = []
 
     sorted_candidates = sorted(set(candidates))
-    logger.debug(f'sorted_candidates ({len(sorted_candidates)}): {sorted_candidates}')
+    logger.debug(f"sorted_candidates ({len(sorted_candidates)}): {sorted_candidates}")
 
     for c in sorted_candidates:
-        player = members.is_member(c, partial = True)
+        player = getattr(members, "is_member", lambda x, **kw: False)(c, partial=True)
         if player:
             matched.append(player)
         else:
             unmatched.append(c)
 
-    # Sort again in case we matched multiple times to the same player, yes this can happen
     sorted_matched = sorted(set(matched))
 
-    logger.debug(f'matched ({len(sorted_matched)}): {sorted_matched}')
-    logger.debug(f'unmatched ({len(unmatched)}): {unmatched}')
+    logger.debug(f"matched ({len(sorted_matched)}): {sorted_matched}")
+    logger.debug(f"unmatched ({len(unmatched)}): {unmatched}")
 
     return sorted_matched
 
 
-def generate_roster_ranks(invasion:IrusInvasion, matched:list) -> list:
+def generate_roster_ranks(invasion, matched: list) -> list:
     rec = []
-
     rank = 1
     for m in matched:
         result = IrusLadderRank.from_roster(invasion=invasion, rank=rank, player=m)
         rec.append(result)
-        rank += 1 
-
-    logger.debug(f'roster: {rec}')
+        rank += 1
+    logger.debug(f"roster: {rec}")
     return rec
-
-
-class IrusLadder:
-
-    def __init__(self, invasion: IrusInvasion, rec:list):
-        logger.info(f'IrusLadder.__init__: {invasion}')
-        logger.debug(f'{rec}')
-        self.ranks = rec
-        self.invasion = invasion
-
-    def invasion_key(self) -> str:
-        return f'#ladder#{self.invasion.name}'
-
-
-    @classmethod
-    def from_ladder_image(cls, invasion:IrusInvasion, members:IrusMemberList, bucket:str, key:str):
-        logger.info(f'Ladder.from_ladder_image {bucket}/{key} for {invasion.name}')
-
-        response = import_ladder_table(bucket, key)
-        table_blocks, blocks_map = extract_blocks(response)
-
-        if len(table_blocks) == 0:
-            raise ValueError(f'No invasion ladder not found in {bucket}/{key}')
-        elif len(table_blocks) > 1:
-            raise ValueError(f'Do not recognise invasion ladder in {bucket}/{key}')
-
-        rows = get_rows_columns_map(table_blocks[0], blocks_map)
-        rec = generate_ladder_ranks(invasion, rows, members)
-        
-        try:
-            # save enhanced debug info after processing
-            save_enhanced_debug(bucket, key, response, {
-                'table_blocks_count': len(table_blocks),
-                'parsed_rows': rows,
-                'blocks_map_keys': list(blocks_map.keys())[:10],
-                'processed_ladder': [{
-                    'rank': r.rank,
-                    'player': r.player,
-                    'score': r.score,
-                    'member': r.member,
-                    'adjusted': r.adjusted,
-                    'error': r.error
-                } for r in rec]
-            })
-
-            table.put_item(Item={'invasion': f'#upload#{invasion.name}', 'id': key})
-            with table.batch_writer() as batch:
-                for item in rec:
-                    batch.put_item(Item=item.item())
-        except ClientError as err:
-            logger.error(f'Failed to update table: {err}')
-            raise ValueError(f'Failed to update table: {err}')
-
-        return cls(invasion, rec)
-
-
-    @classmethod
-    def from_roster_image(cls, invasion:IrusInvasion, members:IrusMemberList, bucket:str, key:str):
-        logger.info(f'Ladder.from_roster_image {bucket}/{key} for {invasion.name}')
-
-        response = import_roster_table(bucket, key)
-        candidates = reduce_list(response)
-        matched = member_match(candidates, members)
-        rec = generate_roster_ranks(invasion, matched)
-        
-        try:
-            # save enhanced debug info after processing
-            save_enhanced_debug(bucket, key, response, {
-                'candidates': candidates,
-                'matched': matched,
-                'unmatched': [c for c in candidates if c not in matched],
-                'processed_roster': [{
-                    'rank': r.rank,
-                    'player': r.player,
-                    'member': r.member
-                } for r in rec]
-            })
-
-            table.put_item(Item={'invasion': f'#upload#{invasion.name}', 'id': key})
-            with table.batch_writer() as batch:
-                for item in rec:
-                    batch.put_item(Item=item.item())
-        except ClientError as err:
-            logger.error(f'Failed to update table: {err}')
-            raise ValueError(f'Failed to update table: {err}')
-
-        return cls(invasion, rec)
-
-
-    @classmethod
-    def from_invasion(cls, invasion:IrusInvasion):
-        logger.info(f'Ladder.from_invasion {invasion.name}')
-        rec = []
-        for item in table.query(KeyConditionExpression=Key('invasion').eq(f'#ladder#{invasion.name}'))['Items']:
-            item['rank'] = item['id']
-            rec.append(IrusLadderRank(invasion, item))
-
-        return cls(invasion, rec)
-
-
-    @classmethod
-    def from_csv(cls, invasion:IrusInvasion, csv:str, members:IrusMemberList):
-        logger.info(f'Ladder.from_csv {invasion.name}')
-        rec = []
-        lines = csv.splitlines()
-        for line in lines[1:]:
-            cols = line.split(',')
-            if (len(cols) == 8):
-                item = {
-                    'rank': cols[0],
-                    'player': cols[1],
-                    'score': int(cols[2]),
-                    'kills': int(cols[3]),
-                    'deaths': int(cols[4]),
-                    'assists': int(cols[5]),
-                    'heals': int(cols[6]),
-                    'damage': int(cols[7]),
-                    'member': members.is_member(cols[1]),
-                    'ladder': True,
-                    'adjusted': False,
-                    'error': False
-                }
-                rec.append(IrusLadderRank(invasion, item))
-
-        try:
-            table.put_item(Item={'invasion': f'#upload#{invasion.name}', 'id': 'csv'})
-            with table.batch_writer() as batch:
-                for item in rec:
-                    batch.put_item(Item=item.item())
-        except ClientError as err:
-            logger.error(f'Failed to update table: {err}')
-            raise ValueError(f'Failed to update table: {err}')
-
-        return cls(invasion, rec)
-
-
-    # Ranks start from 1 and are contiguous until return value
-    # Compare result to count() to confirm ladder is contiguous
-    def contiguous_from_1_until(self) -> int:
-        count = 0
-        for r in self.ranks:
-            count += 1
-            if int(r.rank) != count:
-                logger.debug(f's_contiguous_from_1: Rank {r.rank} is not {count}')
-                return count
-        return count
-
-    def count(self) -> int:
-        return len(self.ranks)
-    
-    # only count members that scored in the invasion
-    def members(self) -> int:
-        count = 0
-        for r in self.ranks:
-            count += 1 if (r.member == True and (r.ladder == False or (r.ladder == True and r.score > 0))) else 0
-        return count
-    
-    def rank(self, rank:int) -> IrusLadderRank:
-        for r in self.ranks:
-            if int(r.rank) == rank:
-                return r
-        return None
-    
-    # Return a row in the ladder for a player who was a member at the time of the invasion and scored
-    def member(self, player:str) -> IrusLadderRank:
-        for r in self.ranks:
-            if r.player == player and r.member == True and (r.ladder == False or (r.ladder == True and r.score > 0)):
-                return r
-        return None
-
-    def list(self, member: bool) -> str:
-        mesg = ''
-        for r in self.ranks:
-            if r.member == member:
-                if r.error:
-                    mesg += '**'
-                elif r.adjusted:
-                    mesg += '*'
-                mesg += f'[{r.rank}] {r.player}'
-                if r.error:
-                    mesg += '**'
-                elif r.adjusted:
-                    mesg += '*'
-                mesg += ', '                
-        return mesg
-
-    def str(self) -> str:
-        return f'Ladder for invasion {self.invasion.name} with {self.count()} rank(s) including {self.members()} member(s)'
-
-    def csv(self) -> str:
-        msg = f'ladder for invasion {self.invasion.name}\n'
-        msg += 'rank,player,score,kills,deaths,assists,heals,damage,scan\n'
-        for r in self.ranks:
-            if r.error:
-                scan = 'error'
-            elif r.adjusted:
-                scan = 'adjusted'
-            else:
-                scan = 'ok'
-            msg += f'{r.rank},{r.player},{r.score},{r.kills},{r.deaths},{r.assists},{r.heals},{r.damage},scan\n'
-        return msg
-
-    def markdown(self) -> str:
-        msg = '# Ladder\n'
-        msg += f'Ranks: {self.count()}\n'
-        msg += self.invasion.markdown()
-        return msg
-
-    def post(self) -> list:
-        msg = self.invasion.post()
-        msg.append(f'Ranks: {self.count()}')
-        msg.append(IrusLadderRank.header())
-        for r in self.ranks:
-            msg.append(r.post())
-        msg.append(IrusLadderRank.footer())
-        return msg
-
-    def delete_from_table(self):
-        logger.info(f'IrusLadder.delete_from_table for {self.invasion.name}')
-        try:
-            with table.batch_writer() as batch:
-                for r in self.ranks:
-                    batch.delete_item(Key={'invasion': f'#ladder#{self.invasion.name}', 'id': r.rank})
-        except ClientError as err:
-            logger.error(f'Failed to delete from table: {err}')
-            raise ValueError(f'Failed to delete from table: {err}')
-        
-    def edit(self, rank:int, new_rank, member, player, score) -> str:
-
-        logger.info(f'IrusLadder.edit {rank} {new_rank} {member} {player} {score}')
-        r = self.rank(rank)
-        if r:
-            if new_rank is None:
-                logger.debug(f'IrusLadder.edit -> Updating rank {rank}')
-                msg = f'Updating rank {rank} in invasion {self.invasion.name}: '
-            elif int(new_rank) != rank:
-                logger.debug(f'IrusLadder.edit -> Replacing rank {new_rank} with rank {rank}')
-                msg = f'Replacing rank {new_rank} in invasion {self.invasion.name} : '
-                r.delete_item()
-                r.rank = '{0:02d}'.format(new_rank)
-
-            if member is not None:
-                msg += f'\nmember {r.member} -> {member}'
-                r.member = bool(member)
-                r.adjusted = True
-            if player:
-                msg += f'\nplayer {r.player} -> {player}'
-                r.player = player
-                r.adjusted = True
-            if score:
-                msg += f'\nscore {r.score} -> {score}'
-                r.score = int(score)
-                r.adjusted = True
-            logger.debug(f'IrusLadder.edit -> Applying update {r}')
-            r.update_item()
-            msg += '\n' + r.str()
-        elif player is None:
-            msg = f'Rank {rank} in invasion {self.invasion.name} not found, need to provide player name to add new row'
-        elif new_rank is not None and int(new_rank) != rank:
-            msg = f'Rank {rank} does not exist to replace new rank {new_rank}'
-        else:
-            msg = f'Creating new entry for rank {rank} in invasion {self.invasion.name}'
-
-            item = {
-                'rank': '{0:02d}'.format(rank),
-                'player': player,
-                'score': 0,
-                'kills': 0,
-                'deaths': 0,
-                'assists': 0,
-                'heals': 0,
-                'damage': 0,
-                'member': False,
-                'ladder': False,
-                'adjusted': True,
-                'error': False
-            }
-
-            if score:
-                item['score'] = int(score)
-            if member is not None:
-                item['member'] = bool(member)
-
-            r = IrusLadderRank(self.invasion, item)
-            r.update_item()
-            self.ranks.append(r)
-            msg += '\n' + r.str()
-
-        logger.debug(f'IrusLadder.edit -> {msg}')
-
-        return msg
