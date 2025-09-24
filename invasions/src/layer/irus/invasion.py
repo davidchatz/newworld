@@ -1,140 +1,245 @@
-from .environ import IrusResources
+"""Backward compatibility facade for IrusInvasion.
 
-logger = IrusResources.logger()
-table = IrusResources.table()
+This module provides backward compatibility for the legacy IrusInvasion class
+while internally using the new repository pattern architecture.
+
+DEPRECATED: This facade is provided for backward compatibility only.
+New code should use irus.models.invasion.IrusInvasion and irus.repositories.invasion.InvasionRepository directly.
+"""
+
+import warnings
+from typing import Any
+
+from .models.invasion import IrusInvasion as PureInvasion
+from .repositories.invasion import InvasionRepository
+
+# Issue deprecation warning when this module is imported
+warnings.warn(
+    "irus.invasion module is deprecated. Use irus.models.invasion.IrusInvasion and "
+    "irus.repositories.invasion.InvasionRepository instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
 
 class IrusInvasion:
+    """Legacy IrusInvasion class for backward compatibility.
 
-    settlement_map = {
-        "bw": "Brightwood",
-        "bs": "Brimstone Sands",
-        "ck": "Cutlass Keys",
-        "er": "Ebonscale Reach",
-        "eg": "Edengrove",
-        "ef": "Everfall",
-        "mb": "Monarchs Bluff",
-        "md": "Mourningdale",
-        "rw": "Reekwater",
-        "rs": "Restless Shore",
-        "wf": "Weavers Fen",
-        "ww": "Windsward"
-    }
+    This class wraps the new repository pattern implementation to maintain
+    backward compatibility with existing code.
 
-    def __init__(self, name:str, settlement:str, win:bool, date:int, year:int, month:int, day:int, notes:str = None):
-        self.name = name
-        self.settlement = settlement
-        self.win = bool(win)
-        self.date = int(date)
-        self.year = int(year)
-        self.month = int(month)
-        self.day = int(day)
-        self.notes = notes
+    DEPRECATED: Use irus.models.invasion.IrusInvasion and irus.repositories.invasion.InvasionRepository instead.
+    """
 
-        if settlement not in self.settlement_map:
-            raise ValueError(f'Unknown settlement {settlement}')
+    # Re-export settlement map for backward compatibility
+    settlement_map = PureInvasion.SETTLEMENT_MAP
 
+    def __init__(
+        self,
+        name: str,
+        settlement: str,
+        win: bool,
+        date: int,
+        year: int,
+        month: int,
+        day: int,
+        notes: str = None,
+    ):
+        """Initialize from parameters (legacy API).
 
-    def key(self):
-        return {'invasion': '#invasion', 'id': self.name}
-    
+        Args:
+            name: Invasion name
+            settlement: Settlement code
+            win: Whether invasion was won
+            date: Date as YYYYMMDD integer
+            year: Year component
+            month: Month component
+            day: Day component
+            notes: Optional notes
+        """
+        # Create the pure model
+        self._model = PureInvasion(
+            name=name,
+            settlement=settlement,
+            win=win,
+            date=date,
+            year=year,
+            month=month,
+            day=day,
+            notes=notes,
+        )
+        # Create repository for database operations
+        self._repository = InvasionRepository()
+
+    @property
+    def name(self) -> str:
+        """Get invasion name."""
+        return self._model.name
+
+    @property
+    def settlement(self) -> str:
+        """Get settlement code."""
+        return self._model.settlement
+
+    @property
+    def win(self) -> bool:
+        """Get win status."""
+        return self._model.win
+
+    @property
+    def date(self) -> int:
+        """Get date."""
+        return self._model.date
+
+    @property
+    def year(self) -> int:
+        """Get year."""
+        return self._model.year
+
+    @property
+    def month(self) -> int:
+        """Get month."""
+        return self._model.month
+
+    @property
+    def day(self) -> int:
+        """Get day."""
+        return self._model.day
+
+    @property
+    def notes(self) -> str | None:
+        """Get notes."""
+        return self._model.notes
+
+    def key(self) -> dict[str, str]:
+        """Get DynamoDB key for this invasion."""
+        return self._model.key()
+
     @classmethod
-    def from_user(cls, day:int, month:int, year:int, settlement:str, win:bool, notes:str = None):
-        logger.info(f'Invasion.from_user: {day}, {month}, {year}, {settlement}, {win}, {notes}')
+    def from_user(
+        cls,
+        day: int,
+        month: int,
+        year: int,
+        settlement: str,
+        win: bool,
+        notes: str = None,
+    ) -> "IrusInvasion":
+        """Create a new invasion from user input and save to database.
 
-        if settlement not in cls.settlement_map:
-            raise ValueError(f'Unknown settlement {settlement}')
-        
-        zero_month = '{0:02d}'.format(month)
-        zero_day = '{0:02d}'.format(day)
-        date = f'{year}{zero_month}{zero_day}'
-        name = date + '-' + settlement
+        Args:
+            day: Day (1-31)
+            month: Month (1-12)
+            year: Year (e.g. 2024)
+            settlement: Settlement code
+            win: Whether invasion was won
+            notes: Optional notes
 
-        logger.info(f'Add #invasion object for {name}')
-        item = {
-            'invasion': f'#invasion',
-            'id': name,
-            'settlement': settlement,
-            'win': win,
-            'date': int(date),
-            'year': year,
-            'month': month,
-            'day': day
-        }
-        if notes:
-            item['notes'] = notes
-        
-        logger.debug(item)
-        table.put_item(Item=item)
+        Returns:
+            New IrusInvasion instance
 
-        return cls(name = name, settlement = settlement, win = win, date = int(date), year = year, month = month, day = day, notes = notes)
+        Raises:
+            ValueError: If validation fails or invasion already exists
+        """
+        repository = InvasionRepository()
+        pure_invasion = repository.create_from_user_input(
+            day=day, month=month, year=year, settlement=settlement, win=win, notes=notes
+        )
 
-    @classmethod
-    def from_table(cls, name:str):
-        logger.info(f'Invasion.from_table: {name}')
-        response = table.get_item(Key={'invasion': '#invasion', 'id': name})
-        logger.debug(response)
-        if 'Item' in response:
-            item = response['Item']
-            return cls(name = item['id'],
-                       settlement = item['settlement'],
-                       win = item['win'],
-                       date = item['date'],
-                       year = item['year'],
-                       month = item['month'],
-                       day = item['day'],
-                       notes = item['notes'] if 'notes' in item else None
-                    )
-        else:
-            raise ValueError(f'No invasion found called {name}')
+        # Convert back to legacy wrapper using the pure model data
+        return cls(
+            name=pure_invasion.name,
+            settlement=pure_invasion.settlement,
+            win=pure_invasion.win,
+            date=pure_invasion.date,
+            year=pure_invasion.year,
+            month=pure_invasion.month,
+            day=pure_invasion.day,
+            notes=pure_invasion.notes,
+        )
 
     @classmethod
-    def from_table_item(cls, item:dict):
-        logger.info(f'Invasion.from_table_item: {item}')
-        return cls(name = item['id'],
-                    settlement = item['settlement'],
-                    win = item['win'],
-                    date = item['date'],
-                    year = item['year'],
-                    month = item['month'],
-                    day = item['day'],
-                    notes = item['notes'] if 'notes' in item else None
-                )
+    def from_table(cls, name: str) -> "IrusInvasion":
+        """Load invasion from DynamoDB table.
+
+        Args:
+            name: Invasion name to look up
+
+        Returns:
+            IrusInvasion instance
+
+        Raises:
+            ValueError: If invasion not found
+        """
+        repository = InvasionRepository()
+        pure_invasion = repository.get_by_name(name)
+
+        if pure_invasion is None:
+            raise ValueError(f"No invasion found called {name}")
+
+        # Convert to legacy wrapper
+        return cls(
+            name=pure_invasion.name,
+            settlement=pure_invasion.settlement,
+            win=pure_invasion.win,
+            date=pure_invasion.date,
+            year=pure_invasion.year,
+            month=pure_invasion.month,
+            day=pure_invasion.day,
+            notes=pure_invasion.notes,
+        )
+
+    @classmethod
+    def from_table_item(cls, item: dict[str, Any]) -> "IrusInvasion":
+        """Create invasion from table item dictionary.
+
+        Args:
+            item: DynamoDB item dictionary
+
+        Returns:
+            IrusInvasion instance
+        """
+        pure_invasion = PureInvasion.from_dict(item)
+
+        return cls(
+            name=pure_invasion.name,
+            settlement=pure_invasion.settlement,
+            win=pure_invasion.win,
+            date=pure_invasion.date,
+            year=pure_invasion.year,
+            month=pure_invasion.month,
+            day=pure_invasion.day,
+            notes=pure_invasion.notes,
+        )
 
     def __str__(self) -> str:
-        msg = f'{self.name}, {self.settlement}, {self.date}, {self.win}'
-        if self.notes:
-            msg += f', {self.notes}'
-        return msg
-    
+        """String representation of invasion."""
+        return str(self._model)
+
     def markdown(self) -> str:
-        msg = f'## Invasion {self.name}\n'
-        msg += f'Settlement: {self.settlement_map[self.settlement]}\n'
-        msg += f'Date: {self.date}\n'
-        msg += f'Win: {self.win}\n'
-        if self.notes:
-            msg += f'Notes: {self.notes}\n'
-        return msg
+        """Format invasion as markdown string."""
+        return self._model.markdown()
 
-    def post(self) -> list:
-        msg = [f'Invasion: {self.name}']
-        msg.append(f'Settlement: {self.settlement_map[self.settlement]}')
-        msg.append(f'Date: {self.date}')
-        msg.append(f'Win: {self.win}')
-        if self.notes:
-            msg.append(f'Notes: {self.notes}')
-        return msg
+    def post(self) -> list[str]:
+        """Format invasion data as list of strings for Discord posting."""
+        return self._model.post()
 
-    def delete_from_table(self):
-        logger.info(f'Delete {self.name} from table')
-        table.delete_item(Key=self.key())
+    def delete_from_table(self) -> None:
+        """Delete invasion from table."""
+        self._repository.delete_by_name(self.name)
+
+    def month_prefix(self) -> str:
+        """Get YYYYMM prefix for monthly operations."""
+        return self._model.month_prefix()
+
+    def path_ladders(self) -> str:
+        """Get S3 path for ladder files."""
+        return self._model.path_ladders()
+
+    def path_roster(self) -> str:
+        """Get S3 path for roster files."""
+        return self._model.path_roster()
 
 
-    def month_prefix(self):
-        zero_month = '{0:02d}'.format(int(self.month))
-        return f'{self.year}{zero_month}'
-    
-    def path_ladders(self):
-        return f'ladders/{self.name}/'
-    
-    def path_roster(self):
-        return f'roster/{self.name}/'
+# Re-export for backward compatibility
+__all__ = ["IrusInvasion"]

@@ -1,126 +1,172 @@
-from boto3.dynamodb.conditions import Key
-from dataclasses import dataclass
-from datetime import datetime
-from .environ import IrusResources
+"""Backward compatibility facade for IrusMember.
 
-logger = IrusResources.logger()
-table = IrusResources.table()
+This module provides backward compatibility for the legacy IrusMember class
+while internally using the new repository pattern architecture.
+
+DEPRECATED: This facade is provided for backward compatibility only.
+New code should use irus.models.member.IrusMember and irus.repositories.member.MemberRepository directly.
+"""
+
+import warnings
+from typing import Any
+
+from .models.member import IrusMember as PureMember
+from .repositories.member import MemberRepository
+
+# Issue deprecation warning when this module is imported
+warnings.warn(
+    "irus.member module is deprecated. Use irus.models.member.IrusMember and "
+    "irus.repositories.member.MemberRepository instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
 
 class IrusMember:
+    """Legacy IrusMember class for backward compatibility.
 
-    def __init__(self, item: dict):
-        self.start = int(item['start'])
-        self.player = item['id']
-        self.faction = item['faction']
-        self.admin = bool(item['admin'])
-        self.salary = bool(item['salary'])
-        self.discord = item['discord'] if 'discord' in item else None
-        self.notes = item['notes'] if 'notes' in item else None
+    This class wraps the new repository pattern implementation to maintain
+    backward compatibility with existing code.
 
-    def key(self) -> str:
-        return {'invasion': '#member', 'id': self.player}
-    
-    @classmethod
-    def from_user(cls, player:str, day:int, month:int, year:int, faction:str, admin:bool, salary:bool, discord:str = None, notes:str = None):
-        logger.info(f'Member.from_user {player}')
+    DEPRECATED: Use irus.models.member.IrusMember and irus.repositories.member.MemberRepository instead.
+    """
 
-        zero_month = '{0:02d}'.format(month)
-        zero_day = '{0:02d}'.format(day)
-        start = f'{year}{zero_month}{zero_day}'
+    def __init__(self, item: dict[str, Any]):
+        """Initialize from dictionary (legacy API).
 
-        timestamp = datetime.today().strftime('%Y%m%d%H%M%S')
+        Args:
+            item: DynamoDB item dictionary
+        """
+        # Create the pure model from the item
+        self._model = PureMember.from_dict(item)
+        # Create repository for database operations
+        self._repository = MemberRepository()
 
-        additem = {
-            'invasion': '#memberevent',
-            'id': timestamp,
-            'event': "add",
-            'player': player,
-            'faction': faction,
-            'admin': admin,
-            'salary': salary,
-            'start': start
-        }
+    @property
+    def start(self) -> int:
+        """Get start date."""
+        return self._model.start
 
-        if discord:
-            additem['discord'] = discord
-        if notes:
-            additem['notes'] = notes
+    @property
+    def player(self) -> str:
+        """Get player name."""
+        return self._model.player
 
-        memberitem = {
-            'invasion': '#member',
-            'id': player,
-            'faction': faction,
-            'admin': admin,
-            'salary': salary,
-            'event': timestamp,
-            'start': start
-        }
+    @property
+    def faction(self) -> str:
+        """Get faction."""
+        return self._model.faction
 
-        if discord:
-            memberitem['discord'] = discord
-        if notes:
-            memberitem['notes'] = notes
+    @property
+    def admin(self) -> bool:
+        """Get admin status."""
+        return self._model.admin
 
-        # Add event for adding this member and update list of members
-        table.put_item(Item=additem)
-        logger.debug(f'Put {additem}')
-        table.put_item(Item=memberitem)
-        logger.debug(f'Put {memberitem}')
+    @property
+    def salary(self) -> bool:
+        """Get salary eligibility."""
+        return self._model.salary
 
-        return cls(memberitem)
+    @property
+    def discord(self) -> str | None:
+        """Get Discord username."""
+        return self._model.discord
 
+    @property
+    def notes(self) -> str | None:
+        """Get notes."""
+        return self._model.notes
+
+    def key(self) -> dict[str, str]:
+        """Get DynamoDB key for this member."""
+        return self._model.key()
 
     @classmethod
-    def from_table(cls, player:str):
-        logger.info(f'Member.from_table {player}')
+    def from_user(
+        cls,
+        player: str,
+        day: int,
+        month: int,
+        year: int,
+        faction: str,
+        admin: bool,
+        salary: bool,
+        discord: str | None = None,
+        notes: str | None = None,
+    ) -> "IrusMember":
+        """Create a new member from user input and save to database.
 
-        member = table.get_item(Key={'invasion': '#member', 'id': player})
+        Args:
+            player: Player name
+            day: Start day (1-31)
+            month: Start month (1-12)
+            year: Start year (e.g. 2024)
+            faction: Player faction
+            admin: Administrative privileges
+            salary: Salary eligibility
+            discord: Discord username (optional)
+            notes: Additional notes (optional)
 
-        if 'Item' not in member:
-            logger.info(f'Member {player} not found in table')
-            raise ValueError(f'No member found called {player}')
+        Returns:
+            New IrusMember instance
 
-        return cls(member['Item'])
+        Raises:
+            ValueError: If validation fails or member already exists
+        """
+        repository = MemberRepository()
+        pure_member = repository.create_from_user_input(
+            player=player,
+            day=day,
+            month=month,
+            year=year,
+            faction=faction,
+            admin=admin,
+            salary=salary,
+            discord=discord,
+            notes=notes,
+        )
 
+        # Convert back to legacy wrapper
+        return cls(pure_member.to_dict())
 
-    def str(self):
-        return f'## Member {self.player}\nFaction: {self.faction}\nStarting {self.start}\nAdmin {self.admin}\n'
-    
+    @classmethod
+    def from_table(cls, player: str) -> "IrusMember":
+        """Load member from DynamoDB table.
+
+        Args:
+            player: Player name to look up
+
+        Returns:
+            IrusMember instance
+
+        Raises:
+            ValueError: If member not found
+        """
+        repository = MemberRepository()
+        pure_member = repository.get_by_player(player)
+
+        if pure_member is None:
+            raise ValueError(f"No member found called {player}")
+
+        # Convert to legacy wrapper
+        return cls(pure_member.to_dict())
+
+    def str(self) -> str:
+        """Format member as markdown string."""
+        return self._model.str()
 
     def remove(self) -> str:
-        logger.info(f'Member.remove {self.player}')
+        """Remove member from database and log the event.
 
-        if not self.player:
-            msg = f'Member not initialised or has been removed'
-            logger.warning(f'Member not initialised or has been removed')
-            raise ValueError(msg)
-        
-        timestamp = datetime.today().strftime('%Y%m%d%H%M%S')
+        Returns:
+            Status message indicating success or failure
+        """
+        return self._repository.remove_with_audit(self.player)
 
-        item = {
-            'invasion': f'#memberevent',
-            'id': timestamp,
-            'event': "delete",
-            'player': self.player
-        }
+    def post(self) -> list[str]:
+        """Format member data as list of strings for Discord posting."""
+        return self._model.post()
 
-        response = table.delete_item(Key=self.key(), ReturnValues='ALL_OLD')
-        if 'Attributes' in response:
-            mesg = f'## Removed member {self.player}'
-            table.put_item(Item=item)
-            self.player = None
-        else:
-            mesg = f'*Member {self.player} not found, nothing to remove*'
 
-        logger.info(mesg)
-        return mesg
-
-    def post(self) -> list:
-        msg = []
-        msg.append(f'Faction: {self.faction}')
-        msg.append(f'Starting: {self.start}')
-        msg.append(f'Admin: {self.admin}')
-        msg.append(f'Earns salary: {self.salary}')
-        if len(self.notes) > 0:
-            msg.append(f'Notes: {self.notes}')
-        return msg
+# Re-export for backward compatibility
+__all__ = ["IrusMember"]

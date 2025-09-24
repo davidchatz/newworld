@@ -1,1 +1,1 @@
-from .lambdaclient import LambdaClient
+# Modern test package - fixtures available in conftest.py
