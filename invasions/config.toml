@@ -1,0 +1,56 @@
+# Default configuration for Invasions Discord Bot
+# Override settings in config-local.toml (not tracked in git)
+
+[general]
+timezone = "Australia/Sydney"
+log_level = "INFO"
+discord_cmd = "irus"
+discord_webhook_url = "https://discord.com/api/v10/webhooks"
+
+# Environment configurations
+[environments.dev]
+aws_profile = "dev-profile"
+aws_region = "us-east-1"
+stack_name = "irus-dev"
+ssm_prefix = "/irus-dev"
+
+# SAM deployment parameters for dev
+[environments.dev.sam]
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+confirm_changeset = false
+fail_on_empty_changeset = false
+resolve_s3 = true
+cached = true
+parallel = true
+
+[environments.prod]
+aws_profile = "prod-profile"
+aws_region = "us-east-1"
+stack_name = "irus-prod"
+ssm_prefix = "/irus-prod"
+
+# SAM deployment parameters for prod
+[environments.prod.sam]
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+confirm_changeset = false
+fail_on_empty_changeset = false
+resolve_s3 = true
+cached = true
+parallel = true
+
+# Parameter Store paths (relative to ssm_prefix)
+[parameter_store]
+public_key = "publickey"
+app_id = "appid"
+role_id = "roleid"
+bot_token = "bottoken"
+server_id = "serverid"
+
+# Application settings that can be overridden per environment
+[app_settings]
+# Image processing settings
+contrast_adjustment = 1.2
+saturation_adjustment = 1.1
+# Lambda settings
+lambda_memory = 1024
+lambda_timeout = 900
