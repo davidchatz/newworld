@@ -61,3 +61,5 @@ Discord bot for New World invasion stats tracking. Extracts statistics from ladd
 - Prefer editing existing files over creating new ones
 - Follow existing code patterns and conventions
 - Test changes before marking tasks complete
+- When running `aws` commands always specify the profile and region from the config.
+- When running the `aws` cli, always disable the pager so you aren't waiting for me to scroll through output, like this `AWS_PAGER="" aws sts get-caller-identity --profile PROFILE --region REGION`

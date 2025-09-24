@@ -3,8 +3,8 @@ version = 0.1
 [default]
 [default.global]
 [default.global.parameters]
-stack_name = "irus"
-profile = "irus-202410"
+stack_name = "irus-dev"
+profile = "irus-202509-dev"
 
 [default.build.parameters]
 cached = true

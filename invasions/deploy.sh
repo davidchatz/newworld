@@ -501,6 +501,7 @@ case $1 in
         ;;
 
     install)
+        _init
         _build
         _deploy
         ;;

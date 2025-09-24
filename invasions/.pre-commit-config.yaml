@@ -5,6 +5,7 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+        exclude: ^.*template\.yaml$  # Exclude CloudFormation templates
       - id: check-toml
       - id: check-json
       - id: check-merge-conflict
@@ -26,3 +27,9 @@ repos:
           - toml
           - types-toml
         files: ^src/config\.py$  # Only run on specific files for now
+
+  - repo: https://github.com/aws-cloudformation/cfn-lint
+    rev: v1.19.0
+    hooks:
+      - id: cfn-lint
+        files: .*template\.yaml$

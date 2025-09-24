@@ -38,33 +38,35 @@ Modernize the development tooling and configuration management for the Discord b
 - [x] Set up prod dependency group (runtime dependencies)
 - [x] Test uv environment creation and dependency installation (NO TEST EXECUTION)
 - [x] **REVIEW POINT**: User review and approval of Phase 1 changes
-- [ ] **COMMIT**: Add and commit Phase 1 changes
+- [x] **COMMIT**: Add and commit Phase 1 changes
 
 ### Phase 2: Configuration System
-- [ ] Design config.toml schema (AWS settings, environments, Parameter Store paths)
-- [ ] Create default config.toml with dev/prod sections
-- [ ] Create config-local.toml template
-- [ ] Add config-local.toml to .gitignore
-- [ ] Create simple config loading module (no pydantic for now)
-- [ ] **REVIEW POINT**: User review and approval of Phase 2 changes
-- [ ] **COMMIT**: Add and commit Phase 2 changes
+- [x] Design config.toml schema (AWS settings, environments, Parameter Store paths)
+- [x] Create default config.toml with dev/prod sections
+- [x] Create config-local.toml template
+- [x] Add config-local.toml to .gitignore
+- [x] Create simple config loading module (no pydantic for now)
+- [x] **REVIEW POINT**: User review and approval of Phase 2 changes
+- [x] **COMMIT**: Add and commit Phase 2 changes
 
 ### Phase 3: Development Tools Setup
-- [ ] Configure ruff for linting and formatting
-- [ ] Configure mypy for type checking
-- [ ] Set up pre-commit hooks
-- [ ] Configure pytest coverage reporting
-- [ ] Update development documentation
-- [ ] **REVIEW POINT**: User review and approval of Phase 3 changes
-- [ ] **COMMIT**: Add and commit Phase 3 changes
+- [x] Configure ruff for linting and formatting
+- [x] Configure mypy for type checking
+- [x] Set up pre-commit hooks
+- [x] Configure pytest coverage reporting
+- [x] Update development documentation
+- [x] **REVIEW POINT**: User review and approval of Phase 3 changes
+- [x] **COMMIT**: Add and commit Phase 3 changes
 
 ### Phase 4: Deployment Integration
-- [ ] Create/update deploy.sh script with environment parameter
-- [ ] Implement samconfig.toml generation from config settings
-- [ ] Test deployment with dev environment (NO TEST EXECUTION)
-- [ ] Document new deployment process
-- [ ] **REVIEW POINT**: User review and approval of Phase 4 changes
-- [ ] **COMMIT**: Add and commit Phase 4 changes
+- [x] Add environment parameter support to deploy.sh (dev|prod, defaults to dev)
+- [x] Update hardcoded variables to use config system via Python helper
+- [x] Modify _init() function to generate samconfig.toml from config.toml
+- [x] Update AWS_PROFILE and STACK_NAME derivation from config
+- [x] Test config integration without running deployment (NO TEST EXECUTION)
+- [x] Document new deployment process with environment switching
+- [x] **REVIEW POINT**: User review and approval of Phase 4 changes
+- [x] **COMMIT**: Add and commit Phase 4 changes
 
 ### Phase 5: New AWS Account Deployment
 - [ ] Update config-local.toml with new AWS account profile
