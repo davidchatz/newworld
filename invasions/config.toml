@@ -12,7 +12,7 @@ discord_webhook_url = "https://discord.com/api/v10/webhooks"
 aws_profile = "dev-profile"
 aws_region = "us-east-1"
 stack_name = "irus-dev"
-ssm_prefix = "/irus-dev"
+ssm_prefix = "/irus"
 
 # SAM deployment parameters for dev
 [environments.dev.sam]
@@ -27,7 +27,7 @@ parallel = true
 aws_profile = "prod-profile"
 aws_region = "us-east-1"
 stack_name = "irus-prod"
-ssm_prefix = "/irus-prod"
+ssm_prefix = "/irus"
 
 # SAM deployment parameters for prod
 [environments.prod.sam]

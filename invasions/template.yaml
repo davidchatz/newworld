@@ -8,6 +8,15 @@ Description: Scan invasions files
 
 Parameters:
 
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - prod
+      - test
+    Default: dev
+    Description: Deployment environment (dev, prod, test)
+
   Timezone:
     Type: String
     Default: Australia/Sydney
@@ -66,7 +75,7 @@ Parameters:
     Description: Image saturation reduction factor
 
 Mappings:
-  
+
   # https://docs.powertools.aws.dev/lambda/python/latest/#local-development
   # LambdaPowerTools:
   #   ap-southeast-1:
@@ -96,9 +105,9 @@ Globals:
     Environment:
       Variables:
         POWERTOOLS_LOG_LEVEL: !Ref LogLevel
-        PUBLIC_KEY_PATH: !Sub "${SsmPrefix}/${PublicKeyPath}"
-        APP_ID_PATH: !Sub "${SsmPrefix}/${AppIdPath}"
-        ROLE_ID_PATH: !Sub "${SsmPrefix}/${RoleIdPath}"
+        PUBLIC_KEY_PATH: !Sub "${SsmPrefix}/${Environment}/${PublicKeyPath}"
+        APP_ID_PATH: !Sub "${SsmPrefix}/${Environment}/${AppIdPath}"
+        ROLE_ID_PATH: !Sub "${SsmPrefix}/${Environment}/${RoleIdPath}"
         TABLE_NAME: !Ref Table
         DISCORD_CMD: !Ref DiscordCmd
         BUCKET_NAME: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
@@ -178,7 +187,7 @@ Resources:
       RetentionPolicy: Delete
     Metadata:
       BuildMethod: python3.11
-      BuildArchitecture: x86_64  
+      BuildArchitecture: x86_64
 
   Process:
     Type: AWS::Serverless::Function
@@ -189,7 +198,7 @@ Resources:
       Description: 'Download and scan invasion screen shots'
       MemorySize: 1024
       Timeout: 120
-      Policies: 
+      Policies:
         - TextractPolicy: {}
         - S3CrudPolicy:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
@@ -220,7 +229,7 @@ Resources:
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: Invasion
-      Policies: 
+      Policies:
         - TextractPolicy: {}
         - S3CrudPolicy:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
@@ -248,7 +257,7 @@ Resources:
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: Month
-      Policies: 
+      Policies:
         - TextractPolicy: {}
         - S3CrudPolicy:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
@@ -283,6 +292,7 @@ Resources:
   ProcessStepFunction:
     Type: AWS::Serverless::StateMachine
     Properties:
+      Name: !Sub "${AWS::StackName}-ProcessStateMachine"
       DefinitionSubstitutions:
         ProcessFunctionArn: !GetAtt Process.Arn
         InvasionFunctionArn: !GetAtt Invasion.Arn
@@ -338,12 +348,13 @@ Resources:
     DeletionPolicy: Delete
     UpdateReplacePolicy: Delete
     Properties:
-      LogGroupName: !Join [ "/", [ "stepfunctions", !Ref AWS::StackName, "processStateMachine"]]
+      LogGroupName: !Sub "/stepfunctions/${AWS::StackName}/processStateMachine"
       RetentionInDays: 30
 
   PostTableStepFunction:
     Type: AWS::Serverless::StateMachine
     Properties:
+      Name: !Sub "${AWS::StackName}-PostTableStateMachine"
       DefinitionSubstitutions:
         DiscordConnection: !GetAtt DiscordConnection.Arn
       Policies:
@@ -384,12 +395,13 @@ Resources:
     DeletionPolicy: Delete
     UpdateReplacePolicy: Delete
     Properties:
-      LogGroupName: !Join [ "/", [ "stepfunctions", !Ref AWS::StackName, "postTableStateMachine"]]
+      LogGroupName: !Sub "/stepfunctions/${AWS::StackName}/postTableStateMachine"
       RetentionInDays: 30
 
   DeadHandStepFunction:
     Type: AWS::Serverless::StateMachine
     Properties:
+      Name: !Sub "${AWS::StackName}-DeadHandStateMachine"
       DefinitionSubstitutions:
         ProcessStepFunc: !Ref ProcessStepFunction
         DiscordConnection: !GetAtt DiscordConnection.Arn
@@ -447,7 +459,7 @@ Resources:
     DeletionPolicy: Delete
     UpdateReplacePolicy: Delete
     Properties:
-      LogGroupName: !Join [ "/", [ "stepfunctions", !Ref AWS::StackName, "deadhandStateMachine"]]
+      LogGroupName: !Sub "/stepfunctions/${AWS::StackName}/deadhandStateMachine"
       RetentionInDays: 30
 
   Bot:
@@ -459,7 +471,7 @@ Resources:
       Description: 'Discord Invasion Bot'
       MemorySize: 1024
       Timeout: 120
-      Policies: 
+      Policies:
         - SSMParameterReadPolicy:
             ParameterName: "*"
         - DynamoDBCrudPolicy:
@@ -543,7 +555,7 @@ Outputs:
     Value: !Ref ProcessStepFunction
 
   PostTableStepFunctionArn:
-    Value: !Ref PostTableStepFunction  
+    Value: !Ref PostTableStepFunction
 
   InteractionsEndpointUrl:
     Value: !Sub https://${Api}.execute-api.${AWS::Region}.amazonaws.com/prod/discord

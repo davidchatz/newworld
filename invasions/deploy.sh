@@ -230,6 +230,7 @@ capabilities = "$SAM_CAPABILITIES"
 confirm_changeset = $SAM_CONFIRM_CHANGESET
 fail_on_empty_changeset = $SAM_FAIL_ON_EMPTY_CHANGESET
 resolve_s3 = $SAM_RESOLVE_S3
+parameter_overrides = "Environment=$ENVIRONMENT"
 
 [default.sync.parameters]
 watch = true
