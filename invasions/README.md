@@ -100,6 +100,18 @@ Sample downloaded report:
    uv run python -c "from src.config import get_config; print(get_config('dev').get_aws_profile())"
    ```
 
+5. **Initialize deployment configuration**:
+   ```bash
+   # Generate samconfig.toml for dev environment
+   ./deploy.sh init dev
+
+   # Generate samconfig.toml for prod environment
+   ./deploy.sh init prod
+
+   # Default (uses dev)
+   ./deploy.sh init
+   ```
+
 4. **Install pre-commit hooks** (optional but recommended):
    ```bash
    uv run pre-commit install
@@ -119,6 +131,29 @@ Environment support: `dev` (default) and `prod`. Switch with `INVASIONS_ENV=prod
 - **Type Checking**: `mypy` with gradual adoption approach
 - **Testing**: `pytest` with coverage reporting
 - **Pre-commit**: Automated code quality checks
+
+## Deployment
+
+The deployment system supports both dev and prod environments:
+
+```bash
+# Environment-aware deployment commands
+./deploy.sh init dev        # Initialize dev environment
+./deploy.sh build dev       # Build for dev
+./deploy.sh deploy dev      # Deploy to dev
+
+./deploy.sh init prod       # Initialize prod environment
+./deploy.sh deploy prod     # Deploy to prod
+
+# Default environment (dev)
+./deploy.sh init            # Same as 'init dev'
+./deploy.sh build           # Same as 'build dev'
+```
+
+**Environment Configuration**:
+- AWS profiles, regions, and stack names are defined in `config.toml`
+- Override sensitive settings in `config-local.toml` (gitignored)
+- SAM deployment parameters pulled from configuration automatically
 
 ---
 

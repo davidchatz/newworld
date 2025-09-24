@@ -5,9 +5,29 @@ tmp=/tmp/$$
 cmd=`basename $0`
 pids=""
 
-AWS_PROFILE=irus-202410
-STACK_NAME=irus
-LOG_LEVEL=info
+# Determine environment (dev or prod) - can be passed as second parameter
+ENVIRONMENT=${2:-dev}
+
+# Extract configuration values using our Python config system
+AWS_PROFILE=$(uv run python src/deploy_config.py $ENVIRONMENT aws_profile)
+if [[ $? -ne 0 || -z "$AWS_PROFILE" ]]; then
+    _error "Failed to get AWS profile for environment '$ENVIRONMENT'. Check your config files."
+fi
+
+STACK_NAME=$(uv run python src/deploy_config.py $ENVIRONMENT stack_name)
+if [[ $? -ne 0 || -z "$STACK_NAME" ]]; then
+    _error "Failed to get stack name for environment '$ENVIRONMENT'. Check your config files."
+fi
+
+LOG_LEVEL=$(uv run python src/deploy_config.py $ENVIRONMENT log_level)
+if [[ $? -ne 0 || -z "$LOG_LEVEL" ]]; then
+    _error "Failed to get log level for environment '$ENVIRONMENT'. Check your config files."
+fi
+
+REGION=$(uv run python src/deploy_config.py $ENVIRONMENT aws_region)
+if [[ $? -ne 0 || -z "$REGION" ]]; then
+    _error "Failed to get AWS region for environment '$ENVIRONMENT'. Check your config files."
+fi
 
 _exit()
 {
@@ -23,11 +43,17 @@ trap _exit 0 1 2 3
 
 function _usage()
 {
-    echo "Usage: $cmd init|build|deploy|test|cleanup"
+    echo "Usage: $cmd <command> [environment]"
+    echo "Commands: init|build|deploy|test|cleanup"
+    echo "Environment: dev|prod (defaults to dev)"
+    echo "Examples:"
+    echo "  $cmd init dev     # Initialize for dev environment"
+    echo "  $cmd deploy prod  # Deploy to prod environment"
+    echo "  $cmd build        # Build (uses dev by default)"
     exit $status
 }
 
-if [[ $# -ne 1 ]]
+if [[ $# -lt 1 || $# -gt 2 ]]
 then
     _usage
 fi
@@ -91,12 +117,7 @@ function _error()
 }
 
 
-REGION=$(aws configure get region --profile $AWS_PROFILE)
-if [[ -z "$REGION" ]]
-then
-    _note "Defaulting to ap-southeast-2"
-    REGION=ap-southeast-2
-fi
+# REGION is now set from config system above
 
 OPTIONS="--region $REGION --profile $AWS_PROFILE"
 
@@ -112,7 +133,7 @@ function _create_bucket()
 {
     if aws s3api head-bucket $OPTIONS --bucket $1 2>&1 | grep -q 404;
     then
-        _walk aws s3 mb $OPTIONS s3://$1 
+        _walk aws s3 mb $OPTIONS s3://$1
         sleep 2
     fi
 }
@@ -131,7 +152,7 @@ function _delete_bucket()
     then
         _run aws s3 rm $OPTIONS --recursive s3://$1
         _run aws s3 rb $OPTIONS s3://$1
-    fi  
+    fi
 }
 
 function _sync_samples()
@@ -158,7 +179,38 @@ function _sync_samples()
 
 function _init()
 {
-    _header "Generate samconfig.toml"
+    _header "Generate samconfig.toml for environment: $ENVIRONMENT"
+
+    # Extract SAM configuration from our config system
+    SAM_CAPABILITIES=$(uv run python src/deploy_config.py $ENVIRONMENT sam_capabilities)
+    if [[ $? -ne 0 ]]; then
+        _error "Failed to get SAM capabilities for environment '$ENVIRONMENT'. Check your config files."
+    fi
+
+    SAM_CONFIRM_CHANGESET=$(uv run python src/deploy_config.py $ENVIRONMENT sam_confirm_changeset)
+    if [[ $? -ne 0 ]]; then
+        _error "Failed to get SAM confirm_changeset for environment '$ENVIRONMENT'. Check your config files."
+    fi
+
+    SAM_FAIL_ON_EMPTY_CHANGESET=$(uv run python src/deploy_config.py $ENVIRONMENT sam_fail_on_empty_changeset)
+    if [[ $? -ne 0 ]]; then
+        _error "Failed to get SAM fail_on_empty_changeset for environment '$ENVIRONMENT'. Check your config files."
+    fi
+
+    SAM_RESOLVE_S3=$(uv run python src/deploy_config.py $ENVIRONMENT sam_resolve_s3)
+    if [[ $? -ne 0 ]]; then
+        _error "Failed to get SAM resolve_s3 for environment '$ENVIRONMENT'. Check your config files."
+    fi
+
+    SAM_CACHED=$(uv run python src/deploy_config.py $ENVIRONMENT sam_cached)
+    if [[ $? -ne 0 ]]; then
+        _error "Failed to get SAM cached for environment '$ENVIRONMENT'. Check your config files."
+    fi
+
+    SAM_PARALLEL=$(uv run python src/deploy_config.py $ENVIRONMENT sam_parallel)
+    if [[ $? -ne 0 ]]; then
+        _error "Failed to get SAM parallel for environment '$ENVIRONMENT'. Check your config files."
+    fi
 
     cat << EOF > samconfig.toml
 version = 0.1
@@ -170,14 +222,14 @@ stack_name = "$STACK_NAME"
 profile = "$AWS_PROFILE"
 
 [default.build.parameters]
-cached = true
-parallel = true
+cached = $SAM_CACHED
+parallel = $SAM_PARALLEL
 
 [default.deploy.parameters]
-capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
-confirm_changeset = false
-fail_on_empty_changeset = false
-resolve_s3 = true
+capabilities = "$SAM_CAPABILITIES"
+confirm_changeset = $SAM_CONFIRM_CHANGESET
+fail_on_empty_changeset = $SAM_FAIL_ON_EMPTY_CHANGESET
+resolve_s3 = $SAM_RESOLVE_S3
 
 [default.sync.parameters]
 watch = true
@@ -190,6 +242,12 @@ warm_containers = "EAGER"
 [prod.sync.parameters]
 watch = false
 EOF
+
+    _note "Generated samconfig.toml with configuration:"
+    echo "  Environment: $ENVIRONMENT"
+    echo "  AWS Profile: $AWS_PROFILE"
+    echo "  Stack Name: $STACK_NAME"
+    echo "  Log Level: $LOG_LEVEL"
 }
 
 function _build()
@@ -231,7 +289,7 @@ function _update_env()
             --stack-name $STACK_NAME \
             --query 'Stacks[].Outputs[?OutputKey==`InteractionsEndpointUrl`].{id:OutputValue}' \
             --output text)
-    
+
     cat << EOF > .env
 BUCKET_NAME=$BUCKET
 TEST_BUCKET_NAME=$TEST_BUCKET
@@ -286,6 +344,8 @@ function _deploy()
 
 function _cleanup_table()
 {
+    _error "Cleanup table called - not supported"
+
     _header "Cleanup table"
     TABLE=$(aws cloudformation describe-stacks \
             $OPTIONS \
@@ -297,6 +357,8 @@ function _cleanup_table()
 
 function _delete_table()
 {
+    _error "Delete table called - not supported"
+
     _header "Cleanup table"
     TABLE=$(aws cloudformation describe-stacks \
             $OPTIONS \
@@ -311,6 +373,8 @@ function _delete_table()
 
 function _cleanup_bucket()
 {
+    _error "Cleanup bucket called - not support"
+
     _header "Cleanup bucket"
     BUCKET=$(aws cloudformation describe-stacks \
             $OPTIONS \
@@ -322,6 +386,8 @@ function _cleanup_bucket()
 
 function _delete_bucket()
 {
+    _error "Delete bucket called - not supported"
+
     _header "Delete bucket"
     BUCKET=$(aws cloudformation describe-stacks \
             $OPTIONS \
