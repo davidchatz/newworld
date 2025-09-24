@@ -31,7 +31,7 @@ class TestIrusMemberFacade:
         item = {
             "start": 20240301,
             "id": "TestPlayer",
-            "faction": "covenant",
+            "faction": "yellow",
             "admin": False,
             "salary": True,
             "discord": "testplayer#1234",
@@ -42,7 +42,7 @@ class TestIrusMemberFacade:
 
         assert member.start == 20240301
         assert member.player == "TestPlayer"
-        assert member.faction == "covenant"
+        assert member.faction == "yellow"
         assert member.admin is False
         assert member.salary is True
         assert member.discord == "testplayer#1234"
@@ -53,7 +53,7 @@ class TestIrusMemberFacade:
         item = {
             "start": 20240301,
             "id": "TestPlayer",
-            "faction": "covenant",
+            "faction": "yellow",
             "admin": False,
             "salary": True,
         }
@@ -73,7 +73,7 @@ class TestIrusMemberFacade:
         item = {
             "start": 20240301,
             "id": "TestPlayer",
-            "faction": "covenant",
+            "faction": "yellow",
             "admin": False,
             "salary": True,
         }
@@ -92,7 +92,7 @@ class TestIrusMemberFacade:
         pure_member = PureMember(
             start=20240315,
             player="NewPlayer",
-            faction="covenant",
+            faction="yellow",
             admin=False,
             salary=True,
         )
@@ -104,7 +104,7 @@ class TestIrusMemberFacade:
             day=15,
             month=3,
             year=2024,
-            faction="covenant",
+            faction="yellow",
             admin=False,
             salary=True,
         )
@@ -115,7 +115,7 @@ class TestIrusMemberFacade:
             day=15,
             month=3,
             year=2024,
-            faction="covenant",
+            faction="yellow",
             admin=False,
             salary=True,
             discord=None,
@@ -125,7 +125,7 @@ class TestIrusMemberFacade:
         # Verify result
         assert isinstance(result, IrusMember)
         assert result.player == "NewPlayer"
-        assert result.faction == "covenant"
+        assert result.faction == "yellow"
 
     @patch("irus.repositories.member.MemberRepository.get_by_player")
     def test_from_table_found(self, mock_get):
@@ -136,7 +136,7 @@ class TestIrusMemberFacade:
         pure_member = PureMember(
             start=20240301,
             player="ExistingPlayer",
-            faction="covenant",
+            faction="yellow",
             admin=False,
             salary=True,
         )
@@ -172,7 +172,7 @@ class TestIrusMemberFacade:
         item = {
             "start": 20240301,
             "id": "TestPlayer",
-            "faction": "covenant",
+            "faction": "yellow",
             "admin": True,
             "salary": False,
         }
@@ -181,7 +181,7 @@ class TestIrusMemberFacade:
         result = member.str()
 
         expected = (
-            "## Member TestPlayer\nFaction: covenant\nStarting 20240301\nAdmin True\n"
+            "## Member TestPlayer\nFaction: yellow\nStarting 20240301\nAdmin True\n"
         )
         assert result == expected
 
@@ -194,7 +194,7 @@ class TestIrusMemberFacade:
         item = {
             "start": 20240301,
             "id": "TestPlayer",
-            "faction": "covenant",
+            "faction": "yellow",
             "admin": False,
             "salary": True,
         }
@@ -213,7 +213,7 @@ class TestIrusMemberFacade:
         item = {
             "start": 20240301,
             "id": "TestPlayer",
-            "faction": "covenant",
+            "faction": "yellow",
             "admin": True,
             "salary": False,
             "notes": "Test notes",
@@ -223,7 +223,7 @@ class TestIrusMemberFacade:
         result = member.post()
 
         expected = [
-            "Faction: covenant",
+            "Faction: yellow",
             "Starting: 20240301",
             "Admin: True",
             "Earns salary: False",
@@ -236,7 +236,7 @@ class TestIrusMemberFacade:
         item = {
             "start": 20240301,
             "id": "TestPlayer",
-            "faction": "covenant",
+            "faction": "yellow",
             "admin": False,
             "salary": True,
         }
@@ -245,7 +245,7 @@ class TestIrusMemberFacade:
         result = member.post()
 
         expected = [
-            "Faction: covenant",
+            "Faction: yellow",
             "Starting: 20240301",
             "Admin: False",
             "Earns salary: True",

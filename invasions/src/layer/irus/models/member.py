@@ -20,7 +20,7 @@ class IrusMember(BaseModel):
     Attributes:
         start: Start date as YYYYMMDD integer
         player: Player name (unique identifier)
-        faction: Player's faction (covenant, marauders, syndicate)
+        faction: Player's faction color (yellow, purple, green)
         admin: Whether player has administrative privileges
         salary: Whether player is eligible for company salary
         discord: Discord username/ID (optional)
@@ -30,7 +30,7 @@ class IrusMember(BaseModel):
         >>> member = IrusMember(
         ...     start=20240301,
         ...     player="TestPlayer",
-        ...     faction="covenant",
+        ...     faction="yellow",
         ...     admin=False,
         ...     salary=True,
         ...     discord="testplayer#1234"
@@ -38,7 +38,7 @@ class IrusMember(BaseModel):
         >>> member.player
         'TestPlayer'
         >>> member.faction
-        'covenant'
+        'yellow'
     """
 
     start: int = Field(
@@ -53,7 +53,7 @@ class IrusMember(BaseModel):
         min_length=1,
         max_length=50,  # New World character name limit
     )
-    faction: str = Field(..., description="Player's faction")
+    faction: str = Field(..., description="Player's faction color")
     admin: bool = Field(
         default=False, description="Whether player has administrative privileges"
     )
@@ -70,8 +70,8 @@ class IrusMember(BaseModel):
     @field_validator("faction")
     @classmethod
     def validate_faction(cls, v: str) -> str:
-        """Validate that faction is one of the three valid New World factions."""
-        valid_factions = {"covenant", "marauders", "syndicate"}
+        """Validate that faction is one of the three valid New World faction colors."""
+        valid_factions = {"yellow", "purple", "green"}
         if v.lower() not in valid_factions:
             raise ValueError(f"Faction must be one of: {', '.join(valid_factions)}")
         return v.lower()

@@ -44,7 +44,7 @@ def sample_member():
     return IrusMember(
         start=20240301,
         player="TestPlayer",
-        faction="covenant",
+        faction="yellow",
         admin=False,
         salary=True,
         discord="testplayer#1234",
@@ -76,7 +76,7 @@ class TestMemberRepository:
         assert item["invasion"] == "#member"
         assert item["id"] == "TestPlayer"
         assert item["start"] == 20240301
-        assert item["faction"] == "covenant"
+        assert item["faction"] == "yellow"
         assert item["admin"] is False
         assert item["salary"] is True
         assert item["discord"] == "testplayer#1234"
@@ -90,7 +90,7 @@ class TestMemberRepository:
             "Item": {
                 "start": 20240301,
                 "id": "TestPlayer",
-                "faction": "covenant",
+                "faction": "yellow",
                 "admin": False,
                 "salary": True,
                 "discord": "testplayer#1234",
@@ -104,7 +104,7 @@ class TestMemberRepository:
         # Assert
         assert result is not None
         assert result.player == "TestPlayer"
-        assert result.faction == "covenant"
+        assert result.faction == "yellow"
         assert result.start == 20240301
 
         mock_table.get_item.assert_called_once_with(
@@ -133,7 +133,7 @@ class TestMemberRepository:
             "Item": {
                 "start": 20240301,
                 "id": "TestPlayer",
-                "faction": "covenant",
+                "faction": "yellow",
                 "admin": False,
                 "salary": True,
             }
@@ -206,7 +206,7 @@ class TestMemberRepository:
                 day=15,
                 month=3,
                 year=2024,
-                faction="covenant",
+                faction="yellow",
                 admin=False,
                 salary=True,
                 discord="newplayer#5678",
@@ -217,7 +217,7 @@ class TestMemberRepository:
         assert isinstance(result, IrusMember)
         assert result.player == "NewPlayer"
         assert result.start == 20240315
-        assert result.faction == "covenant"
+        assert result.faction == "yellow"
         assert result.discord == "newplayer#5678"
 
         # Check that put_item was called twice (audit event + member)
@@ -237,7 +237,7 @@ class TestMemberRepository:
             "Item": {
                 "start": 20240301,
                 "id": "ExistingPlayer",
-                "faction": "covenant",
+                "faction": "yellow",
                 "admin": False,
                 "salary": False,
             }
@@ -250,7 +250,7 @@ class TestMemberRepository:
                 day=15,
                 month=3,
                 year=2024,
-                faction="covenant",
+                faction="yellow",
                 admin=False,
                 salary=True,
             )
@@ -267,7 +267,7 @@ class TestMemberRepository:
                 day=30,
                 month=2,  # February 30 doesn't exist
                 year=2024,
-                faction="covenant",
+                faction="yellow",
                 admin=False,
                 salary=True,
             )
@@ -365,7 +365,7 @@ class TestMemberRepository:
     def test_logging_methods(self, repository, mock_logger):
         """Test that logging methods are called appropriately."""
         # Test save operation logging
-        member = IrusMember(start=20240301, player="TestPlayer", faction="covenant")
+        member = IrusMember(start=20240301, player="TestPlayer", faction="yellow")
 
         repository.save(member)
 

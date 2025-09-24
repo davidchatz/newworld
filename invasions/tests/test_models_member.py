@@ -13,7 +13,7 @@ class TestIrusMember:
         member = IrusMember(
             start=20240301,
             player="TestPlayer",
-            faction="covenant",
+            faction="yellow",
             admin=False,
             salary=True,
             discord="testplayer#1234",
@@ -22,7 +22,7 @@ class TestIrusMember:
 
         assert member.start == 20240301
         assert member.player == "TestPlayer"
-        assert member.faction == "covenant"
+        assert member.faction == "yellow"
         assert member.admin is False
         assert member.salary is True
         assert member.discord == "testplayer#1234"
@@ -30,11 +30,11 @@ class TestIrusMember:
 
     def test_create_minimal_member(self):
         """Test creating member with only required fields."""
-        member = IrusMember(start=20240301, player="MinimalPlayer", faction="marauders")
+        member = IrusMember(start=20240301, player="MinimalPlayer", faction="green")
 
         assert member.start == 20240301
         assert member.player == "MinimalPlayer"
-        assert member.faction == "marauders"
+        assert member.faction == "green"
         assert member.admin is False  # Default
         assert member.salary is False  # Default
         assert member.discord is None
@@ -42,7 +42,7 @@ class TestIrusMember:
 
     def test_faction_validation_valid(self):
         """Test valid faction values."""
-        valid_factions = ["covenant", "marauders", "syndicate"]
+        valid_factions = ["yellow", "green", "purple"]
 
         for faction in valid_factions:
             member = IrusMember(
@@ -52,8 +52,8 @@ class TestIrusMember:
 
     def test_faction_validation_case_insensitive(self):
         """Test faction validation is case insensitive."""
-        member = IrusMember(start=20240301, player="TestPlayer", faction="COVENANT")
-        assert member.faction == "covenant"
+        member = IrusMember(start=20240301, player="TestPlayer", faction="YELLOW")
+        assert member.faction == "yellow"
 
     def test_faction_validation_invalid(self):
         """Test invalid faction raises ValueError."""
@@ -64,14 +64,14 @@ class TestIrusMember:
         assert error["type"] == "value_error"
         error_str = str(error["ctx"])
         # Check that all valid factions are mentioned (order may vary)
-        assert "covenant" in error_str
-        assert "syndicate" in error_str
-        assert "marauders" in error_str
+        assert "yellow" in error_str
+        assert "purple" in error_str
+        assert "green" in error_str
 
     def test_player_name_validation_empty(self):
         """Test empty player name raises ValueError."""
         with pytest.raises(ValidationError) as exc_info:
-            IrusMember(start=20240301, player="   ", faction="covenant")
+            IrusMember(start=20240301, player="   ", faction="yellow")
 
         error = exc_info.value.errors()[0]
         assert error["type"] == "value_error"
@@ -79,7 +79,7 @@ class TestIrusMember:
 
     def test_player_name_validation_strips_whitespace(self):
         """Test player name strips whitespace."""
-        member = IrusMember(start=20240301, player="  TestPlayer  ", faction="covenant")
+        member = IrusMember(start=20240301, player="  TestPlayer  ", faction="yellow")
         assert member.player == "TestPlayer"
 
     def test_start_date_validation_valid(self):
@@ -91,7 +91,7 @@ class TestIrusMember:
         ]
 
         for date in valid_dates:
-            member = IrusMember(start=date, player="TestPlayer", faction="covenant")
+            member = IrusMember(start=date, player="TestPlayer", faction="yellow")
             assert member.start == date
 
     def test_start_date_validation_invalid_format(self):
@@ -105,7 +105,7 @@ class TestIrusMember:
 
         for invalid_date in invalid_dates:
             with pytest.raises(ValidationError):
-                IrusMember(start=invalid_date, player="TestPlayer", faction="covenant")
+                IrusMember(start=invalid_date, player="TestPlayer", faction="yellow")
 
     def test_start_date_validation_invalid_date(self):
         """Test invalid calendar date raises ValueError."""
@@ -113,7 +113,7 @@ class TestIrusMember:
             IrusMember(
                 start=20240230,  # February 30th doesn't exist
                 player="TestPlayer",
-                faction="covenant",
+                faction="yellow",
             )
 
     def test_field_length_validation(self):
@@ -123,7 +123,7 @@ class TestIrusMember:
             IrusMember(
                 start=20240301,
                 player="a" * 51,  # Max is 50
-                faction="covenant",
+                faction="yellow",
             )
 
         # Discord too long
@@ -131,7 +131,7 @@ class TestIrusMember:
             IrusMember(
                 start=20240301,
                 player="TestPlayer",
-                faction="covenant",
+                faction="yellow",
                 discord="a" * 101,  # Max is 100
             )
 
@@ -140,13 +140,13 @@ class TestIrusMember:
             IrusMember(
                 start=20240301,
                 player="TestPlayer",
-                faction="covenant",
+                faction="yellow",
                 notes="a" * 501,  # Max is 500
             )
 
     def test_key_method(self):
         """Test key method returns correct DynamoDB key."""
-        member = IrusMember(start=20240301, player="TestPlayer", faction="covenant")
+        member = IrusMember(start=20240301, player="TestPlayer", faction="yellow")
 
         key = member.key()
         assert key == {"invasion": "#member", "id": "TestPlayer"}
@@ -156,7 +156,7 @@ class TestIrusMember:
         member = IrusMember(
             start=20240301,
             player="TestPlayer",
-            faction="covenant",
+            faction="yellow",
             admin=True,
             salary=False,
             discord="testplayer#1234",
@@ -168,7 +168,7 @@ class TestIrusMember:
             "invasion": "#member",
             "id": "TestPlayer",
             "start": 20240301,
-            "faction": "covenant",
+            "faction": "yellow",
             "admin": True,
             "salary": False,
             "discord": "testplayer#1234",
@@ -178,14 +178,14 @@ class TestIrusMember:
 
     def test_to_dict_minimal(self):
         """Test to_dict method with only required fields."""
-        member = IrusMember(start=20240301, player="TestPlayer", faction="covenant")
+        member = IrusMember(start=20240301, player="TestPlayer", faction="yellow")
 
         result = member.to_dict()
         expected = {
             "invasion": "#member",
             "id": "TestPlayer",
             "start": 20240301,
-            "faction": "covenant",
+            "faction": "yellow",
             "admin": False,
             "salary": False,
         }
@@ -196,7 +196,7 @@ class TestIrusMember:
         item = {
             "start": "20240301",  # String as from DynamoDB
             "id": "TestPlayer",
-            "faction": "covenant",
+            "faction": "yellow",
             "admin": True,
             "salary": False,
             "discord": "testplayer#1234",
@@ -206,7 +206,7 @@ class TestIrusMember:
         member = IrusMember.from_dict(item)
         assert member.start == 20240301  # Converted to int
         assert member.player == "TestPlayer"
-        assert member.faction == "covenant"
+        assert member.faction == "yellow"
         assert member.admin is True
         assert member.salary is False
         assert member.discord == "testplayer#1234"
@@ -217,7 +217,7 @@ class TestIrusMember:
         item = {
             "start": "20240301",
             "id": "TestPlayer",
-            "faction": "covenant",
+            "faction": "yellow",
             "admin": False,
             "salary": True,
         }
@@ -225,7 +225,7 @@ class TestIrusMember:
         member = IrusMember.from_dict(item)
         assert member.start == 20240301
         assert member.player == "TestPlayer"
-        assert member.faction == "covenant"
+        assert member.faction == "yellow"
         assert member.admin is False
         assert member.salary is True
         assert member.discord is None
@@ -247,12 +247,12 @@ class TestIrusMember:
     def test_str_method(self):
         """Test str method formatting."""
         member = IrusMember(
-            start=20240301, player="TestPlayer", faction="covenant", admin=True
+            start=20240301, player="TestPlayer", faction="yellow", admin=True
         )
 
         result = member.str()
         expected = (
-            "## Member TestPlayer\nFaction: covenant\nStarting 20240301\nAdmin True\n"
+            "## Member TestPlayer\nFaction: yellow\nStarting 20240301\nAdmin True\n"
         )
         assert result == expected
 
@@ -261,7 +261,7 @@ class TestIrusMember:
         member = IrusMember(
             start=20240301,
             player="TestPlayer",
-            faction="covenant",
+            faction="yellow",
             admin=True,
             salary=False,
             notes="Test notes",
@@ -269,7 +269,7 @@ class TestIrusMember:
 
         result = member.post()
         expected = [
-            "Faction: covenant",
+            "Faction: yellow",
             "Starting: 20240301",
             "Admin: True",
             "Earns salary: False",
@@ -279,11 +279,11 @@ class TestIrusMember:
 
     def test_post_method_no_notes(self):
         """Test post method without notes."""
-        member = IrusMember(start=20240301, player="TestPlayer", faction="covenant")
+        member = IrusMember(start=20240301, player="TestPlayer", faction="yellow")
 
         result = member.post()
         expected = [
-            "Faction: covenant",
+            "Faction: yellow",
             "Starting: 20240301",
             "Admin: False",
             "Earns salary: False",
@@ -297,17 +297,17 @@ class TestIrusMember:
             IrusMember(
                 start=20240301,
                 player="TestPlayer",
-                faction="covenant",
+                faction="yellow",
                 extra_field="not_allowed",
             )
 
     def test_validate_assignment(self):
         """Test that assignment validation works."""
-        member = IrusMember(start=20240301, player="TestPlayer", faction="covenant")
+        member = IrusMember(start=20240301, player="TestPlayer", faction="yellow")
 
         # This should work
-        member.faction = "marauders"
-        assert member.faction == "marauders"
+        member.faction = "green"
+        assert member.faction == "green"
 
         # This should fail
         with pytest.raises(ValidationError):
