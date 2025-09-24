@@ -32,3 +32,7 @@ python test_image_processing.py screenshot.png 3.0 0.1
 ```
 
 The script displays original and processed images side by side to help you find optimal settings before updating the SAM template parameters.
+
+## With uv
+
+uv run --with pillow --with matplotlib python ./scripts/image_processing/test_image_processing.py ~/Downloads/20250923-eg.png 2.0 0.0
