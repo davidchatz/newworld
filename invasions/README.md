@@ -61,12 +61,73 @@ Sample downloaded report:
 
 ---
 
+# Development Setup
+
+## Prerequisites
+
+- Python 3.12+
+- [uv](https://docs.astral.sh/uv/) - Fast Python package manager
+- [AWS CLI v2](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+- [AWS SAM](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
+- Docker
+
+## Quick Start
+
+1. **Install dependencies**:
+   ```bash
+   uv sync --extra dev
+   ```
+
+2. **Configure local settings** (copy and customize):
+   ```bash
+   cp config-local.toml.example config-local.toml
+   # Edit config-local.toml with your AWS profiles and settings
+   ```
+
+3. **Run development tools**:
+   ```bash
+   # Linting and formatting
+   uv run ruff check src/ --fix
+   uv run ruff format src/
+
+   # Type checking
+   uv run mypy src/
+
+   # Run tests (when safe - currently disabled for production protection)
+   # uv run pytest
+
+   # Test configuration loading
+   uv run python -c "from src.config import get_config; print(get_config('dev').get_aws_profile())"
+   ```
+
+4. **Install pre-commit hooks** (optional but recommended):
+   ```bash
+   uv run pre-commit install
+   ```
+
+## Configuration
+
+The project uses TOML-based configuration:
+- `config.toml` - Default settings (tracked in git)
+- `config-local.toml` - Local overrides (gitignored, for sensitive settings)
+
+Environment support: `dev` (default) and `prod`. Switch with `INVASIONS_ENV=prod` or in configuration.
+
+## Development Tools
+
+- **Linting/Formatting**: `ruff` with pre-configured rules
+- **Type Checking**: `mypy` with gradual adoption approach
+- **Testing**: `pytest` with coverage reporting
+- **Pre-commit**: Automated code quality checks
+
+---
+
 # Bot Installation
 
 ## Dependencies
 
-- Python 3.12
-- Python [virtualenv](https://virtualenv.pypa.io/en/latest/) or equivalent
+- Python 3.12+
+- [uv](https://docs.astral.sh/uv/) - Python package manager
 - [AWS CLI v2](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
 - [AWS SAM](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
 - Docker
@@ -127,7 +188,7 @@ Decide on a prefix for your parameters, for example `irus`, and create four **se
 4. `/irus/publickey`
 5. `/irus/roleid`
 
-In another tab navigate to https://discord.com/developers/applications and select the application you created. Under **General Information** you will see both the **Application Id** and the **Public Key**. Add these values to the parameters you created. 
+In another tab navigate to https://discord.com/developers/applications and select the application you created. Under **General Information** you will see both the **Application Id** and the **Public Key**. Add these values to the parameters you created.
 
 Press **Save**.
 

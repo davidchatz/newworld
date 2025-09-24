@@ -53,6 +53,8 @@ prod = [
 [tool.ruff]
 target-version = "py312"
 line-length = 88
+
+[tool.ruff.lint]
 select = [
     "E",  # pycodestyle errors
     "W",  # pycodestyle warnings
@@ -61,41 +63,94 @@ select = [
     "B",  # flake8-bugbear
     "C4", # flake8-comprehensions
     "UP", # pyupgrade
+    "N",  # pep8-naming
+    "S",  # flake8-bandit
 ]
 ignore = [
     "E501", # line too long, handled by formatter
+    "S101", # assert statements - common in tests
+    "S105", # hardcoded password strings - common in config
+    "S106", # hardcoded password function args
+    "S108", # hardcoded temp file - acceptable for lambda
 ]
 
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
 
+[tool.ruff.lint.per-file-ignores]
+# Tests can use assert statements and have longer lines
+"tests/*" = ["S101", "E501"]
+"**/test_*.py" = ["S101", "E501"]
+
 [tool.mypy]
 python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
+disallow_untyped_defs = false  # Relaxed for existing codebase
+disallow_incomplete_defs = false  # Relaxed for existing codebase
 check_untyped_defs = true
-disallow_untyped_decorators = true
+disallow_untyped_decorators = false  # Relaxed for AWS Lambda decorators
 no_implicit_optional = true
 warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 strict_equality = true
+show_error_codes = true
+exclude = [
+    "^src/old/",  # Exclude old code from type checking
+    "^.aws-sam/",  # Exclude AWS SAM cache
+]
+
+# Per-module configuration for gradual adoption
+[[tool.mypy.overrides]]
+module = [
+    "src.config",  # Our new config module - gradually improve
+]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_return_any = false  # Relax for config values from TOML
+
+[[tool.mypy.overrides]]
+module = [
+    "boto3.*",
+    "botocore.*",
+    "aws_lambda_powertools.*",
+    "nacl.*",
+    "toml.*",
+]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 minversion = "8.0"
-addopts = "-ra -q --strict-markers"
-testpaths = ["tests"]
+addopts = [
+    "-ra",  # show extra test summary info for all except passed
+    "-q",   # quiet output
+    "--strict-markers",  # treat unknown markers as errors
+    "--cov=src",  # enable coverage for src directory
+    "--cov-report=term-missing",  # show missing lines in terminal
+    "--cov-report=html:htmlcov",  # generate HTML coverage report
+    "--cov-fail-under=0",  # don't fail on low coverage yet
+]
+testpaths = ["tests", "src/layer/tests"]  # include existing test directories
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
+markers = [
+    "slow: marks tests as slow (deselect with -m 'not slow')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
 
 [tool.coverage.run]
 source = ["src"]
 branch = true
+omit = [
+    "src/old/*",  # exclude old code
+    "*/tests/*",  # exclude test files from coverage
+    "*/.aws-sam/*",  # exclude AWS SAM cache
+]
 
 [tool.coverage.report]
 exclude_lines = [
@@ -103,4 +158,12 @@ exclude_lines = [
     "def __repr__",
     "raise AssertionError",
     "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
 ]
+show_missing = true
+skip_covered = false
+precision = 2
+
+[tool.coverage.html]
+directory = "htmlcov"
