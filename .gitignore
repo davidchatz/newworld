@@ -13,3 +13,4 @@ invasions/tmp
 invasions/src/old
 invasions/.env
 invasions/.env.json
+invasions/config-local.toml
