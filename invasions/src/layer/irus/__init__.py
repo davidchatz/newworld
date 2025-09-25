@@ -14,7 +14,17 @@ from .process import IrusFiles as IrusFiles
 from .process import IrusProcess as IrusProcess
 from .report import IrusReport as IrusReport
 
-# TODO: Still need refactoring (contain import-time resource initialization)
+# Modern service layer
+from .services import DiscordMessagingService as DiscordMessagingService
+from .services import ImageProcessingService as ImageProcessingService
+from .services import MemberManagementService as MemberManagementService
+
+# Legacy utilities (maintained for backward compatibility)
+from .utilities import (
+    update_invasions_for_new_member as update_invasions_for_new_member,
+)
+
+# TODO: Legacy modules scheduled for replacement by services
 # from .ladder import IrusLadder  # Use models.ladder.IrusLadder instead
-# from .posttable import IrusPostTable
-# from .utilities import update_invasions_for_new_member
+# from .posttable import IrusPostTable  # Use DiscordMessagingService instead
+# from .imageprep import ImagePreprocessor  # Use ImageProcessingService instead
