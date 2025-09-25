@@ -83,8 +83,13 @@ class LadderRepository:
         """
         self._log_operation("save_ladder", f"invasion {ladder.invasion_name}")
 
-        # Delegate to rank repository for efficient batch save
-        self._rank_repo.save_multiple(ladder.ranks)
+        try:
+            # Delegate to rank repository for efficient batch save
+            self._rank_repo.save_multiple(ladder.ranks)
+        except ClientError as e:
+            error_msg = f"Failed to save ladder {ladder.invasion_name}: {e}"
+            self.logger.error(error_msg)
+            raise ValueError(error_msg) from e
 
         self._log_debug("save_ladder", f"Saved {len(ladder.ranks)} ranks")
         return ladder

@@ -15,7 +15,6 @@ Usage:
 """
 
 import os
-from decimal import Decimal
 
 import boto3
 import pytest

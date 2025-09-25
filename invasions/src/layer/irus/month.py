@@ -4,9 +4,9 @@ from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
 from .container import IrusContainer
-from .invasionlist import IrusInvasionList
-from .memberlist import IrusMemberList
+from .repositories.invasion import InvasionRepository
 from .repositories.ladder import LadderRepository
+from .repositories.member import MemberRepository
 
 prec = Decimal("1.0")
 
@@ -44,12 +44,15 @@ class IrusMonth:
 
         # Calculate statistics from report data
         for r in report:
+            salary = r.get("salary", False)
+            wins = r.get("wins", 0)
+            invasions = r.get("invasions", 0)
             self._logger.debug(
-                f"IrusMonth.__init__: {r['id']} {r['wins']} {r['salary']} {self.participation}"
+                f"IrusMonth.__init__: {r['id']} {wins} {salary} {self.participation}"
             )
-            if r["salary"]:
-                self.participation += r["wins"]
-            if r["invasions"] > 0:
+            if salary:
+                self.participation += wins
+            if invasions > 0:
                 self.active += 1
 
     def invasion_key(self) -> str:
@@ -71,18 +74,20 @@ class IrusMonth:
         """
         container = container or IrusContainer.default()
         logger = container.logger()
+        invasion_repository = InvasionRepository(container)
+        member_repository = MemberRepository(container)
         ladder_repository = LadderRepository(container)
 
         logger.info(f"IrusMonth.from_invasion_stats: {month}/{year}")
 
         date = f"{year}{month:02d}"
-        invasions = IrusInvasionList.from_month(month, year, container)
-        members = IrusMemberList(container)
+        invasions = invasion_repository.get_by_month(year, month)
+        members = member_repository.get_all()
 
-        if invasions.count() == 0:
+        if len(invasions) == 0:
             logger.info(f"Note no invasions found for {date}")
 
-        if members.count() == 0:
+        if len(members) == 0:
             logger.info("Note no members found")
 
         report = []
@@ -114,14 +119,12 @@ class IrusMonth:
             "max_damage": Decimal(0.0),
             "max_rank": Decimal(100.0),
         }
-        for i in invasions.range():
-            invasion = invasions.get(i)
+        for invasion in invasions:
             initial[invasion.name] = "-"
 
         logger.info(f"IrusMonth.from_invasion_stats initial: {initial}")
 
-        for m in members.range():
-            member = members.get(m)
+        for member in members:
             logger.debug(
                 f"IrusMonth.from_invasion_stats: Adding {member.player} {member.salary}"
             )
@@ -130,8 +133,7 @@ class IrusMonth:
             report.append(initial.copy())
 
         names = []
-        for i in invasions.range():
-            invasion = invasions.get(i)
+        for invasion in invasions:
             names.append(invasion.name)
             # Use repository to get ladder data for this invasion
             ladder = ladder_repository.get_ladder(invasion.name)
@@ -200,7 +202,7 @@ class IrusMonth:
 
         logger.info(f"Saved {count} member reports for {date}")
 
-        return cls(date, invasions.count(), report, names, container)
+        return cls(date, len(invasions), report, names, container)
 
     @classmethod
     def from_table(cls, month: int, year: int, container: IrusContainer | None = None):
@@ -303,7 +305,12 @@ class IrusMonth:
                     r["payment"] = round((r["wins"] * gold) / self.participation, 0)
                 else:
                     r["payment"] = 0
-                body += mapping.format(**r)
+                # Provide default values for missing invasion keys
+                report_dict = r.copy()
+                for name in self.names:
+                    if name not in report_dict:
+                        report_dict[name] = "-"
+                body += mapping.format(**report_dict)
                 body += "\n"
         self._logger.debug(f"csv: {body}")
         return body
@@ -340,7 +347,12 @@ class IrusMonth:
                     r["payment"] = round((r["wins"] * gold) / self.participation, 0)
                 else:
                     r["payment"] = 0
-                mesg.append(mapping.format(**r))
+                # Provide default values for missing invasion keys
+                report_dict = r.copy()
+                for name in self.names:
+                    if name not in report_dict:
+                        report_dict[name] = "-"
+                mesg.append(mapping.format(**report_dict))
         return mesg
 
     def delete_from_table(self):

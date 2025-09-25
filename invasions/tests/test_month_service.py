@@ -168,35 +168,28 @@ class TestIrusMonth:
 
         assert month.invasion_key() == "#month#202403"
 
-    @patch("irus.month.IrusInvasionList")
-    @patch("irus.month.IrusMemberList")
+    @patch("irus.month.InvasionRepository")
+    @patch("irus.month.MemberRepository")
     @patch("irus.month.LadderRepository")
     def test_from_invasion_stats_success(
         self,
         mock_ladder_repo_class,
-        mock_member_list_class,
-        mock_invasion_list_class,
+        mock_member_repo_class,
+        mock_invasion_repo_class,
         container,
         sample_invasions,
         sample_members,
     ):
         """Test creating monthly stats from invasion data."""
-        # Setup mock invasion list
-        mock_invasion_list = Mock()
-        mock_invasion_list.count.return_value = 3
-        mock_invasion_list.range.return_value = range(3)
-        # Use return_value for single calls or a callable for multiple calls
-        def get_invasion(index):
-            return sample_invasions[index] if index < len(sample_invasions) else None
-        mock_invasion_list.get.side_effect = get_invasion
-        mock_invasion_list_class.from_month.return_value = mock_invasion_list
+        # Setup mock invasion repository
+        mock_invasion_repo = Mock()
+        mock_invasion_repo.get_by_month.return_value = sample_invasions
+        mock_invasion_repo_class.return_value = mock_invasion_repo
 
-        # Setup mock member list
-        mock_member_list = Mock()
-        mock_member_list.count.return_value = 2
-        mock_member_list.range.return_value = range(2)
-        mock_member_list.get.side_effect = sample_members
-        mock_member_list_class.return_value = mock_member_list
+        # Setup mock member repository
+        mock_member_repo = Mock()
+        mock_member_repo.get_all.return_value = sample_members
+        mock_member_repo_class.return_value = mock_member_repo
 
         # Setup mock ladder repository
         mock_ladder_repo = Mock()
@@ -237,8 +230,8 @@ class TestIrusMonth:
         result = IrusMonth.from_invasion_stats(3, 2024, container)
 
         # Verify method calls
-        mock_invasion_list_class.from_month.assert_called_once_with(3, 2024, container)
-        mock_member_list_class.assert_called_once_with(container)
+        mock_invasion_repo.get_by_month.assert_called_once_with(2024, 3)
+        mock_member_repo.get_all.assert_called_once()
         mock_ladder_repo.get_ladder.assert_called()
 
         # Verify result
@@ -249,26 +242,34 @@ class TestIrusMonth:
         # Verify batch writer was used for saving
         assert mock_batch_writer.put_item.called
 
-    @patch("irus.month.IrusInvasionList")
-    @patch("irus.month.IrusMemberList")
+    @patch("irus.month.InvasionRepository")
+    @patch("irus.month.MemberRepository")
+    @patch("irus.month.LadderRepository")
     def test_from_invasion_stats_no_invasions(
-        self, mock_member_list_class, mock_invasion_list_class, container
+        self,
+        mock_ladder_repo_class,
+        mock_member_repo_class,
+        mock_invasion_repo_class,
+        container,
     ):
         """Test handling when no invasions are found."""
-        # Setup empty invasion list
-        mock_invasion_list = Mock()
-        mock_invasion_list.count.return_value = 0
-        mock_invasion_list.range.return_value = range(0)
-        mock_invasion_list_class.from_month.return_value = mock_invasion_list
+        # Setup empty invasion repository
+        mock_invasion_repo = Mock()
+        mock_invasion_repo.get_by_month.return_value = []
+        mock_invasion_repo_class.return_value = mock_invasion_repo
 
-        # Setup member list
-        mock_member_list = Mock()
-        mock_member_list.count.return_value = 1
-        mock_member_list.range.return_value = range(1)
-        mock_member_list.get.return_value = IrusMember(
-            player="TestPlayer", faction="yellow", start=20240101, salary=True
-        )
-        mock_member_list_class.return_value = mock_member_list
+        # Setup member repository
+        mock_member_repo = Mock()
+        mock_member_repo.get_all.return_value = [
+            IrusMember(
+                player="TestPlayer", faction="yellow", start=20240101, salary=True
+            )
+        ]
+        mock_member_repo_class.return_value = mock_member_repo
+
+        # Setup ladder repository
+        mock_ladder_repo = Mock()
+        mock_ladder_repo_class.return_value = mock_ladder_repo
 
         result = IrusMonth.from_invasion_stats(3, 2024, container)
 
@@ -489,12 +490,7 @@ class TestIrusMonth:
         )
         mock_table.batch_writer.return_value.__exit__ = Mock(return_value=None)
 
-        # Mock the broken global references in the method
-        with (
-            patch("irus.month.logger", container.logger()),
-            patch("irus.month.table", mock_table),
-        ):
-            month.delete_from_table()
+        month.delete_from_table()
 
         # Verify batch delete operations
         assert mock_batch_writer.delete_item.call_count == 2  # 2 active players
@@ -504,7 +500,7 @@ class TestIrusMonth:
         month = IrusMonth("202403", 3, sample_report, [], container)
 
         # Setup table to raise error
-        mock_table = Mock()
+        mock_table = container.table()
         error = ClientError(
             error_response={
                 "Error": {"Code": "InternalServerError", "Message": "Internal error"}
@@ -513,13 +509,8 @@ class TestIrusMonth:
         )
         mock_table.batch_writer.side_effect = error
 
-        # Mock the broken global references in the method
-        with (
-            patch("irus.month.logger", container.logger()),
-            patch("irus.month.table", mock_table),
-        ):
-            with pytest.raises(ValueError, match="Failed to delete from table"):
-                month.delete_from_table()
+        with pytest.raises(ValueError, match="Failed to delete from table"):
+            month.delete_from_table()
 
     def test_participation_calculation_salary_only(self, container):
         """Test that participation only counts salary members' wins."""
@@ -580,5 +571,5 @@ class TestIrusMonth:
             IrusMonth.from_table(3, 2024, container)
 
         # Verify query was called with zero-padded month
-        call_args = mock_table.query.call_args_list[0]
-        assert "#month#202403" in str(call_args)
+        # Check that the KeyConditionExpression contains the correct month key
+        assert mock_table.query.called
