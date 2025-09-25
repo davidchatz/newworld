@@ -47,6 +47,8 @@ class ImagePreprocessor:
 
             img = img.filter(ImageFilter.SHARPEN)
             
+            img = ImageOps.invert(img)
+            
             # Save to bytes
             output = io.BytesIO()
             img.save(output, format='PNG')

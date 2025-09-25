@@ -41,6 +41,10 @@ def process_image(image_path, contrast_factor=1.5, saturation_factor=0.7):
 
         # Sharpen for OCR
         img = img.filter(ImageFilter.SHARPEN)
+        print(f"After sharpen: {img.mode}")
+
+        # Invert
+        img = ImageOps.invert(img)
         print(f"Final processed image mode: {img.mode}")
 
         # Convert to Greyscale
@@ -53,8 +57,6 @@ def process_image(image_path, contrast_factor=1.5, saturation_factor=0.7):
 
         # Use ImageOps.autocontrast to adjust the histogram
         # img = ImageOps.autocontrast(img, cutoff=(50,0))
-        
-
         
         # img = img.filter(ImageFilter.SHARPEN)
 
