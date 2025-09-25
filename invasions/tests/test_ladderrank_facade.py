@@ -4,6 +4,7 @@ import warnings
 from unittest.mock import Mock, patch
 
 import pytest
+from pydantic import ValidationError
 from irus.ladderrank import IrusLadderRank
 
 
@@ -100,9 +101,9 @@ class TestIrusLadderRankFacade:
         rank.rank = "5"
         assert rank.rank == "05"
 
-        # Setting non-numeric should be preserved
-        rank.rank = "XX"
-        assert rank.rank == "XX"
+        # Setting non-numeric should raise validation error due to strict model validation
+        with pytest.raises(ValidationError):
+            rank.rank = "XX"
 
     def test_invasion_key(self, mock_invasion, sample_item):
         """Test invasion key generation."""

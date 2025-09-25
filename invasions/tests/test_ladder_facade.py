@@ -103,7 +103,7 @@ class TestIrusLadderFacade:
     @patch("irus.ladder.extract_blocks")
     @patch("irus.ladder.get_rows_columns_map")
     @patch("irus.ladder.generate_ladder_ranks")
-    @patch("src.layer.irus.repositories.ladder.LadderRepository")
+    @patch("irus.ladder.LadderRepository")
     def test_from_ladder_image(
         self,
         mock_repo_class,
@@ -115,6 +115,8 @@ class TestIrusLadderFacade:
     ):
         """Test from_ladder_image class method."""
         # Setup mocks
+        mock_invasion.name = "test-invasion-20240301"
+
         mock_response = {"key": "response"}
         mock_import_table.return_value = mock_response
 
@@ -125,7 +127,29 @@ class TestIrusLadderFacade:
         mock_rows = {"1": {"1": "row1"}}
         mock_get_rows.return_value = mock_rows
 
-        mock_ranks = [Mock()]
+        # Create mock rank with ._model attribute (facade pattern)
+        from irus.models.ladderrank import IrusLadderRank as PureLadderRank
+
+        pure_rank = PureLadderRank(
+            invasion_name="test-invasion-20240301",
+            rank="01",
+            player="TestPlayer",
+            score=1000,
+            kills=10,
+            deaths=2,
+            assists=5,
+            heals=100,
+            damage=5000,
+            member=True,
+            ladder=True,
+            adjusted=False,
+            error=False,
+        )
+
+        mock_rank = Mock()
+        mock_rank._model = pure_rank
+
+        mock_ranks = [mock_rank]
         mock_generate_ranks.return_value = mock_ranks
 
         mock_repo = Mock()
@@ -145,7 +169,12 @@ class TestIrusLadderFacade:
         mock_generate_ranks.assert_called_once_with(
             mock_invasion, mock_rows, mock_members
         )
+        # The repository should be called with the saved ladder data
         mock_repo.save_ladder_from_processing.assert_called_once()
+        args = mock_repo.save_ladder_from_processing.call_args[0]
+        assert args[0].invasion_name == "test-invasion-20240301"
+        assert len(args[0].ranks) == 1
+        assert args[1] == "test-key"
 
     def test_from_ladder_image_no_tables(self, mock_invasion):
         """Test from_ladder_image with no tables found."""

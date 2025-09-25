@@ -77,8 +77,8 @@ class TestLadderRepository:
         with patch("irus.repositories.ladder.LadderRankRepository"):
             repo = LadderRepository(container=mock_container)
             assert repo.container == mock_container
-            assert repo.table == mock_container.table
-            assert repo.logger == mock_container.logger
+            assert repo.table == mock_container.table()
+            assert repo.logger == mock_container.logger()
 
     def test_initialization_legacy_compatibility(self):
         """Test legacy initialization with table and logger."""

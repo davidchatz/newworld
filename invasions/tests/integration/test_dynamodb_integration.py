@@ -161,37 +161,39 @@ class TestLadderRepositoryIntegration:
         """Test basic ladder and ladder rank operations."""
         # Create test ladder rank
         test_rank = IrusLadderRank(
-            invasion="TestInvasion_Integration",
-            rank=1,
+            invasion_name="TestInvasion_Integration",
+            rank="01",
             player="TestPlayer_Integration",
-            score=Decimal("1500.50"),
+            score=1500,
             kills=15,
             assists=8,
             deaths=3,
-            healing=Decimal("25000.75"),
-            damage=Decimal("50000.25"),
+            heals=25000,
+            damage=50000,
+            member=True,
+            ladder=True,
         )
 
         # Save ladder rank
         saved_rank = ladder_rank_repo.save(test_rank)
-        assert saved_rank.invasion == test_rank.invasion
+        assert saved_rank.invasion_name == test_rank.invasion_name
         assert saved_rank.rank == test_rank.rank
         assert saved_rank.player == test_rank.player
 
         # Read rank back
         retrieved_rank = ladder_rank_repo.get_by_invasion_and_rank(
-            "TestInvasion_Integration", 1
+            "TestInvasion_Integration", "01"
         )
         assert retrieved_rank is not None
         assert retrieved_rank.player == "TestPlayer_Integration"
-        assert retrieved_rank.score == Decimal("1500.50")
+        assert retrieved_rank.score == 1500
 
         # Cleanup - delete test data
-        ladder_rank_repo.delete("TestInvasion_Integration", 1)
+        ladder_rank_repo.delete(test_rank.key())
 
         # Verify deletion
         deleted_rank = ladder_rank_repo.get_by_invasion_and_rank(
-            "TestInvasion_Integration", 1
+            "TestInvasion_Integration", "01"
         )
         assert deleted_rank is None
 

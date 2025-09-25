@@ -185,7 +185,10 @@ class TestIrusMonth:
         mock_invasion_list = Mock()
         mock_invasion_list.count.return_value = 3
         mock_invasion_list.range.return_value = range(3)
-        mock_invasion_list.get.side_effect = sample_invasions
+        # Use return_value for single calls or a callable for multiple calls
+        def get_invasion(index):
+            return sample_invasions[index] if index < len(sample_invasions) else None
+        mock_invasion_list.get.side_effect = get_invasion
         mock_invasion_list_class.from_month.return_value = mock_invasion_list
 
         # Setup mock member list
