@@ -5,6 +5,7 @@
 dist
 node_modules
 __pycache__
+.coverage
 
 src/old
 
@@ -17,3 +18,4 @@ invasions/.env.json
 invasions/config-local.toml
 invasions/htmlcov
 invasions/samconfig.toml
+invasions/.coverage

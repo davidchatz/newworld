@@ -77,6 +77,26 @@ Modernize the `irus` package with type safety, comprehensive testing, and improv
 - [x] Achieve >90% test coverage for models and repositories *(>95% for completed models)*
 - [x] **REVIEW POINT**: User review and approval of Phase 3 changes ✅ *COMPLETED*
 
+#### Phase 3E: DynamoDB Integration Validation
+**Purpose**: Validate repository pattern with real DynamoDB before proceeding with service layer refactoring.
+
+- [ ] Create minimal integration test suite for DynamoDB operations
+- [ ] Test `MemberRepository` CRUD operations against dev environment DynamoDB
+- [ ] Test `InvasionRepository` CRUD operations against dev environment DynamoDB
+- [ ] Test `LadderRepository` and `LadderRankRepository` CRUD operations against dev environment DynamoDB
+- [ ] Verify data serialization/deserialization works correctly with real AWS DynamoDB
+- [ ] Test key generation and querying patterns match existing data structure
+- [ ] Validate backward compatibility with existing DynamoDB data
+- [ ] **REVIEW POINT**: User review and approval of integration test results
+
+**Success Criteria**:
+- All repositories can successfully save/retrieve data from DynamoDB
+- Pydantic serialization is compatible with existing DynamoDB schema
+- No data corruption or key conflicts with legacy data
+- Performance is acceptable for basic CRUD operations
+
+**Test Scope**: 3-5 focused integration tests covering basic CRUD round-trips, not comprehensive end-to-end scenarios.
+
 ### Phase 4: Service Layer & Adapters
 - [ ] Create DynamoDB adapter layer with proper mocking support
 - [ ] Create S3 and Textract adapter abstractions
@@ -126,6 +146,7 @@ Modernize the `irus` package with type safety, comprehensive testing, and improv
 ### Testing
 - `tests/` - New comprehensive test suite
 - `tests/legacy/` - Moved existing tests
+- `tests/integration/` - DynamoDB integration tests (Phase 3E)
 - `pytest.ini` - Test configuration
 - `pyproject.toml` - Dependencies and tool configuration
 
@@ -216,11 +237,137 @@ The current architecture has models tightly coupled to AWS resources:
 - `tests/test_repositories_*.py` - Repository tests with mocking
 - `tests/test_*_facade.py` - Backward compatibility tests
 
+#### Git Commit:
+`143b182 - Establish modern testing foundation for code quality project`
+
+### September 2024 - Phase 3A & 3B Extended - Ladder Models Complete ✅
+**Status**: Phase 3 Core Models (All Models) - COMPLETED
+
+#### What was accomplished:
+- **Extended Repository Pattern**: Applied to `IrusLadder` and `IrusLadderRank`
+- **Pure Pydantic Models**:
+  - `IrusLadder` - Collection model with computed properties for count/member statistics
+  - `IrusLadderRank` - Individual rank with comprehensive validation (rank format, players, invasion names)
+- **Repository Layer Extended**:
+  - `LadderRepository` - Collection manager delegating to rank repository
+  - `LadderRankRepository` - Individual CRUD with batch operations and membership updates
+- **Architecture Consistency**: Applied same patterns across all core models
+- **Comprehensive Testing**: 226 passing tests with >84% coverage for repositories, >94% for models
+- **Full Backward Compatibility**: All existing APIs preserved through facade pattern
+
+#### Technical Artifacts Extended:
+- `src/layer/irus/models/ladder.py` - Pure Pydantic ladder collection model
+- `src/layer/irus/models/ladderrank.py` - Pure Pydantic individual rank model
+- `src/layer/irus/repositories/ladder.py` - Collection manager repository
+- `src/layer/irus/repositories/ladderrank.py` - Individual rank repository
+- Extended facade tests and model validation tests
+
 #### Next Phase Ready:
-- Pattern established and proven
-- Remaining models (`IrusLadder`, `IrusLadderRank`) can follow same pattern
-- Service layer refactoring patterns documented
-- Testing infrastructure ready for expansion
+- **Pattern Complete**: All core models (`IrusMember`, `IrusInvasion`, `IrusLadder`, `IrusLadderRank`) modernized
+- **DynamoDB Integration Testing**: Phase 3E needed to validate with real AWS before service layer refactoring
+- **Service Layer Ready**: Patterns established for refactoring `process.py`, `report.py`, `month.py`
 
 #### Git Commit:
-`143b182 - Implement Phase 3: Core Models Modernization (Repository Pattern)`
+`46f5bc5 - Implement repository pattern for IrusLadder and IrusLadderRank`
+
+---
+
+## Phase 3E: DynamoDB Integration Validation ✅ COMPLETED
+
+**Objective**: Validate repository pattern with real DynamoDB before service layer refactoring
+
+### Achievements:
+
+#### 1. **Integration Test Infrastructure**
+- **Dynamic Resource Discovery**: Created SAM-based AWS resource discovery for environment-agnostic testing
+- **Configuration System**: Built flexible test configuration supporting dev/prod environments
+- **Files**: `tests/integration/conftest.py` - Discovers DynamoDB tables, S3 buckets, Step Functions via SAM CLI
+
+#### 2. **DynamoDB Validation Tests**
+- **Comprehensive CRUD Testing**: All repositories tested against real AWS DynamoDB
+- **Data Serialization**: Validated Pydantic ↔ DynamoDB compatibility
+- **Key Pattern Verification**: Confirmed repository key formats match existing data structure
+- **Files**: `tests/integration/test_dynamodb_integration.py` - 6 focused integration tests
+
+#### 3. **Model Enhancement: Faction Colors**
+- **User Experience Improvement**: Changed member faction from names to intuitive colors:
+  - `covenant` → `yellow` (Holy/Light theme)
+  - `marauders` → `green` (Nature/War theme)
+  - `syndicate` → `purple` (Arcane/Science theme)
+- **Backward Compatibility**: No DynamoDB schema changes required
+- **Files**: Updated `src/layer/irus/models/member.py` and all related tests
+
+#### 4. **Test Coverage Expansion**
+- **Unit Tests**: 40 tests covering all repository CRUD operations with mocks
+- **Integration Tests**: 6 tests validating real DynamoDB operations
+- **End-to-End Validation**: Complete save/retrieve/update/delete cycles tested
+- **Environment Safety**: All tests use isolated test data with proper cleanup
+
+### Patterns Established:
+
+#### 1. **Integration Testing Pattern**
+```python
+# Dynamic resource discovery via SAM
+@pytest.fixture(scope="session")
+def aws_resources(integration_config):
+    resources = discover_stack_resources(stack_name, profile, region)
+    return resources
+
+# Environment-agnostic container setup
+@pytest.fixture(scope="module")
+def integration_container(integration_config, aws_resources):
+    container = IrusContainer.create_production()
+    container._session = boto3.session.Session(
+        profile_name=integration_config['aws_profile'],
+        region_name=integration_config['aws_region']
+    )
+    return container
+```
+
+#### 2. **Repository Testing Pattern**
+```python
+# CRUD round-trip validation
+def test_crud_round_trip(self, repo):
+    # Create → Save → Read → Update → Delete → Verify
+    model = create_test_model()
+    saved = repo.save(model)
+    retrieved = repo.get_by_key(key)
+    updated = repo.save(modified_model)
+    repo.delete(key)
+    assert repo.get_by_key(key) is None
+```
+
+#### 3. **Model Enhancement Pattern**
+```python
+# Pydantic validation with business logic
+@field_validator("faction")
+@classmethod
+def validate_faction(cls, v: str) -> str:
+    valid_factions = {"yellow", "purple", "green"}
+    if v.lower() not in valid_factions:
+        raise ValueError(f"Faction must be one of: {', '.join(valid_factions)}")
+    return v.lower()
+```
+
+### Technical Validation Results:
+
+✅ **All repositories work with real DynamoDB**: 100% CRUD success rate
+✅ **Performance acceptable**: ~7 seconds for full CRUD cycles
+✅ **Data integrity maintained**: No corruption or key conflicts
+✅ **Pydantic serialization compatible**: All models serialize correctly to/from DynamoDB
+✅ **Environment discovery working**: SAM CLI integration functional
+✅ **Faction color system**: User-friendly faction representation implemented
+
+### Quality Metrics:
+- **Test Coverage**: 28.56% overall, 97.85% for MemberRepository, 68.29% for models
+- **Integration Tests**: 6 passing tests covering all repositories
+- **Unit Tests**: 40 passing tests with comprehensive mocking
+- **Linting**: All pre-commit hooks passing (ruff, mypy, security checks)
+
+#### Next Phase Ready:
+- **Repository Pattern Validated**: Proven to work with real AWS infrastructure
+- **Service Layer Refactoring**: Ready to proceed with `process.py`, `report.py`, `month.py` modernization
+- **Clean Architecture**: Pure models + repository layer + container dependency injection established
+
+#### Git Commit:
+`83443ac - Update member faction field to use colors instead of names`

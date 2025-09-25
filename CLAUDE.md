@@ -64,3 +64,5 @@ Discord bot for New World invasion stats tracking. Extracts statistics from ladd
 - When running `aws` commands always specify the profile and region from the config.
 - When running the `aws` cli, always disable the pager so you aren't waiting for me to scroll through output, like this `AWS_PAGER="" aws sts get-caller-identity --profile PROFILE --region REGION`
 - Limit commit messages to 6 lines
+- Always use `uv` when running python, pytest and related commands
+- If the AWS credentials have expired, stop and ask me to reauthenticate
