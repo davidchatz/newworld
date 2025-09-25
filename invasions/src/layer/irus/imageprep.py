@@ -1,55 +1,75 @@
-from PIL import Image, ImageEnhance, ImageOps, ImageFilter
-import io
-from .environ import IrusResources
+"""Backward compatibility facade for ImagePreprocessor.
 
-logger = IrusResources.logger()
-s3 = IrusResources.s3()
+This module provides backward compatibility for the legacy ImagePreprocessor class
+while internally using the new ImageProcessingService architecture.
+
+DEPRECATED: This facade is provided for backward compatibility only.
+New code should use irus.services.image_processing.ImageProcessingService directly.
+"""
+
+import warnings
+
+from .services.image_processing import ImageProcessingService
+
+# Issue deprecation warning when this module is imported
+warnings.warn(
+    "irus.imageprep module is deprecated. Use irus.services.image_processing.ImageProcessingService instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
 
 class ImagePreprocessor:
-    
+    """Legacy ImagePreprocessor class for backward compatibility.
+
+    This class wraps the new ImageProcessingService implementation to maintain
+    backward compatibility with existing code.
+
+    DEPRECATED: Use irus.services.image_processing.ImageProcessingService instead.
+    """
+
     def __init__(self, contrast_factor=None, saturation_factor=None):
-        self.contrast_factor = contrast_factor or IrusResources.image_contrast_factor()
-        self.saturation_factor = saturation_factor or IrusResources.image_saturation_factor()
-    
+        """Initialize the legacy image preprocessor.
+
+        Args:
+            contrast_factor: Contrast adjustment factor (legacy parameter, now configured via environment)
+            saturation_factor: Saturation adjustment factor (legacy parameter, now configured via environment)
+
+        Note:
+            The contrast_factor and saturation_factor parameters are maintained for
+            backward compatibility but are now ignored. Configuration is handled
+            through the container's environment settings.
+        """
+        # Create new service instance - parameters are now configured via container
+        self._service = ImageProcessingService()
+
+        # Store legacy parameters for compatibility (though they're not used)
+        self.contrast_factor = contrast_factor
+        self.saturation_factor = saturation_factor
+
     def preprocess_s3_image(self, bucket: str, key: str) -> str:
-        """Download, preprocess, and upload image back to S3. Returns new key."""
-        logger.info(f'Preprocessing image {bucket}/{key}')
-        
-        # Download image from S3
-        response = s3.get_object(Bucket=bucket, Key=key)
-        image_data = response['Body'].read()
-        
-        # Process image
-        processed_data = self._process_image(image_data)
-        
-        # Upload processed image with new key
-        processed_key = key.replace('.png', '_processed.png')
-        s3.put_object(Bucket=bucket, Key=processed_key, Body=processed_data)
-        
-        logger.info(f'Processed image saved as {bucket}/{processed_key}')
-        return processed_key
-    
+        """Download, preprocess, and upload image back to S3 (legacy API).
+
+        Args:
+            bucket: S3 bucket name
+            key: Original image key
+
+        Returns:
+            New key for the processed image
+        """
+        return self._service.preprocess_s3_image(bucket=bucket, key=key)
+
     def _process_image(self, image_data: bytes) -> bytes:
-        """Apply contrast and saturation adjustments to image."""
-        with Image.open(io.BytesIO(image_data)) as img:
-            # Convert to RGB if needed
-            if img.mode != 'RGB':
-                img = img.convert('RGB')
+        """Apply preprocessing to image data (legacy API).
 
-            img = ImageOps.grayscale(img)
+        Args:
+            image_data: Raw image bytes
 
-            threshold = 128
-            img = img.point(lambda p: p > threshold and 255)  
+        Returns:
+            Processed image bytes
 
-            img = ImageOps.autocontrast(img, cutoff=(60,0))
-
-            img = img.resize((img.width * 2, img.height * 2), Image.LANCZOS)
-
-            img = img.filter(ImageFilter.SHARPEN)
-            
-            img = ImageOps.invert(img)
-            
-            # Save to bytes
-            output = io.BytesIO()
-            img.save(output, format='PNG')
-            return output.getvalue()
+        Note:
+            This method is deprecated. New code should use
+            ImageProcessingService.process_image_data() directly.
+        """
+        return self._service.process_image_data(image_data)

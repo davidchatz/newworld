@@ -1,55 +1,52 @@
-import json
-from botocore.exceptions import ClientError
-from .environ import IrusResources
+"""Backward compatibility facade for IrusPostTable.
 
-logger = IrusResources.logger()
-table = IrusResources.table()
-state_machine = IrusResources.state_machine()
+This module provides backward compatibility for the legacy IrusPostTable class
+while internally using the new DiscordMessagingService architecture.
+
+DEPRECATED: This facade is provided for backward compatibility only.
+New code should use irus.services.discord_messaging.DiscordMessagingService directly.
+"""
+
+import warnings
+
+from .services.discord_messaging import DiscordMessagingService
+
+# Issue deprecation warning when this module is imported
+warnings.warn(
+    "irus.posttable module is deprecated. Use irus.services.discord_messaging.DiscordMessagingService instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 class IrusPostTable:
+    """Legacy IrusPostTable class for backward compatibility.
+
+    This class wraps the new DiscordMessagingService implementation to maintain
+    backward compatibility with existing code.
+
+    DEPRECATED: Use irus.services.discord_messaging.DiscordMessagingService instead.
+    """
 
     def __init__(self) -> None:
-        self.step_func_arn = IrusResources.post_step_function_arn()
-        self.webhook_url = IrusResources.webhook_url()
+        """Initialize the legacy post table class.
 
+        Creates an instance of the new DiscordMessagingService internally.
+        """
+        self._service = DiscordMessagingService()
 
-    def start(self, id: str, token: str, table:list, title:str) -> str:
+    def start(self, id: str, token: str, table: list, title: str) -> str:
+        """Start posting a table to Discord (legacy API).
 
-        logger.info(f'PostTable.start: table {title} with {len(table)} rows')
+        Args:
+            id: Discord channel ID
+            token: Discord bot token
+            table: List of table rows as strings
+            title: Title for the table
 
-        cmd = {
-            'post': f'{self.webhook_url}/{id}/{token}',
-            'msg': [],
-            'count': 0
-        }
-
-        count = 1
-        msg = title + '\n'
-        for t in table:
-            if len(msg) + len(t) > 1995:
-                cmd['msg'].append(msg)
-                msg = '`' + t + '`\n'
-                count += 1
-            else:
-                msg = msg + '`' + t + '`\n'
-        cmd['msg'].append(msg)
-
-        if count > 4:
-            logger.warning(f'Too many rows ({count}) to post {title}')
-
-        cmd['count'] = count
-
-        logger.info(f'Starting table step function for {title} with {len(cmd["msg"])} posts')
-
-        try:
-            state_machine.start_execution(
-                stateMachineArn=self.step_func_arn,
-                input=json.dumps(cmd)
-            )
-
-        except ClientError as e:
-            logger.warning(f'Failed to call post table step function: {e}')
-            return f'Failed to call post table step function: {e}'
-
-        return ''
+        Returns:
+            Empty string on success, error message on failure
+        """
+        return self._service.post_table(
+            channel_id=id, token=token, table_data=table, title=title
+        )
