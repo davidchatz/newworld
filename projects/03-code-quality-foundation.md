@@ -65,17 +65,39 @@ Modernize the `irus` package with type safety, comprehensive testing, and improv
 - [x] Create base `Repository` class for common patterns ✅ *COMPLETED*
 
 #### Phase 3C: Service Layer Refactoring
+**Architecture Decision**: Use Global Container Pattern with Constructor Flexibility for backward compatibility and testability.
+
 - [ ] Update service classes to use repositories instead of direct model calls
 - [ ] Refactor `process.py` to use repository pattern
 - [ ] Refactor `report.py` and `month.py` for repository access
 - [x] Maintain backward compatibility in public APIs *(Pattern established with facades)*
 
+**Implementation Pattern**:
+```python
+class ServiceClass:
+    def __init__(self, container: Optional[IrusContainer] = None):
+        self._container = container or IrusContainer.default()
+
+    @classmethod
+    def from_method(cls, ..., container: Optional[IrusContainer] = None):
+        instance = cls(container)
+        # Use instance._container.repository_name() for data access
+```
+
+**Benefits**: Backward compatible (no Lambda function changes), testable (can inject test container), follows established repository pattern.
+
 #### Phase 3D: Comprehensive Testing
 - [x] Write unit tests for pure models (validation, serialization) ✅ *COMPLETED*
 - [x] Write unit tests for repositories with mocked DynamoDB ✅ *COMPLETED*
-- [ ] Write integration tests for service layer with mocked repositories
+- [ ] Write unit tests for service layer with mocked repositories (90%+ coverage)
+- [ ] Write selective integration tests for S3 operations only (3-5 critical paths)
 - [x] Achieve >90% test coverage for models and repositories *(>95% for completed models)*
 - [x] **REVIEW POINT**: User review and approval of Phase 3 changes ✅ *COMPLETED*
+
+**Testing Strategy Decision**:
+- **Unit Tests**: Mock repositories for fast, comprehensive business logic testing
+- **Integration Tests**: Target S3 operations only, avoid expensive Textract tests
+- **Coverage Goal**: 90%+ unit test coverage, selective integration validation
 
 #### Phase 3E: DynamoDB Integration Validation
 **Purpose**: Validate repository pattern with real DynamoDB before proceeding with service layer refactoring.

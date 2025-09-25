@@ -2,6 +2,8 @@
 
 from typing import Any
 
+from boto3.dynamodb.conditions import Key
+
 from ..models.member import IrusMember
 from .base import BaseRepository
 
@@ -82,6 +84,36 @@ class MemberRepository(BaseRepository[IrusMember]):
 
         key = {"invasion": "#member", "id": player}
         return self.get(key)
+
+    def get_all(self) -> list[IrusMember]:
+        """Get all members from the database.
+
+        Returns:
+            List of all member instances
+        """
+        self._log_operation("get_all", "all_members")
+
+        try:
+            # Query all members using the partition key
+            response = self.table.query(
+                KeyConditionExpression=Key("invasion").eq("#member")
+            )
+
+            members = []
+            for item in response.get("Items", []):
+                try:
+                    member = IrusMember.model_validate(item)
+                    members.append(member)
+                except Exception as e:
+                    self.logger.warning(f"Failed to parse member item {item}: {e}")
+                    continue
+
+            self.logger.info(f"Retrieved {len(members)} members")
+            return members
+
+        except Exception as e:
+            self.logger.error(f"Failed to get all members: {e}")
+            return []
 
     def delete(self, key: dict[str, Any]) -> bool:
         """Delete a member by DynamoDB key.
