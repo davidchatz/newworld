@@ -8,32 +8,79 @@ from ..irus import IrusInvasion, IrusMember, IrusMemberList, IrusLadder, IrusMon
 logger = Logger(service="test_irus_invasion", level="INFO", correlation_id=True)
 profile = os.environ["AWS_PROFILE"]
 session = boto3.session.Session(profile_name=profile)
-dynamodb = session.resource('dynamodb')
-table_name = os.environ['TABLE_NAME']
+dynamodb = session.resource("dynamodb")
+table_name = os.environ["TABLE_NAME"]
 table = dynamodb.Table(table_name)
-s3 = session.resource('s3')
-test_bucket_name = os.environ['TEST_BUCKET_NAME']
+s3 = session.resource("s3")
+test_bucket_name = os.environ["TEST_BUCKET_NAME"]
 test_bucket = s3.Bucket(test_bucket_name)
-bucket_name = os.environ['BUCKET_NAME']
+bucket_name = os.environ["BUCKET_NAME"]
 bucket = s3.Bucket(bucket_name)
 
 
 @pytest.fixture
 def generate_report_202405():
-    invasion = IrusInvasion.from_user(day=24, month=5, year=2024, settlement='bw', win=True)
-    logger.debug(f'Invasion {invasion}')
+    invasion = IrusInvasion.from_user(
+        day=24, month=5, year=2024, settlement="bw", win=True
+    )
+    logger.debug(f"Invasion {invasion}")
 
-    Chatz01 = IrusMember.from_user(player = "Chatz01", day=1, month=5, year=2024, faction= "purple", admin=False, salary=True)
-    Stuggy = IrusMember.from_user(player = "Stuggy", day=1, month=5, year=2024, faction= "green", admin=True, salary=True)
-    Zel0s = IrusMember.from_user(player = "Zel0s", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
-    SunnieGal = IrusMember.from_user(player = "SunnieGal", day=1, month=5, year=2024, faction= "purple", admin=False, salary=False)
-    GMaaa = IrusMember.from_user(player = "G Maaaa", day=1, month=5, year=2024, faction= "green", admin=True, salary=False)
+    Chatz01 = IrusMember.from_user(
+        player="Chatz01",
+        day=1,
+        month=5,
+        year=2024,
+        faction="purple",
+        admin=False,
+        salary=True,
+    )
+    Stuggy = IrusMember.from_user(
+        player="Stuggy",
+        day=1,
+        month=5,
+        year=2024,
+        faction="green",
+        admin=True,
+        salary=True,
+    )
+    Zel0s = IrusMember.from_user(
+        player="Zel0s",
+        day=1,
+        month=5,
+        year=2024,
+        faction="yellow",
+        admin=False,
+        salary=True,
+    )
+    SunnieGal = IrusMember.from_user(
+        player="SunnieGal",
+        day=1,
+        month=5,
+        year=2024,
+        faction="purple",
+        admin=False,
+        salary=False,
+    )
+    GMaaa = IrusMember.from_user(
+        player="G Maaaa",
+        day=1,
+        month=5,
+        year=2024,
+        faction="green",
+        admin=True,
+        salary=False,
+    )
     members = IrusMemberList()
 
-    roster = IrusLadder.from_roster_image(invasion, members, bucket_name, f'{invasion.path_roster()}20240524-bw-board-groups.png')
+    roster = IrusLadder.from_roster_image(
+        invasion,
+        members,
+        bucket_name,
+        f"{invasion.path_roster()}20240524-bw-board-groups.png",
+    )
 
     month = IrusMonth.from_invasion_stats(month=5, year=2024)
-    logger.debug(f'Month: {month}')
+    logger.debug(f"Month: {month}")
 
     yield month
     month.delete_from_table()
@@ -48,28 +95,144 @@ def generate_report_202405():
 
 @pytest.fixture
 def generate_report_202406():
-    invasion_20240611 = IrusInvasion.from_user(day=11, month=6, year=2024, settlement='rw', win=True)
-    invasion_20240623 = IrusInvasion.from_user(day=23, month=6, year=2024, settlement='rw', win=True)
+    invasion_20240611 = IrusInvasion.from_user(
+        day=11, month=6, year=2024, settlement="rw", win=True
+    )
+    invasion_20240623 = IrusInvasion.from_user(
+        day=23, month=6, year=2024, settlement="rw", win=True
+    )
 
-    Chatz01 = IrusMember.from_user(player = "Chatz01", day=1, month=5, year=2024, faction= "purple", admin=False, salary=True)
-    Stuggy = IrusMember.from_user(player = "Stuggy", day=1, month=5, year=2024, faction= "green", admin=True, salary=True)
-    Zel0s = IrusMember.from_user(player = "Zel0s", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
-    SunnieGal = IrusMember.from_user(player = "SunnieGal", day=1, month=5, year=2024, faction= "purple", admin=False, salary=False)
-    Merkavar = IrusMember.from_user(player = "Merkavar", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
-    Fred = IrusMember.from_user(player = "Fred", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
+    Chatz01 = IrusMember.from_user(
+        player="Chatz01",
+        day=1,
+        month=5,
+        year=2024,
+        faction="purple",
+        admin=False,
+        salary=True,
+    )
+    Stuggy = IrusMember.from_user(
+        player="Stuggy",
+        day=1,
+        month=5,
+        year=2024,
+        faction="green",
+        admin=True,
+        salary=True,
+    )
+    Zel0s = IrusMember.from_user(
+        player="Zel0s",
+        day=1,
+        month=5,
+        year=2024,
+        faction="yellow",
+        admin=False,
+        salary=True,
+    )
+    SunnieGal = IrusMember.from_user(
+        player="SunnieGal",
+        day=1,
+        month=5,
+        year=2024,
+        faction="purple",
+        admin=False,
+        salary=False,
+    )
+    Merkavar = IrusMember.from_user(
+        player="Merkavar",
+        day=1,
+        month=5,
+        year=2024,
+        faction="yellow",
+        admin=False,
+        salary=True,
+    )
+    Fred = IrusMember.from_user(
+        player="Fred",
+        day=1,
+        month=5,
+        year=2024,
+        faction="yellow",
+        admin=False,
+        salary=True,
+    )
 
-    SeaCoconut = IrusMember.from_user(player = "Sea Coconut", day=1, month=5, year=2024, faction= "purple", admin=False, salary=True)
-    TaliMonk = IrusMember.from_user(player = "TaliMonk", day=1, month=5, year=2024, faction= "green", admin=True, salary=True)
-    AbuHurayra = IrusMember.from_user(player = "Abu Hurayra", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
-    Steve = IrusMember.from_user(player = "Steve", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
-    LovingMum = IrusMember.from_user(player = "Loving Mum", day=1, month=5, year=2024, faction= "purple", admin=False, salary=True)
-    kbaz = IrusMember.from_user(player = "kbaz", day=1, month=5, year=2024, faction= "green", admin=True, salary=True)
-    SirCandeez = IrusMember.from_user(player = "Sir Candeez", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
-    Julie = IrusMember.from_user(player = "Julie", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
+    SeaCoconut = IrusMember.from_user(
+        player="Sea Coconut",
+        day=1,
+        month=5,
+        year=2024,
+        faction="purple",
+        admin=False,
+        salary=True,
+    )
+    TaliMonk = IrusMember.from_user(
+        player="TaliMonk",
+        day=1,
+        month=5,
+        year=2024,
+        faction="green",
+        admin=True,
+        salary=True,
+    )
+    AbuHurayra = IrusMember.from_user(
+        player="Abu Hurayra",
+        day=1,
+        month=5,
+        year=2024,
+        faction="yellow",
+        admin=False,
+        salary=True,
+    )
+    Steve = IrusMember.from_user(
+        player="Steve",
+        day=1,
+        month=5,
+        year=2024,
+        faction="yellow",
+        admin=False,
+        salary=True,
+    )
+    LovingMum = IrusMember.from_user(
+        player="Loving Mum",
+        day=1,
+        month=5,
+        year=2024,
+        faction="purple",
+        admin=False,
+        salary=True,
+    )
+    kbaz = IrusMember.from_user(
+        player="kbaz",
+        day=1,
+        month=5,
+        year=2024,
+        faction="green",
+        admin=True,
+        salary=True,
+    )
+    SirCandeez = IrusMember.from_user(
+        player="Sir Candeez",
+        day=1,
+        month=5,
+        year=2024,
+        faction="yellow",
+        admin=False,
+        salary=True,
+    )
+    Julie = IrusMember.from_user(
+        player="Julie",
+        day=1,
+        month=5,
+        year=2024,
+        faction="yellow",
+        admin=False,
+        salary=True,
+    )
 
     members = IrusMemberList()
 
-    csv = '''
+    csv = """
 01,Shen Yi,157248,151,0,136,0,7416913
 02,ABYZZMOS,121610,159,1,221,0,5575032
 03,Stuggy,111079,102,0,170,0,5214001
@@ -121,11 +284,11 @@ def generate_report_202406():
 49,Pennelope Death,12204,5,0,48,483729,329887
 50,Merkavar,11569,20,0,20,0,429938
 51,SuperJetski,5758,4,0,4,0,275905
-52,Dinyeros,0,0,0,0,0,0'''
+52,Dinyeros,0,0,0,0,0,0"""
 
     ladders_20240611 = IrusLadder.from_csv(invasion_20240611, csv, members)
 
-    csv ='''
+    csv = """
 01,nyapsak,140048,148,1,169,0,6547912
 02,Stuggy,139643,139,0,182,0,6543710
 03,KiCkJr,121970,97,2,154,0,5778975
@@ -172,11 +335,11 @@ def generate_report_202406():
 44,555,9556,4,1,32,444908,229346
 45,Neandre,9456,5,2,56,35794,414425
 46,Zel0s,2709,8,1,10,0,110482
-47,Ryzennn,0,0,0,0,0,0'''
+47,Ryzennn,0,0,0,0,0,0"""
 
     ladders_20240623 = IrusLadder.from_csv(invasion_20240623, csv, members)
     month = IrusMonth.from_invasion_stats(month=6, year=2024)
-    logger.debug(f'Month: {month}')
+    logger.debug(f"Month: {month}")
 
     yield month
     month.delete_from_table()
@@ -205,9 +368,8 @@ def test_generate_report_202405(generate_report_202405):
     logger.info(generate_report_202405.str())
     logger.info(generate_report_202405.csv())
 
+
 def test_generate_report_202406(generate_report_202406):
     assert generate_report_202406 is not None
     logger.info(generate_report_202406.str())
     logger.info(generate_report_202406.csv())
-
-

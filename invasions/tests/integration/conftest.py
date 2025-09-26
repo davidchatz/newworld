@@ -1,10 +1,69 @@
-"""Integration test configuration that dynamically discovers AWS resources."""
+"""Integration test configuration for real AWS resource testing."""
 
 import os
+import time
+from datetime import datetime
 from pathlib import Path
 
 import pytest
 import toml
+from irus.container import IrusContainer
+
+# Test isolation constants
+TEST_ISOLATION_YEAR_PREFIX = 99  # Test years start with 99
+
+
+def generate_test_date():
+    """Generate unique test date using 99DDHHMM pattern.
+
+    Returns:
+        tuple: (year, month, day) where:
+            - year = 99DD (99 + day of month)
+            - month = HH (hour 00-23, clamped to 1-12 for valid month)
+            - day = MM (minute 00-59, clamped to 1-28 for valid day)
+    """
+    now = datetime.now()
+
+    # Year: 99 + day of month (e.g. 9915 for 15th of month)
+    test_year = (TEST_ISOLATION_YEAR_PREFIX * 100) + now.day
+
+    # Month: hour (0-23), but clamp to valid month range (1-12)
+    test_month = max(1, min(12, now.hour if now.hour > 0 else 1))
+
+    # Day: minute (0-59), but clamp to valid day range (1-28)
+    test_day = max(1, min(28, now.minute if now.minute > 0 else 1))
+
+    return test_year, test_month, test_day
+
+
+def get_test_date_components():
+    """Get test date components for consistent use across tests.
+
+    Returns:
+        dict: Contains 'year', 'month', 'day', 'date_string', and 'date_int' keys
+    """
+    year, month, day = generate_test_date()
+    date_string = f"{year}{month:02d}{day:02d}"
+    return {
+        "year": year,
+        "month": month,
+        "day": day,
+        "date_string": date_string,
+        "date_int": int(date_string),
+    }
+
+
+def is_test_date(date_value):
+    """Check if a date value uses our test date pattern.
+
+    Args:
+        date_value: Date to check (int or string)
+
+    Returns:
+        bool: True if date uses test pattern
+    """
+    date_str = str(date_value)
+    return date_str.startswith(str(TEST_ISOLATION_YEAR_PREFIX))
 
 
 def load_config():
@@ -90,7 +149,7 @@ def discover_stack_resources(stack_name: str, profile: str, region: str):
 
 @pytest.fixture(scope="session")
 def integration_config():
-    """Load integration test configuration."""
+    """Load integration test configuration and set AWS environment."""
     config = load_config()
     env = os.environ.get("TEST_ENV", "dev")
 
@@ -98,6 +157,11 @@ def integration_config():
         pytest.skip(f"Environment '{env}' not found in configuration")
 
     env_config = config["environments"][env]
+
+    # Automatically set AWS environment variables from config
+    # This eliminates the need to set AWS_PROFILE on command line
+    os.environ["AWS_PROFILE"] = env_config["aws_profile"]
+    os.environ["AWS_DEFAULT_REGION"] = env_config["aws_region"]
 
     return {
         "environment": env,
@@ -121,3 +185,100 @@ def aws_resources(integration_config):
     resources["webhook_url"] = "https://test.webhook.com"
 
     return resources
+
+
+@pytest.fixture(scope="session")
+def integration_container(integration_config, aws_resources):
+    """Container configured for integration testing with real AWS resources.
+
+    This creates a container using SAM-discovered resources with safety checks
+    based on the configured stack name.
+    """
+    import boto3
+
+    # Use the proper create_integration method with stack name from config
+    container = IrusContainer.create_integration(
+        aws_resources, integration_config["stack_name"]
+    )
+
+    # Configure session with discovered profile and region
+    container._session = boto3.session.Session(
+        profile_name=integration_config["aws_profile"],
+        region_name=integration_config["aws_region"],
+    )
+
+    return container
+
+
+@pytest.fixture
+def test_member_data():
+    """Generate unique test member data using 99DDHHMM pattern.
+
+    Each test gets a unique member to avoid conflicts between parallel tests.
+    Uses actual MemberRepository.create_from_user_input() API.
+    """
+    timestamp = int(time.time())
+    date_components = get_test_date_components()
+
+    return {
+        "player": f"TestPlayer-{timestamp}",
+        "day": date_components["day"],
+        "month": date_components["month"],
+        "year": date_components["year"],
+        "faction": "yellow",
+        "admin": False,
+        "salary": True,
+        "discord": None,
+        "notes": "Integration test member",
+    }
+
+
+@pytest.fixture
+def test_member_expectations(test_member_data):
+    """Helper fixture providing expected values for member tests."""
+    date_components = get_test_date_components()
+    return {"expected_start_date": date_components["date_int"]}
+
+
+@pytest.fixture
+def test_invasion_data():
+    """Generate unique test invasion data using 99DDHHMM pattern.
+
+    Uses actual InvasionRepository.create_from_user_input() API.
+    Uses unique date based on current time to avoid conflicts.
+    """
+    timestamp = int(time.time())
+    date_components = get_test_date_components()
+
+    return {
+        "day": date_components["day"],
+        "month": date_components["month"],
+        "year": date_components["year"],
+        "settlement": "ef",
+        "win": True,
+        "notes": f"Integration test invasion {timestamp}",
+    }
+
+
+@pytest.fixture
+def test_invasion_expectations(test_invasion_data):
+    """Helper fixture providing expected values for invasion tests."""
+    date_components = get_test_date_components()
+    return {"expected_date": date_components["date_int"]}
+
+
+@pytest.fixture(autouse=True)
+def cleanup_test_data(integration_container):
+    """Automatically cleanup test data after each test.
+
+    This fixture runs after each test to clean up any test-dated records
+    (years starting with 99) that were created during the test.
+    """
+    yield  # Run the test
+
+    # Cleanup happens here after the test
+    # Import here to avoid circular imports
+    from tests.utilities.production_data_copier import ProductionDataCopier
+
+    copier = ProductionDataCopier(integration_container)
+    copier.cleanup_test_data()

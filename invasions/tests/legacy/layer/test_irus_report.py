@@ -3,35 +3,92 @@ import boto3
 import boto3.session
 import pytest
 from aws_lambda_powertools import Logger
-from ..irus import IrusInvasion, IrusMember, IrusMemberList, IrusLadder, IrusMonth, IrusReport
+from ..irus import (
+    IrusInvasion,
+    IrusMember,
+    IrusMemberList,
+    IrusLadder,
+    IrusMonth,
+    IrusReport,
+)
 
 logger = Logger(service="test_irus_invasion", level="INFO", correlation_id=True)
 profile = os.environ["AWS_PROFILE"]
 session = boto3.session.Session(profile_name=profile)
-dynamodb = session.resource('dynamodb')
-table_name = os.environ['TABLE_NAME']
+dynamodb = session.resource("dynamodb")
+table_name = os.environ["TABLE_NAME"]
 table = dynamodb.Table(table_name)
-s3 = session.resource('s3')
-test_bucket_name = os.environ['TEST_BUCKET_NAME']
+s3 = session.resource("s3")
+test_bucket_name = os.environ["TEST_BUCKET_NAME"]
 test_bucket = s3.Bucket(test_bucket_name)
-bucket_name = os.environ['BUCKET_NAME']
+bucket_name = os.environ["BUCKET_NAME"]
 bucket = s3.Bucket(bucket_name)
 
 
 @pytest.fixture
 def generate_invasion_report_20240611_rw():
-    invasion_20240611 = IrusInvasion.from_user(day=11, month=6, year=2024, settlement='rw', win=True)
+    invasion_20240611 = IrusInvasion.from_user(
+        day=11, month=6, year=2024, settlement="rw", win=True
+    )
 
-    Chatz01 = IrusMember.from_user(player = "Chatz01", day=1, month=5, year=2024, faction= "purple", admin=False, salary=True)
-    Stuggy = IrusMember.from_user(player = "Stuggy", day=1, month=5, year=2024, faction= "green", admin=True, salary=True)
-    Zel0s = IrusMember.from_user(player = "Zel0s", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
-    SunnieGal = IrusMember.from_user(player = "SunnieGal", day=1, month=5, year=2024, faction= "purple", admin=False, salary=False)
-    Merkavar = IrusMember.from_user(player = "Merkavar", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
-    Fred = IrusMember.from_user(player = "Fred", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
+    Chatz01 = IrusMember.from_user(
+        player="Chatz01",
+        day=1,
+        month=5,
+        year=2024,
+        faction="purple",
+        admin=False,
+        salary=True,
+    )
+    Stuggy = IrusMember.from_user(
+        player="Stuggy",
+        day=1,
+        month=5,
+        year=2024,
+        faction="green",
+        admin=True,
+        salary=True,
+    )
+    Zel0s = IrusMember.from_user(
+        player="Zel0s",
+        day=1,
+        month=5,
+        year=2024,
+        faction="yellow",
+        admin=False,
+        salary=True,
+    )
+    SunnieGal = IrusMember.from_user(
+        player="SunnieGal",
+        day=1,
+        month=5,
+        year=2024,
+        faction="purple",
+        admin=False,
+        salary=False,
+    )
+    Merkavar = IrusMember.from_user(
+        player="Merkavar",
+        day=1,
+        month=5,
+        year=2024,
+        faction="yellow",
+        admin=False,
+        salary=True,
+    )
+    Fred = IrusMember.from_user(
+        player="Fred",
+        day=1,
+        month=5,
+        year=2024,
+        faction="yellow",
+        admin=False,
+        salary=True,
+    )
 
     members = IrusMemberList()
 
-    csv = '''
+    csv = """
 01,Shen Yi,157248,151,0,136,0,7416913
 02,ABYZZMOS,121610,159,1,221,0,5575032
 03,Stuggy,111079,102,0,170,0,5214001
@@ -83,7 +140,7 @@ def generate_invasion_report_20240611_rw():
 49,Pennelope Death,12204,5,0,48,483729,329887
 50,Merkavar,11569,20,0,20,0,429938
 51,SuperJetski,5758,4,0,4,0,275905
-52,Dinyeros,0,0,0,0,0,0'''
+52,Dinyeros,0,0,0,0,0,0"""
 
     ladders_20240611 = IrusLadder.from_csv(invasion_20240611, csv, members)
     report = IrusReport.from_invasion(ladders_20240611)
@@ -101,18 +158,68 @@ def generate_invasion_report_20240611_rw():
 
 @pytest.fixture
 def generate_month_report_202406():
-    invasion_20240611 = IrusInvasion.from_user(day=11, month=6, year=2024, settlement='rw', win=True)
+    invasion_20240611 = IrusInvasion.from_user(
+        day=11, month=6, year=2024, settlement="rw", win=True
+    )
 
-    Chatz01 = IrusMember.from_user(player = "Chatz01", day=1, month=5, year=2024, faction= "purple", admin=False, salary=True)
-    Stuggy = IrusMember.from_user(player = "Stuggy", day=1, month=5, year=2024, faction= "green", admin=True, salary=True)
-    Zel0s = IrusMember.from_user(player = "Zel0s", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
-    SunnieGal = IrusMember.from_user(player = "SunnieGal", day=1, month=5, year=2024, faction= "purple", admin=False, salary=False)
-    Merkavar = IrusMember.from_user(player = "Merkavar", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
-    Fred = IrusMember.from_user(player = "Fred", day=1, month=5, year=2024, faction= "yellow", admin=False, salary=True)
+    Chatz01 = IrusMember.from_user(
+        player="Chatz01",
+        day=1,
+        month=5,
+        year=2024,
+        faction="purple",
+        admin=False,
+        salary=True,
+    )
+    Stuggy = IrusMember.from_user(
+        player="Stuggy",
+        day=1,
+        month=5,
+        year=2024,
+        faction="green",
+        admin=True,
+        salary=True,
+    )
+    Zel0s = IrusMember.from_user(
+        player="Zel0s",
+        day=1,
+        month=5,
+        year=2024,
+        faction="yellow",
+        admin=False,
+        salary=True,
+    )
+    SunnieGal = IrusMember.from_user(
+        player="SunnieGal",
+        day=1,
+        month=5,
+        year=2024,
+        faction="purple",
+        admin=False,
+        salary=False,
+    )
+    Merkavar = IrusMember.from_user(
+        player="Merkavar",
+        day=1,
+        month=5,
+        year=2024,
+        faction="yellow",
+        admin=False,
+        salary=True,
+    )
+    Fred = IrusMember.from_user(
+        player="Fred",
+        day=1,
+        month=5,
+        year=2024,
+        faction="yellow",
+        admin=False,
+        salary=True,
+    )
 
     members = IrusMemberList()
 
-    csv = '''
+    csv = """
 01,Shen Yi,157248,151,0,136,0,7416913
 02,ABYZZMOS,121610,159,1,221,0,5575032
 03,Stuggy,111079,102,0,170,0,5214001
@@ -164,7 +271,7 @@ def generate_month_report_202406():
 49,Pennelope Death,12204,5,0,48,483729,329887
 50,Merkavar,11569,20,0,20,0,429938
 51,SuperJetski,5758,4,0,4,0,275905
-52,Dinyeros,0,0,0,0,0,0'''
+52,Dinyeros,0,0,0,0,0,0"""
 
     ladders_20240611 = IrusLadder.from_csv(invasion_20240611, csv, members)
     month_202406 = IrusMonth.from_invasion_stats(month=6, year=2024)
@@ -184,13 +291,16 @@ def generate_month_report_202406():
 
 def test_generate_invasion_report_20240611_rw(generate_invasion_report_20240611_rw):
     assert generate_invasion_report_20240611_rw is not None
-    assert generate_invasion_report_20240611_rw.target == 'reports/invasion/20240611-rw.csv'
+    assert (
+        generate_invasion_report_20240611_rw.target
+        == "reports/invasion/20240611-rw.csv"
+    )
     logger.info(generate_invasion_report_20240611_rw.presigned)
     logger.info(generate_invasion_report_20240611_rw.msg)
 
 
 def test_generate_month_report_202406(generate_month_report_202406):
     assert generate_month_report_202406 is not None
-    assert generate_month_report_202406.target == 'reports/month/202406.csv'
+    assert generate_month_report_202406.target == "reports/month/202406.csv"
     logger.info(generate_month_report_202406.presigned)
     logger.info(generate_month_report_202406.msg)

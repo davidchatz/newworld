@@ -66,3 +66,4 @@ Discord bot for New World invasion stats tracking. Extracts statistics from ladd
 - Limit commit messages to 6 lines
 - Always use `uv` when running python, pytest and related commands
 - If the AWS credentials have expired, stop and ask me to reauthenticate
+- When writing tests, always review the target interface first, do not hallucinate what the interface might be

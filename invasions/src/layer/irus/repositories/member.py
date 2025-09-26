@@ -102,7 +102,7 @@ class MemberRepository(BaseRepository[IrusMember]):
             members = []
             for item in response.get("Items", []):
                 try:
-                    member = IrusMember.model_validate(item)
+                    member = IrusMember.from_dict(item)
                     members.append(member)
                 except Exception as e:
                     self.logger.warning(f"Failed to parse member item {item}: {e}")

@@ -147,9 +147,72 @@ class IrusContainer:
         )
 
     @classmethod
+    def create_unit(cls, **kwargs) -> "IrusContainer":
+        """Create container for unit testing with fully mocked dependencies.
+
+        This is an alias for create_test() for consistency with style guide.
+
+        Returns:
+            Container configured for unit testing
+        """
+        return cls.create_test(**kwargs)
+
+    @classmethod
     def set_default(cls, container: "IrusContainer") -> None:
         """Set the default container instance."""
         cls._default_instance = container
+
+    @classmethod
+    def create_integration(
+        cls, aws_resources: dict[str, str], stack_name: str
+    ) -> "IrusContainer":
+        """Create container for integration testing with SAM-discovered resources.
+
+        This method sets environment variables from SAM-discovered resources
+        and includes safety checks to ensure we're using expected environment.
+
+        Args:
+            aws_resources: Dictionary of AWS resources from SAM discovery
+            stack_name: Expected stack name prefix for safety checks (from config)
+
+        Returns:
+            Container configured for integration testing with real AWS clients
+
+        Raises:
+            ValueError: If resources don't appear to be from expected environment
+        """
+        import os
+
+        # Safety checks - ensure we're using the expected environment resources
+        table_name = aws_resources.get("table_name", "")
+        bucket_name = aws_resources.get("bucket_name", "")
+        expected_prefix = stack_name.lower()
+
+        if not table_name or expected_prefix not in table_name.lower():
+            raise ValueError(
+                f"Not using expected environment - table: {table_name}, expected prefix: {expected_prefix}"
+            )
+
+        if not bucket_name or expected_prefix not in bucket_name.lower():
+            raise ValueError(
+                f"Not using expected environment - bucket: {bucket_name}, expected prefix: {expected_prefix}"
+            )
+
+        # Set environment variables from discovered resources
+        os.environ["TABLE_NAME"] = table_name
+        os.environ["BUCKET_NAME"] = bucket_name
+        os.environ["WEBHOOK_URL"] = aws_resources.get(
+            "webhook_url", "https://test.webhook.com"
+        )
+
+        if process_arn := aws_resources.get("process_step_function_arn"):
+            os.environ["PROCESS_STEP_FUNCTION_ARN"] = process_arn
+
+        if post_arn := aws_resources.get("post_step_function_arn"):
+            os.environ["POST_STEP_FUNCTION_ARN"] = post_arn
+
+        # Create production container which will use the env vars we just set
+        return cls.create_production()
 
     @classmethod
     def default(cls) -> "IrusContainer":

@@ -12,7 +12,7 @@ This style guide documents the coding patterns, conventions, and best practices 
 4. [Model Patterns](#model-patterns)
 5. [Service Layer Patterns](#service-layer-patterns)
 6. [Repository Patterns](#repository-patterns)
-7. [Testing Patterns](#testing-patterns)
+7. [Testing Patterns](tests/STYLE_GUIDE.md)
 8. [Error Handling](#error-handling)
 9. [Import Conventions](#import-conventions)
 10. [Type Hints](#type-hints)
@@ -239,6 +239,15 @@ class MemberManagementService:
 - **Error Handling**: Convert technical exceptions to domain-appropriate errors
 - **Logging**: Comprehensive operation logging through container
 
+### Container Environment Methods
+```python
+# Use these standardized methods for different environments
+container = IrusContainer.create_unit()        # Unit tests with mocked dependencies (alias for create_test)
+container = IrusContainer.create_test()        # Unit tests with specific mocks
+container = IrusContainer.create_integration(aws_resources, stack_name)  # Integration tests with real AWS
+container = IrusContainer.create_production()  # Production with real AWS from env vars
+```
+
 ## Repository Patterns
 
 ### Repository Class Structure
@@ -313,126 +322,19 @@ class MemberRepository(BaseRepository[IrusMember]):
 
 ## Testing Patterns
 
-### Test File Organization
-```python
-# tests/test_repositories_member.py
-"""Tests for MemberRepository class."""
+See [tests/STYLE_GUIDE.md](tests/STYLE_GUIDE.md) for comprehensive testing patterns, including:
 
-import pytest
-from unittest.mock import Mock, patch
-from botocore.exceptions import ClientError
+- **Unit Testing**: Test individual classes with mocked dependencies
+- **Integration Testing**: Test with real AWS resources using year 9999 isolation
+- **Container Patterns**: Standardized container methods for different environments
+- **Fixture Patterns**: Reusable test setup and cleanup
+- **Error Testing**: Exception handling and validation patterns
 
-from irus.container import IrusContainer
-from irus.models.member import IrusMember
-from irus.repositories.member import MemberRepository
-
-class TestMemberRepository:
-    """Test suite for MemberRepository class."""
-
-    @pytest.fixture
-    def container(self):
-        """Create test container with mocked dependencies."""
-        mock_container = IrusContainer.create_test()
-
-        # Mock table for DynamoDB operations
-        mock_table = Mock()
-        mock_container.table = Mock(return_value=mock_table)
-
-        return mock_container
-
-    @pytest.fixture
-    def repository(self, container):
-        """Create repository instance with test container."""
-        return MemberRepository(container)
-
-    @pytest.fixture
-    def sample_member(self):
-        """Create sample member for testing."""
-        return IrusMember(
-            player="TestPlayer",
-            faction="yellow",
-            start=20240101,
-            salary=True
-        )
-```
-
-### Test Method Patterns
-```python
-def test_save_success(self, repository, sample_member, container):
-    """Test successful member save operation."""
-    # Arrange
-    mock_table = container.table()
-    mock_table.put_item.return_value = {}
-
-    # Act
-    result = repository.save(sample_member)
-
-    # Assert
-    assert result == sample_member
-    mock_table.put_item.assert_called_once()
-    call_args = mock_table.put_item.call_args[1]['Item']
-    assert call_args['id'] == 'TestPlayer'
-    assert call_args['invasion'] == '#member'
-
-def test_save_client_error(self, repository, sample_member, container):
-    """Test save operation with DynamoDB client error."""
-    # Arrange
-    mock_table = container.table()
-    error = ClientError(
-        error_response={'Error': {'Code': 'ValidationException', 'Message': 'Test error'}},
-        operation_name='PutItem'
-    )
-    mock_table.put_item.side_effect = error
-
-    # Act & Assert
-    with pytest.raises(ValueError, match="Failed to save member TestPlayer"):
-        repository.save(sample_member)
-
-@pytest.mark.parametrize("player,faction,expected_valid", [
-    ("ValidPlayer", "yellow", True),
-    ("ValidPlayer", "purple", True),
-    ("ValidPlayer", "green", True),
-    ("ValidPlayer", "invalid", False),
-    ("", "yellow", False),
-])
-def test_member_validation(self, player, faction, expected_valid):
-    """Test member validation with various inputs."""
-    if expected_valid:
-        member = IrusMember(player=player, faction=faction, start=20240101)
-        assert member.player == player
-        assert member.faction == faction
-    else:
-        with pytest.raises(ValueError):
-            IrusMember(player=player, faction=faction, start=20240101)
-```
-
-### Testing Principles
-- **Arrange-Act-Assert**: Clear test structure for readability
-- **Fixture Usage**: Leverage pytest fixtures for setup and teardown
-- **Mock Isolation**: Mock external dependencies, test internal logic
-- **Parametrized Tests**: Use `@pytest.mark.parametrize` for multiple inputs
-- **Descriptive Names**: Test method names clearly describe what is being tested
-- **Error Testing**: Test both success and failure scenarios
-
-### Service Testing with Repository Mocks
-```python
-@patch('irus.services.member_management.MemberRepository')
-def test_service_with_repository_mock(self, mock_repo_class, container):
-    """Test service that uses repository with proper mocking."""
-    # Arrange
-    mock_repo = Mock()
-    mock_repo.get_by_player.return_value = sample_member
-    mock_repo_class.return_value = mock_repo
-
-    service = MemberManagementService(container)
-
-    # Act
-    result = service.some_operation("TestPlayer")
-
-    # Assert
-    mock_repo.get_by_player.assert_called_once_with("TestPlayer")
-    assert result is not None
-```
+Key testing principles:
+- Use `IrusContainer.create_unit()` for unit tests with mocked dependencies
+- Use `IrusContainer.create_integration()` for integration tests with real AWS resources
+- Use timestamp-based unique identifiers to avoid test data conflicts
+- Skip tests gracefully on rare data conflicts rather than complex workarounds
 
 ## Error Handling
 

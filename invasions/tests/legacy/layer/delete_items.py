@@ -8,7 +8,7 @@ if len(sys.argv) != 3:
 
 session = boto3.Session(profile_name=sys.argv[1])
 table_name = sys.argv[2]
-dynamodb = session.resource('dynamodb')
+dynamodb = session.resource("dynamodb")
 table = dynamodb.Table(table_name)
 
 # s3 = session.resource('s3')
@@ -16,8 +16,8 @@ table = dynamodb.Table(table_name)
 # bucket.object_versions.all().delete()
 # print("All objects in " + sys.argv[1] + " deleted.")
 
-result = table.scan()['Items']
+result = table.scan()["Items"]
 with table.batch_writer() as batch:
     for item in result:
-        print(f'{item['invasion']} {item['id']}')
-        batch.delete_item(Key={'invasion': item['invasion'], 'id': item['id']})
+        print(f"{item['invasion']} {item['id']}")
+        batch.delete_item(Key={"invasion": item["invasion"], "id": item["id"]})
