@@ -3,6 +3,7 @@
 import os
 import uuid
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -10,6 +11,14 @@ import boto3
 import pytest
 from factory import Factory, Faker
 from moto import mock_aws
+
+# Load .env file for legacy code compatibility
+# This ensures legacy modules that depend on environment variables at import time
+# can access the required values (e.g., TABLE_NAME, BUCKET_NAME, etc.)
+env_file = Path(__file__).parent.parent / '.env'
+if env_file.exists():
+    from dotenv import load_dotenv
+    load_dotenv(env_file)
 
 
 # Test environment setup
