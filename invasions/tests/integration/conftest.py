@@ -272,13 +272,50 @@ def cleanup_test_data(integration_container):
     """Automatically cleanup test data after each test.
 
     This fixture runs after each test to clean up any test-dated records
-    (years starting with 99) that were created during the test.
+    using the test date pattern.
     """
     yield  # Run the test
 
     # Cleanup happens here after the test
-    # Import here to avoid circular imports
-    from tests.utilities.production_data_copier import ProductionDataCopier
+    # Use the test date pattern to identify what to delete
+    test_date_prefix = str(TEST_ISOLATION_YEAR_PREFIX)
 
-    copier = ProductionDataCopier(integration_container)
-    copier.cleanup_test_data()
+    try:
+        table = integration_container.table()
+
+        # Scan for test records using the test date pattern
+        response = table.scan(
+            FilterExpression="begins_with(id, :test_prefix)",
+            ExpressionAttributeValues={":test_prefix": test_date_prefix}
+        )
+
+        # Delete test records in batches
+        with table.batch_writer() as batch:
+            for item in response.get("Items", []):
+                batch.delete_item(
+                    Key={
+                        "invasion": item["invasion"],
+                        "id": item["id"]
+                    }
+                )
+
+        # Handle pagination if needed
+        while "LastEvaluatedKey" in response:
+            response = table.scan(
+                FilterExpression="begins_with(id, :test_prefix)",
+                ExpressionAttributeValues={":test_prefix": test_date_prefix},
+                ExclusiveStartKey=response["LastEvaluatedKey"]
+            )
+
+            with table.batch_writer() as batch:
+                for item in response.get("Items", []):
+                    batch.delete_item(
+                        Key={
+                            "invasion": item["invasion"],
+                            "id": item["id"]
+                        }
+                    )
+
+    except Exception as e:
+        # Don't fail tests due to cleanup issues
+        print(f"Warning: Test cleanup failed: {e}")
