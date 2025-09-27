@@ -12,7 +12,7 @@ This style guide documents the coding patterns, conventions, and best practices 
 4. [Model Patterns](#model-patterns)
 5. [Service Layer Patterns](#service-layer-patterns)
 6. [Repository Patterns](#repository-patterns)
-7. [Testing Patterns](tests/STYLE_GUIDE.md)
+7. [Testing Patterns](invasions/tests/STYLE_GUIDE.md)
 8. [Error Handling](#error-handling)
 9. [Import Conventions](#import-conventions)
 10. [Type Hints](#type-hints)

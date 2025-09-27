@@ -66,4 +66,23 @@ Discord bot for New World invasion stats tracking. Extracts statistics from ladd
 - Limit commit messages to 6 lines
 - Always use `uv` when running python, pytest and related commands
 - If the AWS credentials have expired, stop and ask me to reauthenticate
-- When writing tests, always review the target interface first, do not hallucinate what the interface might be
+- When writing tests, always review the target interface first, do not hallucinate what the interface might be. Say [assumption] or something similar if you are unsure.
+- If tests are failing do not report the tests are working perfectly. I would prefer to look at a failing test in detail, identify and resolve the issue.
+
+## Critical Safety Prompts
+
+### Before Making Changes
+- **Read First**: Always examine existing code patterns and interfaces before implementing, never assume
+- **Todo Lists**: Create todo lists for multi-step tasks to track progress methodically
+- **Incremental Testing**: Run tests after each significant change, show actual output
+
+### Test Development Safety
+- **Unique Test Data**: Use helper functions from conftest.py (generate_test_date, get_test_date_components) and timestamp-based identifiers, never hardcode values
+- **Environment Consistency**: Check integration config and use discovered AWS profile/region, not hardcoded values
+- **Verify Success**: Actually run tests and show PASSED output, never assume tests work
+- **Safe Cleanup**: Only use cleanup methods that remove test data, never copy or modify production data
+
+### Process Requirements
+- **Explicit Verification**: Show actual command output, not just claims of success
+- **Pattern Following**: Read existing files to understand current patterns before writing new code
+- **Error Investigation**: When tests fail, investigate and fix rather than claiming they work

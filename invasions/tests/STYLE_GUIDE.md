@@ -23,6 +23,16 @@ This guide documents testing patterns, conventions, and best practices for the N
 - **Parametrized Tests**: Use `@pytest.mark.parametrize` for multiple inputs
 - **Descriptive Names**: Test method names clearly describe what is being tested
 - **Error Testing**: Test both success and failure scenarios
+- **Avoid colliding test data**: Use timestamps or similar to minimise tests failing due to existing data
+
+### Critical Safety Requirements
+- **Read Before Writing**: Always examine existing interfaces and patterns before implementing tests
+- **NEVER Hardcode**: NEVER hardcode test data values - always use helper functions and timestamps
+- **Use Helper Functions**: MANDATORY use of `generate_test_date()`, `get_test_date_components()` from conftest.py
+- **Unique Identifiers**: ALWAYS use timestamp-based unique identifiers for all test data to prevent collisions
+- **Verify Test Results**: MUST run tests and verify actual PASSED output - never assume tests work
+- **Environment Safety**: MUST use integration config for AWS profile/region, never hardcode values
+- **Incremental Development**: MUST run tests after each change and show actual output
 
 ### Test Categories
 - **Unit Tests**: Test individual classes/methods in isolation with mocked dependencies
@@ -60,10 +70,13 @@ class TestMemberRepository:
     @pytest.fixture
     def sample_member(self):
         """Create sample member for testing."""
+        import time
+        timestamp = int(time.time())
+        date_components = get_test_date_components()
         return IrusMember(
-            player="TestPlayer",
+            player=f"TestPlayer-{timestamp}",
             faction="yellow",
-            start=20240101,
+            start=date_components["date_int"],
             salary=True
         )
 ```
@@ -287,6 +300,15 @@ def test_create_member(self, repository, test_member_data):
 - **Legacy Dependencies**: Skip services that use legacy classes until modernized
 - **No Hardcoding**: Avoid hardcoded dates - let the helper functions generate them dynamically
 
+### Critical Development Process
+- **Read Existing Code First**: Before writing any test, MUST read existing test files to understand patterns and interfaces
+- **Use Todo Lists**: MUST break complex testing tasks into tracked steps
+- **Incremental Verification**: MUST run related tests after each significant change
+- **Never Assume Success**: MUST verify test results with actual pytest output showing PASSED status
+- **Show Actual Output**: MUST include actual command output in responses, not summaries or assumptions
+- **Investigate Failures**: When tests fail, MUST investigate and fix the issue, not claim tests work
+- **Safe Cleanup Only**: MUST use only cleanup methods that remove only test data
+
 ### Skipping Legacy Services
 ```python
 @pytest.mark.skip(reason="MemberManagementService uses legacy dependencies - modernize first")
@@ -377,19 +399,6 @@ def integration_config():
     return env_config
 ```
 
-### Auto-Use Cleanup Fixtures
-```python
-@pytest.fixture(autouse=True)
-def cleanup_test_data(integration_container):
-    """Automatically cleanup test data after each test."""
-    yield  # Run the test
-
-    # Cleanup happens here after the test
-    from tests.utilities.production_data_copier import ProductionDataCopier
-
-    copier = ProductionDataCopier(integration_container)
-    copier.cleanup_test_data()
-```
 
 ## Error Testing
 
