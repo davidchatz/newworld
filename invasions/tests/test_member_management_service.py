@@ -19,7 +19,14 @@ class TestMemberManagementService:
     @pytest.fixture
     def service(self, container):
         """Create MemberManagementService instance with test container."""
-        return MemberManagementService(container)
+        # Mock the invasion list and ladder repository dependencies
+        mock_invasion_list = Mock()
+        mock_ladder_repository = Mock()
+        return MemberManagementService(
+            container=container,
+            invasion_list=mock_invasion_list,
+            ladder_repository=mock_ladder_repository,
+        )
 
     @pytest.fixture
     def sample_member(self):
@@ -57,26 +64,17 @@ class TestMemberManagementService:
             assert service._container is mock_container
             mock_default.assert_called_once()
 
-    @patch("irus.services.member_management.IrusInvasionList")
-    def test_update_invasions_for_new_member_no_invasions(
-        self, mock_invasion_list_class, service, sample_member
-    ):
+    def test_update_invasions_for_new_member_no_invasions(self, service, sample_member):
         """Test updating invasions when no invasions are found."""
         # Mock empty invasion list
-        mock_invasion_list = Mock()
-        mock_invasion_list.count.return_value = 0
-        mock_invasion_list_class.from_start.return_value = mock_invasion_list
+        service._invasion_list.count.return_value = 0
 
         result = service.update_invasions_for_new_member(sample_member)
 
         assert "No invasions found to update" in result
-        mock_invasion_list_class.from_start.assert_called_once_with(20240301)
+        service._invasion_list.load_from_start.assert_called_once_with(20240301)
 
-    @patch("irus.services.member_management.IrusLadderRank")
-    @patch("irus.services.member_management.IrusInvasionList")
-    def test_update_invasions_for_new_member_success(
-        self, mock_invasion_list_class, mock_ladder_rank_class, service, sample_member
-    ):
+    def test_update_invasions_for_new_member_success(self, service, sample_member):
         """Test successfully updating invasions for new member."""
         # Mock invasion list with sample invasions
         mock_invasion1 = Mock()
@@ -84,24 +82,22 @@ class TestMemberManagementService:
         mock_invasion2 = Mock()
         mock_invasion2.name = "20240315-ef"
 
-        mock_invasion_list = Mock()
-        mock_invasion_list.count.return_value = 2
-        mock_invasion_list.invasions = [mock_invasion1, mock_invasion2]
-        mock_invasion_list_class.from_start.return_value = mock_invasion_list
+        service._invasion_list.count.return_value = 2
+        service._invasion_list.invasions = [mock_invasion1, mock_invasion2]
 
         # Mock ladder ranks
         mock_ladder_rank1 = Mock()
         mock_ladder_rank1.rank = "05"
-        mock_ladder_rank1.update_membership = Mock()
 
         mock_ladder_rank2 = Mock()
         mock_ladder_rank2.rank = "12"
-        mock_ladder_rank2.update_membership = Mock()
 
-        mock_ladder_rank_class.from_invasion_for_member.side_effect = [
+        # Mock repository returns
+        service._ladder_repository.get_rank_by_player.side_effect = [
             mock_ladder_rank1,
             mock_ladder_rank2,
         ]
+        service._ladder_repository.update_rank_membership.return_value = True
 
         result = service.update_invasions_for_new_member(sample_member)
 
@@ -110,15 +106,25 @@ class TestMemberManagementService:
         assert "20240301-bw rank 05" in result
         assert "20240315-ef rank 12" in result
 
-        # Verify method calls
-        assert mock_ladder_rank_class.from_invasion_for_member.call_count == 2
-        mock_ladder_rank1.update_membership.assert_called_once_with(True)
-        mock_ladder_rank2.update_membership.assert_called_once_with(True)
+        # Verify repository method calls
+        assert service._ladder_repository.get_rank_by_player.call_count == 2
+        service._ladder_repository.get_rank_by_player.assert_any_call(
+            "20240301-bw", "TestPlayer"
+        )
+        service._ladder_repository.get_rank_by_player.assert_any_call(
+            "20240315-ef", "TestPlayer"
+        )
 
-    @patch("irus.services.member_management.IrusLadderRank")
-    @patch("irus.services.member_management.IrusInvasionList")
+        assert service._ladder_repository.update_rank_membership.call_count == 2
+        service._ladder_repository.update_rank_membership.assert_any_call(
+            "20240301-bw", "05", True
+        )
+        service._ladder_repository.update_rank_membership.assert_any_call(
+            "20240315-ef", "12", True
+        )
+
     def test_update_invasions_for_new_member_partial_success(
-        self, mock_invasion_list_class, mock_ladder_rank_class, service, sample_member
+        self, service, sample_member
     ):
         """Test updating invasions with some failures."""
         # Mock invasion list
@@ -127,20 +133,19 @@ class TestMemberManagementService:
         mock_invasion2 = Mock()
         mock_invasion2.name = "20240315-ef"
 
-        mock_invasion_list = Mock()
-        mock_invasion_list.count.return_value = 2
-        mock_invasion_list.invasions = [mock_invasion1, mock_invasion2]
-        mock_invasion_list_class.from_start.return_value = mock_invasion_list
+        service._invasion_list.count.return_value = 2
+        service._invasion_list.invasions = [mock_invasion1, mock_invasion2]
 
         # Mock one successful, one failed ladder rank lookup
         mock_ladder_rank = Mock()
         mock_ladder_rank.rank = "05"
-        mock_ladder_rank.update_membership = Mock()
 
-        mock_ladder_rank_class.from_invasion_for_member.side_effect = [
+        # Return ladder rank for first invasion, None for second (member not found)
+        service._ladder_repository.get_rank_by_player.side_effect = [
             mock_ladder_rank,
-            ValueError("Member not found"),
+            None,
         ]
+        service._ladder_repository.update_rank_membership.return_value = True
 
         result = service.update_invasions_for_new_member(sample_member)
 
@@ -150,7 +155,9 @@ class TestMemberManagementService:
         assert "20240315-ef" not in result
 
         # Only one update should have been called
-        mock_ladder_rank.update_membership.assert_called_once_with(True)
+        service._ladder_repository.update_rank_membership.assert_called_once_with(
+            "20240301-bw", "05", True
+        )
 
     def test_bulk_update_member_status(self, service, sample_members):
         """Test bulk updating member status."""
@@ -284,17 +291,13 @@ class TestMemberManagementService:
 
     def test_logging_operations(self, service, sample_member):
         """Test that operations are logged correctly."""
-        with patch(
-            "irus.services.member_management.IrusInvasionList"
-        ) as mock_invasion_list_class:
-            mock_invasion_list = Mock()
-            mock_invasion_list.count.return_value = 0
-            mock_invasion_list_class.from_start.return_value = mock_invasion_list
+        # Mock the invasion list to return no invasions
+        service._invasion_list.count.return_value = 0
 
-            service.update_invasions_for_new_member(sample_member)
+        service.update_invasions_for_new_member(sample_member)
 
-            # Verify logging calls were made
-            assert service._logger.info.call_count >= 2
+        # Verify logging calls were made
+        assert service._logger.info.call_count >= 2
 
         service.validate_member_data(sample_member)
         service.find_duplicate_members([sample_member])

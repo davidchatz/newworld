@@ -6,58 +6,51 @@ from .repositories.invasion import InvasionRepository
 
 
 class IrusInvasionList:
-    """Collection class for managing multiple invasions."""
+    """Service for managing invasion collections with dependency injection."""
 
-    def __init__(
-        self,
-        invasions: list[IrusInvasion],
-        start: int,
-        container: IrusContainer | None = None,
-    ):
-        """Initialize invasion list with pure models.
+    def __init__(self, container: IrusContainer | None = None):
+        """Initialize invasion list service.
 
         Args:
-            invasions: List of IrusInvasion models
-            start: Start date for the collection
-            container: Optional container for logging
+            container: Dependency injection container. Uses default if None.
         """
         self._container = container or IrusContainer.default()
         self._logger = self._container.logger()
-        self.invasions = invasions
-        self.start = Decimal(start)
+        self._repository = InvasionRepository(self._container)
 
-    @classmethod
-    def from_month(cls, month: int, year: int, container: IrusContainer | None = None):
-        """Create invasion list for a specific month using repository pattern."""
-        container = container or IrusContainer.default()
-        logger = container.logger()
-        repository = InvasionRepository(container)
+        # Internal state for loaded invasions
+        self.invasions: list[IrusInvasion] = []
+        self.start: Decimal = Decimal(0)
 
-        logger.info(f"InvasionList.from_month {month}/{year}")
+    def load_from_month(self, month: int, year: int) -> None:
+        """Load invasions for a specific month using repository pattern.
+
+        Args:
+            month: Month (1-12)
+            year: Year (YYYY)
+        """
+        self._logger.info(f"InvasionList.load_from_month {month}/{year}")
         zero_month = f"{month:02d}"
         start = f"{year}{zero_month}01"
 
         # Use repository to get invasions by month
-        invasions = repository.get_by_month(year, month)
-        logger.debug(f"Found {len(invasions)} invasions for {month}/{year}")
+        self.invasions = self._repository.get_by_month(year, month)
+        self.start = Decimal(start)
+        self._logger.debug(f"Found {len(self.invasions)} invasions for {month}/{year}")
 
-        return cls(invasions, start, container)
+    def load_from_start(self, start: int) -> None:
+        """Load invasions starting from a specific date using repository pattern.
 
-    @classmethod
-    def from_start(cls, start: int, container: IrusContainer | None = None):
-        """Create invasion list starting from a specific date using repository pattern."""
-        container = container or IrusContainer.default()
-        logger = container.logger()
-        repository = InvasionRepository(container)
-
-        logger.info(f"InvasionList.from_start {start}")
+        Args:
+            start: Start date in YYYYMMDD format
+        """
+        self._logger.info(f"InvasionList.load_from_start {start}")
 
         # Use repository to get invasions from start date (using large end date for "all after start")
         end_date = 99999999  # Large date to capture all invasions after start
-        invasions = repository.get_by_date_range(start, end_date)
-        logger.debug(f"Found {len(invasions)} invasions from {start}")
-
-        return cls(invasions, start, container)
+        self.invasions = self._repository.get_by_date_range(start, end_date)
+        self.start = Decimal(start)
+        self._logger.debug(f"Found {len(self.invasions)} invasions from {start}")
 
     def str(self) -> str:
         msg = ""

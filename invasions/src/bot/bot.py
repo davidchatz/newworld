@@ -1,14 +1,29 @@
 import json
 import os
-#import pprint
-from datetime import datetime
-from nacl.signing import VerifyKey
-from nacl.exceptions import BadSignatureError
-from aws_lambda_powertools.utilities.typing import LambdaContext
-import irus
-from irus import IrusInvasion, IrusInvasionList, IrusMember, IrusMemberList, IrusLadder, IrusSecrets, IrusFiles, IrusProcess, IrusResources, IrusReport, IrusMonth, IrusPostTable
 
-discord_cmd = os.environ['DISCORD_CMD']
+# import pprint
+from datetime import datetime
+
+import irus
+from aws_lambda_powertools.utilities.typing import LambdaContext
+from irus import (
+    IrusFiles,
+    IrusInvasion,
+    IrusInvasionList,
+    IrusLadder,
+    IrusMember,
+    IrusMemberList,
+    IrusMonth,
+    IrusPostTable,
+    IrusProcess,
+    IrusReport,
+    IrusResources,
+    IrusSecrets,
+)
+from nacl.exceptions import BadSignatureError
+from nacl.signing import VerifyKey
+
+discord_cmd = os.environ["DISCORD_CMD"]
 
 
 #
@@ -16,7 +31,7 @@ discord_cmd = os.environ['DISCORD_CMD']
 #
 
 help_text = {}
-help_text['admin'] = f'''
+help_text["admin"] = f"""
 # Invasions R Us Stats
 
 Bot for capturing, tracking and reporting invasion stats for the Invasions R Us company.
@@ -60,9 +75,9 @@ Get help for other commands including **invasion**, **member**, **report** and *
 **/{discord_cmd} *command* help**
 
 If you see errors like *didn't respond in time*, please contact **Chatz** on discord.
-'''
+"""
 
-help_text['invasion'] = f'''
+help_text["invasion"] = f"""
 # Invasions R Us Stats - Invasion Commands
 
 Bot commands for creating, updating and listing invasions. Typically you would use the /{discord_cmd} ladder or /{discord_cmd} ladders commands, but sometimes you may need to add another screenshot.
@@ -103,10 +118,10 @@ Display the ladder entry for *rank*:
 
 Edit a row in a ladder, adjusting one or more of the rank, member flag, player name or score. This may be needed if the scan failed to correctly identify some characters in the image. If changing the rank, this command will overwrite the existing entry at that position:
 **/{discord_cmd} invasion edit *invasion rank [new_rank] [member] [player] [score]***
-'''
+"""
 
 
-help_text['member'] = f'''
+help_text["member"] = f"""
 # Invasions R Us Stats - Member Commands
 
 Bot commands for registering company members to determine which player stats to track.
@@ -116,9 +131,9 @@ Add a new member to the company specify their New World character name and facti
 
 List all registered company members at this time:
 **/{discord_cmd} member list**
-'''
+"""
 
-help_text['report'] = f'''
+help_text["report"] = f"""
 # Invasions R Us Stats - Report Commands
 
 Generate reports as CSV files and display summary in discord. The links to the files are valid for up to an hour, after that you will need to rerun the command to generate a new link.
@@ -136,9 +151,9 @@ Generate a summary report for a specific player for the current (default) or spe
 
 Generate a summary report for all current members for the current (default) or specified month and year:
 **/{discord_cmd} report members *[month] [year]***
-'''
+"""
 
-help_text['display'] = f'''
+help_text["display"] = f"""
 # Invasions R Us Stats - Report Commands
 
 Display stats in discord by sending multiple responses to a request. Discord limits the responses to 2000 characters, so multiple responses are used to get around this limitation.
@@ -159,9 +174,9 @@ Display a summary of a specific player for the current (default) or specified mo
 
 Display the month stat summary for a player over the current (default) year:
 **/{discord_cmd} display year *player [year]***
-'''
+"""
 
-help_text['user'] = f'''
+help_text["user"] = f"""
 # Invasions R Us Stats
 
 As a company member you can display and access reports from company invasions.
@@ -171,7 +186,7 @@ List all the commands for downloading a report as a CSV file:
 
 List all the commands for displaying statistics:
 **/{discord_cmd} display help**
-'''
+"""
 
 
 #
@@ -184,20 +199,23 @@ role_id = IrusSecrets.role_id()
 process = IrusProcess()
 post_table = IrusPostTable()
 
+
 def verify_signature(event):
-    body = event['body']
-    auth_sig = event['headers'].get('x-signature-ed25519')
-    auth_ts  = event['headers'].get('x-signature-timestamp')
+    body = event["body"]
+    auth_sig = event["headers"].get("x-signature-ed25519")
+    auth_ts = event["headers"].get("x-signature-timestamp")
 
     # message = auth_ts.encode() + body.encode()
     verify_key = VerifyKey(IrusSecrets.public_key_bytes())
-    verify_key.verify(f'{auth_ts}{body}'.encode(), bytes.fromhex(auth_sig))
+    verify_key.verify(f"{auth_ts}{body}".encode(), bytes.fromhex(auth_sig))
+
 
 #
 # Invasion Commands
 #
 
-def invasion_list_cmd(options:list) -> str:
+
+def invasion_list_cmd(options: list) -> str:
     now = datetime.now()
     month = now.month
     year = now.year
@@ -208,13 +226,15 @@ def invasion_list_cmd(options:list) -> str:
         elif o["name"] == "year":
             year = int(o["value"])
 
-    return IrusInvasionList.from_month(month=month, year=year).markdown()
+    invasion_list = IrusInvasionList()
+    invasion_list.load_from_month(month=month, year=year)
+    return invasion_list.markdown()
 
 
-def invasion_add_cmd(options:list) -> IrusInvasion:
-    logger.info(f'invasion_add: {options}')
+def invasion_add_cmd(options: list) -> IrusInvasion:
+    logger.info(f"invasion_add: {options}")
 
-    notes=None
+    notes = None
     now = datetime.now()
     day = now.day
     month = now.month
@@ -235,18 +255,19 @@ def invasion_add_cmd(options:list) -> IrusInvasion:
         elif o["name"] == "notes":
             notes = o["value"]
 
-    item = IrusInvasion.from_user(day=day,
-                              month=month,
-                              year=year,
-                              settlement=settlement,
-                              win=win,
-                              notes=notes)
-    
+    item = IrusInvasion.from_user(
+        day=day, month=month, year=year, settlement=settlement, win=win, notes=notes
+    )
+
     return item
 
 
-def invasion_download_cmd(id: str, token: str, options:list, resolved:dict, method:str) -> str:
-    logger.info(f'invasion_download_cmd:\nid: {id}\ntoken: {token}\noptions: {options}\nresolved: {resolved}\nmethod: {method}')
+def invasion_download_cmd(
+    id: str, token: str, options: list, resolved: dict, method: str
+) -> str:
+    logger.info(
+        f"invasion_download_cmd:\nid: {id}\ntoken: {token}\noptions: {options}\nresolved: {resolved}\nmethod: {method}"
+    )
 
     invasion = None
     files = IrusFiles()
@@ -256,18 +277,18 @@ def invasion_download_cmd(id: str, token: str, options:list, resolved:dict, meth
             if o["name"] == "invasion":
                 invasion = IrusInvasion.from_table(o["value"])
             elif o["name"].startswith("file"):
-                files.append(name = o["name"], attachment = o["value"])
+                files.append(name=o["name"], attachment=o["value"])
     except ValueError as e:
         logger.info(e)
         return str(e)
 
-    files.update(resolved['attachments'])
+    files.update(resolved["attachments"])
 
     return process.start(id, token, invasion, files, method)
 
 
-def invasion_edit_cmd(options:list) -> str:
-    logger.info(f'invasion_edit: {options}')
+def invasion_edit_cmd(options: list) -> str:
+    logger.info(f"invasion_edit: {options}")
 
     invasion = None
     rank = None
@@ -289,17 +310,19 @@ def invasion_edit_cmd(options:list) -> str:
             elif o["name"] == "player":
                 player = o["value"]
             elif o["name"] == "score":
-                score = int(o["value"])                
+                score = int(o["value"])
     except ValueError as e:
         logger.info(e)
         return str(e)
-    
-    ladder = IrusLadder.from_invasion(invasion)
-    return ladder.edit(rank=rank, new_rank=new_rank, member=member, player=player, score=score)
-    
 
-def invasion_rank_cmd(options:list) -> str:
-    logger.info(f'invasion_edit: {options}')
+    ladder = IrusLadder.from_invasion(invasion)
+    return ladder.edit(
+        rank=rank, new_rank=new_rank, member=member, player=player, score=score
+    )
+
+
+def invasion_rank_cmd(options: list) -> str:
+    logger.info(f"invasion_edit: {options}")
 
     invasion = None
     rank = None
@@ -310,7 +333,7 @@ def invasion_rank_cmd(options:list) -> str:
                 if o["name"] == "invasion":
                     invasion = IrusInvasion.from_table(o["value"])
                 elif o["name"] == "rank":
-                    rank = int(o["value"])             
+                    rank = int(o["value"])
     except ValueError as e:
         logger.info(e)
         return str(e)
@@ -318,47 +341,56 @@ def invasion_rank_cmd(options:list) -> str:
     ladder = IrusLadder.from_invasion(invasion)
     row = ladder.rank(rank)
     if row is None:
-        return f'No rank {rank} in invasion {invasion.name}'
+        return f"No rank {rank} in invasion {invasion.name}"
     else:
         return row.str()
 
 
-def invasion_cmd(id:str, token:str, options:dict, resolved: dict) -> str:
-    logger.info(f'invasion_cmd: {options}')
-    name = options['name']
-    if name == 'help':
-        return help_text['invasion']
-    elif name == 'list':
-        return invasion_list_cmd(options['options'])
-    elif name == 'edit':
-        return invasion_edit_cmd(options['options'])
-    elif name == 'rank':
-        return invasion_rank_cmd(options['options'])
-    elif name == 'add':
-        return invasion_add_cmd(options['options']).markdown()
-    elif name == 'ladder' or name == 'screenshots':
-        return invasion_download_cmd(id, token, options['options'], resolved, 'Ladder')
-    elif name == 'roster':
-        return invasion_download_cmd(id, token, options['options'], resolved, 'Roster')
+def invasion_cmd(id: str, token: str, options: dict, resolved: dict) -> str:
+    logger.info(f"invasion_cmd: {options}")
+    name = options["name"]
+    if name == "help":
+        return help_text["invasion"]
+    elif name == "list":
+        return invasion_list_cmd(options["options"])
+    elif name == "edit":
+        return invasion_edit_cmd(options["options"])
+    elif name == "rank":
+        return invasion_rank_cmd(options["options"])
+    elif name == "add":
+        return invasion_add_cmd(options["options"]).markdown()
+    elif name == "ladder" or name == "screenshots":
+        return invasion_download_cmd(id, token, options["options"], resolved, "Ladder")
+    elif name == "roster":
+        return invasion_download_cmd(id, token, options["options"], resolved, "Roster")
     else:
-        logger.error(f'Invalid command {name}')
-        return f'Invalid command {name}'
+        logger.error(f"Invalid command {name}")
+        return f"Invalid command {name}"
 
 
-def invasion_process(id: str, token: str, invasion: IrusInvasion, options:list, resolved:dict, method:str) -> str:
-    logger.info(f'invasion_process:\nid: {id}\ntoken: {token}\noptions: {options}\nresolved: {resolved}\nmethod: {method}')
+def invasion_process(
+    id: str,
+    token: str,
+    invasion: IrusInvasion,
+    options: list,
+    resolved: dict,
+    method: str,
+) -> str:
+    logger.info(
+        f"invasion_process:\nid: {id}\ntoken: {token}\noptions: {options}\nresolved: {resolved}\nmethod: {method}"
+    )
 
     files = IrusFiles()
 
     try:
         for o in options:
             if o["name"].startswith("file"):
-                files.append(name = o["name"], attachment = o["value"])
+                files.append(name=o["name"], attachment=o["value"])
     except ValueError as e:
         logger.info(e)
         return str(e)
 
-    files.update(resolved['attachments'])
+    files.update(resolved["attachments"])
 
     return process.start(id, token, invasion, files, method)
 
@@ -367,8 +399,8 @@ def invasion_process(id: str, token: str, invasion: IrusInvasion, options:list, 
 # Member Commands
 #
 
-def member_list_cmd(options:list) -> str:
 
+def member_list_cmd(options: list) -> str:
     return "**Deprecated**: Please use *display members* command.\n"
 
     # faction = None
@@ -379,8 +411,7 @@ def member_list_cmd(options:list) -> str:
     # return IrusMemberList().markdown(faction = faction)
 
 
-def member_add_cmd(options:list) -> str:
-
+def member_add_cmd(options: list) -> str:
     now = datetime.now()
     month = now.month
     year = now.year
@@ -410,24 +441,25 @@ def member_add_cmd(options:list) -> str:
         elif o["name"] == "salary":
             salary = bool(o["value"])
 
-    member = IrusMember.from_user(player=player,
-                                day=day,
-                                month=month,
-                                year=year,
-                                faction=faction,
-                                discord=discord,
-                                admin=admin,
-                                salary=salary,
-                                notes=notes)
+    member = IrusMember.from_user(
+        player=player,
+        day=day,
+        month=month,
+        year=year,
+        faction=faction,
+        discord=discord,
+        admin=admin,
+        salary=salary,
+        notes=notes,
+    )
     mesg = member.str()
     mesg += irus.update_invasions_for_new_member(member)
-    logger.info(f'member_add_cmd: {mesg}')
+    logger.info(f"member_add_cmd: {mesg}")
 
     return mesg
 
 
-def member_remove_cmd(options:list) -> str:
-
+def member_remove_cmd(options: list) -> str:
     player = None
     for o in options:
         if o["name"] == "player":
@@ -436,32 +468,33 @@ def member_remove_cmd(options:list) -> str:
     try:
         member = IrusMember.from_table(player)
     except ValueError:
-        return f'*Member {player} not found*'
+        return f"*Member {player} not found*"
     return member.remove()
 
 
-def member_cmd(options:dict, resolved: dict) -> str:
-    logger.info(f'member_cmd: {options}')
+def member_cmd(options: dict, resolved: dict) -> str:
+    logger.info(f"member_cmd: {options}")
 
-    name = options['name']
-    if name == 'help':
-        return help_text['member']
-    elif name == 'list':
-        return member_list_cmd(options['options'])
-    elif name == 'add':
-        return member_add_cmd(options['options'])
-    elif name == 'remove':
-        return member_remove_cmd(options['options'])
+    name = options["name"]
+    if name == "help":
+        return help_text["member"]
+    elif name == "list":
+        return member_list_cmd(options["options"])
+    elif name == "add":
+        return member_add_cmd(options["options"])
+    elif name == "remove":
+        return member_remove_cmd(options["options"])
     else:
-        logger.error(f'Invalid command {name}')
-        return f'Invalid command {name}'
+        logger.error(f"Invalid command {name}")
+        return f"Invalid command {name}"
+
 
 #
 # Report Commands
 #
 
-def report_month_cmd(options:list) -> str:
 
+def report_month_cmd(options: list) -> str:
     now = datetime.now()
     month = now.month
     year = now.year
@@ -475,20 +508,19 @@ def report_month_cmd(options:list) -> str:
         elif o["name"] == "gold":
             gold = o["value"]
 
-    stats = IrusMonth.from_invasion_stats(month = month, year = year)
+    stats = IrusMonth.from_invasion_stats(month=month, year=year)
     report = IrusReport.from_month(month=stats, gold=gold)
     return stats.str() + report.msg
 
 
-def report_invasion_cmd(options:list) -> str:
-
+def report_invasion_cmd(options: list) -> str:
     name = None
     for o in options:
         if o["name"] == "invasion":
             name = o["value"]
 
     if not name:
-        return 'Missing invasion from request'
+        return "Missing invasion from request"
 
     invasion = IrusInvasion.from_table(name)
     ladder = IrusLadder.from_invasion(invasion)
@@ -496,8 +528,7 @@ def report_invasion_cmd(options:list) -> str:
     return f"# Report for Invasion {name}\n" + report.msg
 
 
-def report_member_cmd(options:list) -> str:
-
+def report_member_cmd(options: list) -> str:
     now = datetime.now()
     month = now.month
     year = now.year
@@ -515,15 +546,15 @@ def report_member_cmd(options:list) -> str:
     try:
         member = IrusMember.from_table(player)
     except:
-        mesg = f'*Member {player} not found*'
+        mesg = f"*Member {player} not found*"
 
     if member:
-        mesg = f'# Report for {player}\n'
+        mesg = f"# Report for {player}\n"
         mesg += member.str()
         try:
             report = IrusMonth.from_table(month, year)
         except:
-            mesg = f'*No monthly stats for {player} during {month}/{year}*'
+            mesg = f"*No monthly stats for {player} during {month}/{year}*"
 
         if report:
             mesg += report.member_stats(player)
@@ -532,38 +563,39 @@ def report_member_cmd(options:list) -> str:
     return mesg
 
 
-def report_members_cmd(options:list) -> str:
+def report_members_cmd(options: list) -> str:
     now = datetime.now().strftime("%Y%m%d%H%M%S")
     members = IrusMemberList()
-    logger.debug(f'report_members_cmd: {members}')
-    report = IrusReport.from_members(timestamp = now, report = members.csv())
-    return f"# Report of current members\n" + report.msg
+    logger.debug(f"report_members_cmd: {members}")
+    report = IrusReport.from_members(timestamp=now, report=members.csv())
+    return "# Report of current members\n" + report.msg
 
 
-def report_cmd(options:dict, resolved: dict) -> str:
-    logger.info(f'report_cmd: {options}')
+def report_cmd(options: dict, resolved: dict) -> str:
+    logger.info(f"report_cmd: {options}")
 
-    name = options['name']
-    if name == 'help':
-        return help_text['report']
-    elif name == 'month':
-        return report_month_cmd(options['options'])
-    elif name == 'invasion':
-        return report_invasion_cmd(options['options'])
-    elif name == 'member':
-        return report_member_cmd(options['options'])
-    elif name == 'members':
-        return report_members_cmd(options['options'])
+    name = options["name"]
+    if name == "help":
+        return help_text["report"]
+    elif name == "month":
+        return report_month_cmd(options["options"])
+    elif name == "invasion":
+        return report_invasion_cmd(options["options"])
+    elif name == "member":
+        return report_member_cmd(options["options"])
+    elif name == "members":
+        return report_members_cmd(options["options"])
     else:
-        logger.error(f'Invalid command {name}')
-        return f'Invalid command {name}'
+        logger.error(f"Invalid command {name}")
+        return f"Invalid command {name}"
+
 
 #
 # Display reports using multiple webhook posts
 #
 
-def display_month_cmd(id: str, token: str, options:list) -> str:
 
+def display_month_cmd(id: str, token: str, options: list) -> str:
     now = datetime.now()
     month = now.month
     year = now.year
@@ -577,25 +609,27 @@ def display_month_cmd(id: str, token: str, options:list) -> str:
         elif o["name"] == "gold":
             gold = o["value"]
 
-    stats = IrusMonth.from_invasion_stats(month = month, year = year)
-    return post_table.start(id, token, stats.post2(gold), f'# Monthly Average Stats for {stats.month}')
+    stats = IrusMonth.from_invasion_stats(month=month, year=year)
+    return post_table.start(
+        id, token, stats.post2(gold), f"# Monthly Average Stats for {stats.month}"
+    )
 
 
-def display_invasion_cmd(id: str, token: str, options:list) -> str:
+def display_invasion_cmd(id: str, token: str, options: list) -> str:
     name = None
     for o in options:
         if o["name"] == "invasion":
             name = o["value"]
 
     if not name:
-        return 'Missing invasion from request'
+        return "Missing invasion from request"
 
     invasion = IrusInvasion.from_table(name)
-    ladder = IrusLadder.from_invasion(invasion)    
-    return post_table.start(id, token, ladder.post(), '# Invasion Stats')
+    ladder = IrusLadder.from_invasion(invasion)
+    return post_table.start(id, token, ladder.post(), "# Invasion Stats")
 
 
-def display_player_cmd(id: str, token: str, options:list) -> str:
+def display_player_cmd(id: str, token: str, options: list) -> str:
     return report_member_cmd(options)
     # player = None
     # now = datetime.now()
@@ -627,18 +661,20 @@ def display_player_cmd(id: str, token: str, options:list) -> str:
     # return post_table.start(id, token, msg, f'# Player {player}')
 
 
-def display_members_cmd(id: str, token: str, options:dict) -> str:
+def display_members_cmd(id: str, token: str, options: dict) -> str:
     faction = None
     for o in options:
         if o["name"] == "faction":
             faction = o["value"]
 
     members = IrusMemberList()
-    logger.debug(f'report_members_cmd: {members}')
-    return post_table.start(id, token, members.post(faction = faction), '# Company Members')
+    logger.debug(f"report_members_cmd: {members}")
+    return post_table.start(
+        id, token, members.post(faction=faction), "# Company Members"
+    )
 
 
-def display_year_cmd(id: str, token: str, options:list) -> str:
+def display_year_cmd(id: str, token: str, options: list) -> str:
     now = datetime.now()
     year = now.year
     player = None
@@ -654,7 +690,7 @@ def display_year_cmd(id: str, token: str, options:list) -> str:
     try:
         member = IrusMember.from_table(player)
     except:
-        mesg.append(f'*Member {player} not found*')
+        mesg.append(f"*Member {player} not found*")
 
     if member:
         mesg.append(IrusMonth.member_line_header())
@@ -662,117 +698,144 @@ def display_year_cmd(id: str, token: str, options:list) -> str:
         for m in range(1, 12):
             report = None
             try:
-                report = IrusMonth.from_table(month = m, year = year)
+                report = IrusMonth.from_table(month=m, year=year)
 
-            except ValueError as e:
-                logger.info(f'No results for player {player} in month {m} in year {year}, skipping')
+            except ValueError:
+                logger.info(
+                    f"No results for player {player} in month {m} in year {year}, skipping"
+                )
 
             if report:
                 mesg.append(report.member_line(player))
 
     logger.info(mesg)
-    return post_table.start(id, token, mesg, f'# Yearly Stats for {player} in {year}')
+    return post_table.start(id, token, mesg, f"# Yearly Stats for {player} in {year}")
 
 
-def display_cmd(id: str, token: str, options:dict, resolved: dict) -> str:
-    logger.info(f'report_cmd: {options}')
+def display_cmd(id: str, token: str, options: dict, resolved: dict) -> str:
+    logger.info(f"report_cmd: {options}")
 
-    name = options['name']
-    if name == 'help':
-        return help_text['display']
-    elif name == 'month':
-        msg = display_month_cmd(id, token, options['options'])
-    elif name == 'invasion':
-        msg = display_invasion_cmd(id, token, options['options'])
-    elif name == 'player':
-        msg = display_player_cmd(id, token, options['options'])
-    elif name == 'members':
-        msg = display_members_cmd(id, token, options['options'])
-    elif name == 'year':
-        msg = display_year_cmd(id, token, options['options'])
+    name = options["name"]
+    if name == "help":
+        return help_text["display"]
+    elif name == "month":
+        msg = display_month_cmd(id, token, options["options"])
+    elif name == "invasion":
+        msg = display_invasion_cmd(id, token, options["options"])
+    elif name == "player":
+        msg = display_player_cmd(id, token, options["options"])
+    elif name == "members":
+        msg = display_members_cmd(id, token, options["options"])
+    elif name == "year":
+        msg = display_year_cmd(id, token, options["options"])
     else:
-        logger.error(f'Invalid command {name}')
-        return f'Invalid command {name}'
-    
+        logger.error(f"Invalid command {name}")
+        return f"Invalid command {name}"
+
     if len(msg) > 0:
         return msg
     else:
-        return 'In Progress:'
+        return "In Progress:"
+
 
 #
 # Command switch and package results as required by Discord
 #
 
+
 @logger.inject_lambda_context(log_event=True)
 def lambda_handler(event: dict, context: LambdaContext):
-
     status = 200
-    headers = {
-        "Content-Type": "application/json"
-    }
+    headers = {"Content-Type": "application/json"}
     data = None
     content = None
     admin = False
 
-    try: 
+    try:
         verify_signature(event)
         logger.debug("Signature verified")
 
-        body = json.loads(event['body'])
+        body = json.loads(event["body"])
         if body["type"] == 1:
-            data = ({'type': 1})
+            data = {"type": 1}
 
         elif body["type"] == 2 and body["data"]["name"] == discord_cmd:
-            logger.debug(f'body: {body["data"]}')
+            logger.debug(f"body: {body['data']}")
             subcommand = body["data"]["options"][0]
-            logger.debug(f'subcommand: {subcommand}')
+            logger.debug(f"subcommand: {subcommand}")
             resolved = body["data"]["resolved"] if "resolved" in body["data"] else None
             roles = body["member"]["roles"]
             admin = role_id in roles
-            logger.debug(f'admin: {admin} roles: {roles}')
+            logger.debug(f"admin: {admin} roles: {roles}")
 
             name = subcommand["name"]
             if admin:
                 if name == "help":
                     content = help_text["admin"]
                 elif name == "invasion":
-                    content = invasion_cmd(app_id, body['token'], subcommand["options"][0], resolved)
+                    content = invasion_cmd(
+                        app_id, body["token"], subcommand["options"][0], resolved
+                    )
                 elif name == "ladders" or name == "ladder":
                     invasion = invasion_add_cmd(subcommand["options"])
-                    invasion_process(app_id, body['token'], invasion, subcommand["options"], resolved, 'Ladder')
-                    content = f'In Progress: Registered invasion {invasion.name}, next download file(s)'
+                    invasion_process(
+                        app_id,
+                        body["token"],
+                        invasion,
+                        subcommand["options"],
+                        resolved,
+                        "Ladder",
+                    )
+                    content = f"In Progress: Registered invasion {invasion.name}, next download file(s)"
                 elif name == "roster":
                     invasion = invasion_add_cmd(subcommand["options"])
-                    invasion_process(app_id, body['token'], invasion, subcommand["options"], resolved, 'Roster')
-                    content = f'In Progress: Registered invasion {invasion.name}, next download file(s)'
+                    invasion_process(
+                        app_id,
+                        body["token"],
+                        invasion,
+                        subcommand["options"],
+                        resolved,
+                        "Roster",
+                    )
+                    content = f"In Progress: Registered invasion {invasion.name}, next download file(s)"
                 elif name == "report":
                     content = report_cmd(subcommand["options"][0], resolved)
                 elif name == "display":
-                    content = display_cmd(app_id, body['token'], subcommand["options"][0], resolved)
+                    content = display_cmd(
+                        app_id, body["token"], subcommand["options"][0], resolved
+                    )
                 elif name == "member":
                     content = member_cmd(subcommand["options"][0], resolved)
                 else:
-                    content = f'Unexpected command /{discord_cmd} {name}. To see list of commands availale to you, run: /{discord_cmd} help'            
+                    content = f"Unexpected command /{discord_cmd} {name}. To see list of commands availale to you, run: /{discord_cmd} help"
             else:
                 if name == "help":
                     content = help_text["user"]
                 elif name == "report":
                     content = report_cmd(subcommand["options"][0], resolved)
                 elif name == "display":
-                    content = display_cmd(app_id, body['token'], subcommand["options"][0], resolved)
-                elif name == "member" or name == "roster" or name == "invasion" or name == "ladder" or name == "ladders":
-                    content = f'You do not have permissions to run command /{discord_cmd} {name}. To see list of commands availale to you, run: /{discord_cmd} help'
+                    content = display_cmd(
+                        app_id, body["token"], subcommand["options"][0], resolved
+                    )
+                elif (
+                    name == "member"
+                    or name == "roster"
+                    or name == "invasion"
+                    or name == "ladder"
+                    or name == "ladders"
+                ):
+                    content = f"You do not have permissions to run command /{discord_cmd} {name}. To see list of commands availale to you, run: /{discord_cmd} help"
                 else:
-                    content = f'Unexpected command /{discord_cmd} {name}'
+                    content = f"Unexpected command /{discord_cmd} {name}"
 
         else:
-            content = f'Unexpected interaction type {body["type"]}'
+            content = f"Unexpected interaction type {body['type']}"
 
-    except (BadSignatureError) as e:
+    except BadSignatureError as e:
         status = 401
         logger.info(f"Bad Signature: {e}")
         content = f"Bad Signature: {e}"
-    
+
     except Exception as e:
         status = 401
         logger.error(f"Unexpected exception: {e}")
@@ -781,24 +844,19 @@ def lambda_handler(event: dict, context: LambdaContext):
     finally:
         if content is not None:
             logger.debug(f"content (length {len(content)} chars): {content}")
-    
+
         if data is None:
             data = {
-                'type': 4, 
-                'data': { 
-                    'tts': False,
-                    'content': content,
-                    'embeds': [],
-                    'allowed_mentions': {}
-                }
+                "type": 4,
+                "data": {
+                    "tts": False,
+                    "content": content,
+                    "embeds": [],
+                    "allowed_mentions": {},
+                },
             }
             if content.startswith("In Progress"):
-                data['type'] = 5
+                data["type"] = 5
 
         logger.info(f"data: {json.dumps(data)}")
-        return {
-            "statusCode": status,
-            "headers": headers,
-            "body": json.dumps(data)
-        }
-          
+        return {"statusCode": status, "headers": headers, "body": json.dumps(data)}

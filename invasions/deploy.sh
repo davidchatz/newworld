@@ -116,6 +116,33 @@ function _error()
     exit 1
 }
 
+function _confirm_prod_operation()
+{
+    local operation_name="$1"
+
+    if [[ "$ENVIRONMENT" == "prod" ]]; then
+        echo
+        echo "$COLOR_WARN⚠️  WARNING: You are about to perform '$operation_name' on PRODUCTION environment!$COLOR_OFF"
+        echo "$COLOR_WARN   Stack: $STACK_NAME$COLOR_OFF"
+        echo "$COLOR_WARN   Profile: $AWS_PROFILE$COLOR_OFF"
+        echo "$COLOR_WARN   Region: $REGION$COLOR_OFF"
+        echo
+        echo -n "Are you absolutely sure you want to continue? Type 'YES' to proceed [NO]: "
+        read confirmation
+
+        if [[ "$confirmation" != "YES" ]]; then
+            echo
+            echo "$COLOR_NOTE Operation aborted by user. Production environment is safe.$COLOR_OFF"
+            echo
+            exit 0
+        fi
+
+        echo
+        echo "$COLOR_WARN Proceeding with $operation_name on PRODUCTION...$COLOR_OFF"
+        echo
+    fi
+}
+
 
 # REGION is now set from config system above
 
@@ -345,7 +372,7 @@ function _deploy()
 
 function _cleanup_table()
 {
-    _error "Cleanup table called - not supported"
+    _confirm_prod_operation "table cleanup"
 
     _header "Cleanup table"
     TABLE=$(aws cloudformation describe-stacks \
@@ -358,9 +385,9 @@ function _cleanup_table()
 
 function _delete_table()
 {
-    _error "Delete table called - not supported"
+    _confirm_prod_operation "table deletion"
 
-    _header "Cleanup table"
+    _header "Delete table"
     TABLE=$(aws cloudformation describe-stacks \
             $OPTIONS \
             --stack-name $STACK_NAME \
@@ -374,7 +401,7 @@ function _delete_table()
 
 function _cleanup_bucket()
 {
-    _error "Cleanup bucket called - not support"
+    _confirm_prod_operation "bucket cleanup"
 
     _header "Cleanup bucket"
     BUCKET=$(aws cloudformation describe-stacks \
@@ -387,7 +414,7 @@ function _cleanup_bucket()
 
 function _delete_bucket()
 {
-    _error "Delete bucket called - not supported"
+    _confirm_prod_operation "bucket deletion"
 
     _header "Delete bucket"
     BUCKET=$(aws cloudformation describe-stacks \
@@ -461,6 +488,8 @@ function _test_local()
 
 function _cleanup()
 {
+    _confirm_prod_operation "stack cleanup"
+
     _cleanup_test_bucket
     _header "SAM delete"
     _walk sam delete --no-prompts
@@ -468,13 +497,25 @@ function _cleanup()
 
 function _delete_all()
 {
-    echo -n "Are you sure? [y/N]: "
+    _confirm_prod_operation "complete environment deletion"
+
+    echo
+    echo "$COLOR_WARN⚠️  WARNING: This will permanently delete ALL resources!$COLOR_OFF"
+    echo "$COLOR_WARN   • S3 buckets and all data$COLOR_OFF"
+    echo "$COLOR_WARN   • DynamoDB table and all data$COLOR_OFF"
+    echo "$COLOR_WARN   • CloudFormation stack$COLOR_OFF"
+    echo
+    echo -n "Are you sure you want to delete everything? [y/N]: "
     read ans
     if [[ $ans =~ [yY] ]]
     then
         _delete_bucket
         _delete_table
         _cleanup
+    else
+        echo
+        echo "$COLOR_NOTE Operation cancelled.$COLOR_OFF"
+        echo
     fi
 }
 
@@ -551,6 +592,7 @@ case $1 in
         ;;
 
     cleanup)
+        _init
         _cleanup
         ;;
 

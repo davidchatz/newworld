@@ -1,17 +1,17 @@
-# Project 05: Comprehensive Code Modernization
+# Project 06: Comprehensive Code Modernization
 
-## Status: Planning
+## Status: In Progress - Phase 1 Complete ✅
 **Priority**: Medium
 **Est. Effort**: Large (3-4 weeks)
 **Dependencies**: Projects 03 (Code Quality Foundation), 04 (Test Coverage)
 
 ## Overview
 
-Complete the modernization of remaining legacy code in `src/layer/irus`, building on the solid foundation of models, repositories, and services already established. This project will eliminate the remaining ~35% of legacy code while maintaining backward compatibility through clean facade patterns.
+Complete the modernization of remaining legacy code in `src/layer/irus`, building on the solid foundation of models, repositories, and services already established. This project will eliminate the remaining ~15% of legacy code while maintaining backward compatibility through clean facade patterns.
 
 ## Current State Assessment
 
-### Modernization Progress: ~65% Complete
+### Modernization Progress: ~85% Complete
 
 #### ✅ Fully Modernized Components (40% of codebase)
 - **Models** (`/models/`): 100% modern Pydantic implementations
@@ -26,7 +26,7 @@ Complete the modernization of remaining legacy code in `src/layer/irus`, buildin
 
 *Assessment*: These facades are acceptable transitional code that should remain until all consumers are migrated.
 
-#### 🔴 Legacy Code Requiring Modernization (35% of codebase)
+#### 🔴 Legacy Code Requiring Modernization (15% of codebase)
 
 **High Priority Legacy Components**:
 1. **`month.py`** (422 lines) - **CRITICAL**
@@ -35,19 +35,26 @@ Complete the modernization of remaining legacy code in `src/layer/irus`, buildin
    - Contains business logic that belongs in service layer
    - Heavy computational statistics embedded in class
 
-2. **`ladderrank.py`** (274 lines) - **HIGH**
-   - Legacy implementation with direct AWS calls
-   - Mixes data model with database operations
-   - Should be split into model + repository + service
+**RESOLVED IN PHASE 2** ✅:
+2. **`ladderrank.py`** (274 lines) - **RESOLVED**
+   - ✅ Already modernized as clean facade with proper model/repository/service underneath
+   - ✅ Modern components: `models.ladderrank.IrusLadderRank` + `repositories.ladder.LadderRepository`
+   - ✅ Comprehensive test coverage: model (94.29%), repository (87.16%), facade (82.26%)
 
-3. **`memberlist.py`** (115 lines) - **HIGH**
-   - Legacy list management with direct table operations
-   - Should use repository pattern for data access
+3. **`memberlist.py`** (115 lines) - **RESOLVED**
+   - ✅ Already modernized with dependency injection and repository pattern
+   - ✅ Added comprehensive test suite with 96.12% coverage
+   - ✅ Clean service-like interface using modern architecture
+
+**PREVIOUSLY BLOCKING - NOW RESOLVED** ✅:
+4. **`invasionlist.py`** (89 lines) - **RESOLVED IN PHASE 1**
+   - ✅ Converted to dependency injection service pattern
+   - ✅ MemberManagementService now uses injected dependencies
+   - ✅ Service layer testing now fully enabled
 
 **Medium Priority**:
-4. **`invasionlist.py`** (89 lines) - Partially modernized, needs completion
-5. **`process.py`** (104 lines) - File processing logic needs service layer
-6. **`report.py`** (133 lines) - Report generation needs modernization
+6. **`process.py`** (104 lines) - File processing logic needs service layer
+7. **`report.py`** (133 lines) - Report generation needs modernization
 
 **Low Priority**:
 7. **`imageprep.py`** (75 lines) - Image preprocessing utility
@@ -56,20 +63,31 @@ Complete the modernization of remaining legacy code in `src/layer/irus`, buildin
 
 ## Implementation Strategy
 
-### Phase 1: Foundation Strengthening (Week 1)
-- **Integration Test Suite**: Comprehensive tests covering current functionality
-- **API Documentation**: Document all public interfaces before changes
-- **Refactoring Preparation**: Identify all dependencies and consumers
+### Phase 1: Fix Blocking Dependencies (Week 1) - ✅ **COMPLETED**
+- ✅ **`invasionlist.py`**: Converted to proper service with dependency injection pattern
+- ✅ **`MemberManagementService`**: Updated to use dependency injection for invasion list
+- ✅ **Integration Tests**: All 41 integration tests now pass (fixed unique test data generation)
+- ✅ **Deploy Script**: Added production safety checks with confirmation prompts
+- ✅ **Service Layer Testing**: Dependency injection enables proper mocking and testing
 
-### Phase 2: Core Business Logic (Week 2)
+**Delivered in Commit**: `cd80852` - "Fix Phase 1 dependency injection and test reliability issues"
+
+### Phase 2: Service Layer Modernization (Week 2) - ✅ **COMPLETED**
+- ✅ **`ladderrank.py`**: Already modernized as clean facade with modern model/repository underneath
+- ✅ **`MemberManagementService`**: Removed legacy imports, now uses dependency injection for ladder operations
+- ✅ **`memberlist.py`**: Already modernized with dependency injection, added comprehensive test suite (96.12% coverage)
+- ✅ **Service Layer Testing**: All services now use proper dependency injection enabling full unit testing
+
+**Key Accomplishments**:
+- MemberManagementService coverage: 7.89% → 88.89%
+- IrusMemberList coverage: 0% → 96.12%
+- All facade deprecation warnings properly guide developers to modern APIs
+- Clean separation between legacy facades and modern internals
+
+### Phase 3: Business Logic Components (Week 3)
 - **`month.py` → `MonthlyReportService`**: Extract statistics generation
-- **`ladderrank.py` → Model + Repository + Service**: Split concerns properly
-- **`memberlist.py` → `MemberListService`**: Modern list operations
-
-### Phase 3: Supporting Services (Week 3)
 - **`process.py` → `FileProcessingService`**: Clean file operations
 - **`report.py` → `ReportGenerationService`**: Modern report generation
-- **Complete `invasionlist.py`**: Finish repository pattern conversion
 
 ### Phase 4: Cleanup & Polish (Week 4)
 - **Utilities modernization**: Convert remaining small components

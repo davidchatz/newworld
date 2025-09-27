@@ -2,21 +2,30 @@
 
 from ..container import IrusContainer
 from ..invasionlist import IrusInvasionList
-from ..ladderrank import IrusLadderRank
 from ..models.member import IrusMember
+from ..repositories.ladder import LadderRepository
 
 
 class MemberManagementService:
     """Service for managing member-related business operations."""
 
-    def __init__(self, container: IrusContainer | None = None):
+    def __init__(
+        self,
+        container: IrusContainer | None = None,
+        invasion_list: IrusInvasionList | None = None,
+        ladder_repository: LadderRepository | None = None,
+    ):
         """Initialize the member management service.
 
         Args:
             container: Dependency injection container. Uses default if None.
+            invasion_list: Invasion list service. Creates new instance if None.
+            ladder_repository: Ladder repository for ladder operations. Creates new instance if None.
         """
         self._container = container or IrusContainer.default()
         self._logger = self._container.logger()
+        self._invasion_list = invasion_list or IrusInvasionList(self._container)
+        self._ladder_repository = ladder_repository or LadderRepository(self._container)
 
     def update_invasions_for_new_member(self, member: IrusMember) -> str:
         """Update invasion records when a new member joins.
@@ -33,33 +42,53 @@ class MemberManagementService:
         self._logger.info(f"Updating invasions for new member: {member.str()}")
 
         # Get invasions from member's start date onwards
-        invasion_list = IrusInvasionList.from_start(member.start)
+        self._invasion_list.load_from_start(member.start)
         self._logger.debug(
-            f"Found {invasion_list.count()} invasions on or after {member.start}"
+            f"Found {self._invasion_list.count()} invasions on or after {member.start}"
         )
 
-        if invasion_list.count() == 0:
+        if self._invasion_list.count() == 0:
             message = "\nNo invasions found to update\n"
             self._logger.info(message)
             return message
 
         # Process each invasion
         updated_invasions = []
-        for invasion in invasion_list.invasions:
+        for invasion in self._invasion_list.invasions:
             try:
                 # Find the member's ladder ranking for this invasion
-                ladder_rank = IrusLadderRank.from_invasion_for_member(invasion, member)
+                ladder_rank = self._ladder_repository.get_rank_by_player(
+                    invasion.name, member.player
+                )
+
+                if ladder_rank is None:
+                    # Member not found in this invasion's ladder - skip
+                    self._logger.debug(f"Member not found in {invasion.name} ladder")
+                    continue
+
                 self._logger.debug(
                     f"Found ladder rank for {invasion.name}: rank {ladder_rank.rank}"
                 )
 
-                # Update membership flag
-                ladder_rank.update_membership(True)
-                updated_invasions.append(f"- {invasion.name} rank {ladder_rank.rank}")
+                # Update membership flag using repository
+                success = self._ladder_repository.update_rank_membership(
+                    invasion.name, ladder_rank.rank, True
+                )
 
-            except ValueError as e:
-                # Member not found in this invasion's ladder - skip
-                self._logger.debug(f"Member not found in {invasion.name} ladder: {e}")
+                if success:
+                    updated_invasions.append(
+                        f"- {invasion.name} rank {ladder_rank.rank}"
+                    )
+                else:
+                    self._logger.warning(
+                        f"Failed to update membership for {member.player} in {invasion.name}"
+                    )
+
+            except Exception as e:
+                # Unexpected error - log and continue
+                self._logger.warning(
+                    f"Error processing {invasion.name} for {member.player}: {e}"
+                )
                 continue
 
         # Build result message

@@ -217,11 +217,15 @@ def test_member_data():
     Each test gets a unique member to avoid conflicts between parallel tests.
     Uses actual MemberRepository.create_from_user_input() API.
     """
+    import uuid
+
+    # Use uuid4 to ensure true uniqueness even with rapid test execution
+    unique_id = uuid.uuid4().hex[:8]
     timestamp = int(time.time())
     date_components = get_test_date_components()
 
     return {
-        "player": f"TestPlayer-{timestamp}",
+        "player": f"TestPlayer-{timestamp}-{unique_id}",
         "day": date_components["day"],
         "month": date_components["month"],
         "year": date_components["year"],
@@ -286,34 +290,26 @@ def cleanup_test_data(integration_container):
         # Scan for test records using the test date pattern
         response = table.scan(
             FilterExpression="begins_with(id, :test_prefix)",
-            ExpressionAttributeValues={":test_prefix": test_date_prefix}
+            ExpressionAttributeValues={":test_prefix": test_date_prefix},
         )
 
         # Delete test records in batches
         with table.batch_writer() as batch:
             for item in response.get("Items", []):
-                batch.delete_item(
-                    Key={
-                        "invasion": item["invasion"],
-                        "id": item["id"]
-                    }
-                )
+                batch.delete_item(Key={"invasion": item["invasion"], "id": item["id"]})
 
         # Handle pagination if needed
         while "LastEvaluatedKey" in response:
             response = table.scan(
                 FilterExpression="begins_with(id, :test_prefix)",
                 ExpressionAttributeValues={":test_prefix": test_date_prefix},
-                ExclusiveStartKey=response["LastEvaluatedKey"]
+                ExclusiveStartKey=response["LastEvaluatedKey"],
             )
 
             with table.batch_writer() as batch:
                 for item in response.get("Items", []):
                     batch.delete_item(
-                        Key={
-                            "invasion": item["invasion"],
-                            "id": item["id"]
-                        }
+                        Key={"invasion": item["invasion"], "id": item["id"]}
                     )
 
     except Exception as e:

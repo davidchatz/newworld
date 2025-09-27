@@ -10,9 +10,9 @@ from irus.repositories.member import MemberRepository
 from irus.services.member_management import MemberManagementService
 
 
-@pytest.mark.skip(
-    reason="MemberManagementService uses legacy dependencies - modernize first"
-)
+# @pytest.mark.skip(
+#     reason="MemberManagementService uses legacy dependencies - modernize first"
+# )
 class TestMemberManagementServiceIntegration:
     """Integration tests for member management service business logic."""
 
@@ -57,7 +57,7 @@ class TestMemberManagementServiceIntegration:
     ):
         """Test service with both invasions and members created through proper repositories."""
         # Arrange - Create test invasion first
-        invasion = invasion_repo.create_from_user_input(**test_invasion_data)
+        _invasion = invasion_repo.create_from_user_input(**test_invasion_data)
 
         # Create member with test data
         test_member = member_repo.create_from_user_input(**test_member_data)
@@ -72,9 +72,9 @@ class TestMemberManagementServiceIntegration:
     def test_service_error_handling(self, service, member_repo, test_member_data):
         """Test service error handling with proper member object."""
         # Arrange - Create member with valid data
-        member_data["day"] = 1
-        member_data["month"] = 1
-        test_member = member_repo.create_from_user_input(**member_data)
+        test_member_data["day"] = 1
+        test_member_data["month"] = 1
+        test_member = member_repo.create_from_user_input(**test_member_data)
 
         # Act - Try to process member (should handle gracefully even with no invasions)
         try:
