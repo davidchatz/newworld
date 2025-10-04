@@ -1,0 +1,65 @@
+{
+  "invasion_name": "99990428-ck",
+  "ranks": [
+    {
+      "invasion_name": "99990428-ck",
+      "rank": "01",
+      "player": "RandomPlayer3",
+      "score": 1800,
+      "kills": 32,
+      "assists": 15,
+      "deaths": 2,
+      "heals": 2500,
+      "damage": 56000,
+      "member": false,
+      "ladder": true,
+      "adjusted": false,
+      "error": false
+    },
+    {
+      "invasion_name": "99990428-ck",
+      "rank": "02",
+      "player": "TestPlayer1",
+      "score": 1650,
+      "kills": 27,
+      "assists": 14,
+      "deaths": 4,
+      "heals": 2200,
+      "damage": 53000,
+      "member": true,
+      "ladder": true,
+      "adjusted": false,
+      "error": false
+    },
+    {
+      "invasion_name": "99990428-ck",
+      "rank": "03",
+      "player": "TestPlayer2",
+      "score": 1500,
+      "kills": 24,
+      "assists": 11,
+      "deaths": 6,
+      "heals": 2000,
+      "damage": 50000,
+      "member": true,
+      "ladder": true,
+      "adjusted": false,
+      "error": false
+    },
+    {
+      "invasion_name": "99990428-ck",
+      "rank": "04",
+      "player": "TestPlayer3",
+      "score": 1350,
+      "kills": 20,
+      "assists": 10,
+      "deaths": 7,
+      "heals": 1650,
+      "damage": 45500,
+      "member": true,
+      "ladder": true,
+      "adjusted": false,
+      "error": false
+    }
+  ]
+}

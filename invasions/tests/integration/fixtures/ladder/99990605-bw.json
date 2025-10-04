@@ -1,0 +1,50 @@
+{
+  "invasion_name": "99990605-bw",
+  "ranks": [
+    {
+      "invasion_name": "99990605-bw",
+      "rank": "01",
+      "player": "TestPlayer1",
+      "score": 1500,
+      "kills": 25,
+      "assists": 10,
+      "deaths": 5,
+      "heals": 2000,
+      "damage": 50000,
+      "member": true,
+      "ladder": true,
+      "adjusted": false,
+      "error": false
+    },
+    {
+      "invasion_name": "99990605-bw",
+      "rank": "02",
+      "player": "TestPlayer2",
+      "score": 0,
+      "kills": 0,
+      "assists": 0,
+      "deaths": 0,
+      "heals": 0,
+      "damage": 0,
+      "member": true,
+      "ladder": true,
+      "adjusted": false,
+      "error": false
+    },
+    {
+      "invasion_name": "99990605-bw",
+      "rank": "50",
+      "player": "TestPlayer3",
+      "score": 0,
+      "kills": 0,
+      "assists": 0,
+      "deaths": 0,
+      "heals": 0,
+      "damage": 0,
+      "member": true,
+      "ladder": false,
+      "adjusted": false,
+      "error": false
+    }
+  ]
+}

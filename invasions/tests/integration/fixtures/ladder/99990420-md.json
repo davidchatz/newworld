@@ -1,0 +1,50 @@
+{
+  "invasion_name": "99990420-md",
+  "ranks": [
+    {
+      "invasion_name": "99990420-md",
+      "rank": "01",
+      "player": "TestPlayer1",
+      "score": 1700,
+      "kills": 30,
+      "assists": 13,
+      "deaths": 3,
+      "heals": 2300,
+      "damage": 54000,
+      "member": true,
+      "ladder": true,
+      "adjusted": false,
+      "error": false
+    },
+    {
+      "invasion_name": "99990420-md",
+      "rank": "02",
+      "player": "TestPlayer2",
+      "score": 1450,
+      "kills": 23,
+      "assists": 12,
+      "deaths": 7,
+      "heals": 1900,
+      "damage": 48500,
+      "member": true,
+      "ladder": true,
+      "adjusted": false,
+      "error": false
+    },
+    {
+      "invasion_name": "99990420-md",
+      "rank": "03",
+      "player": "TestPlayer4",
+      "score": 1100,
+      "kills": 14,
+      "assists": 8,
+      "deaths": 10,
+      "heals": 900,
+      "damage": 38000,
+      "member": true,
+      "ladder": true,
+      "adjusted": false,
+      "error": false
+    }
+  ]
+}

@@ -145,7 +145,7 @@ class IrusMonth:
                 continue
 
             for r in report:
-                rank = ladder.member(r["id"])
+                rank = ladder.get_member_rank(r["id"])
                 logger.debug(
                     f"IrusMonth.from_invasion_stats: Matching {r['id']} {invasion.name} {rank}"
                 )
