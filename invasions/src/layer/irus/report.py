@@ -61,11 +61,11 @@ class IrusReport:
         container = container or IrusContainer.default()
         logger = container.logger()
 
-        logger.debug(f"IrusReport.from_invasion: {ladder.invasion.name}")
+        logger.debug(f"IrusReport.from_invasion: {ladder.invasion_name}")
         return cls(
             path="reports/invasion/",
-            name=f"{ladder.invasion.name}.csv",
-            report=ladder.csv(),
+            name=f"{ladder.invasion_name}.csv",
+            report=ladder.to_csv(),
             container=container,
         )
 
