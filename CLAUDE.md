@@ -65,9 +65,22 @@ Discord bot for New World invasion stats tracking. Extracts statistics from ladd
 - When running the `aws` cli, always disable the pager so you aren't waiting for me to scroll through output, like this `AWS_PAGER="" aws sts get-caller-identity --profile PROFILE --region REGION`
 - Limit commit messages to 6 lines
 - Always use `uv` when running python, pytest and related commands
-- If the AWS credentials have expired, stop and ask me to reauthenticate
+- If the AWS credentials have expired, often seens as `Token has expired`, stop and ask me to reauthenticate
 - When writing tests, always review the target interface first, do not hallucinate what the interface might be. Say [assumption] or something similar if you are unsure.
 - If tests are failing do not report the tests are working perfectly. I would prefer to look at a failing test in detail, identify and resolve the issue.
+
+### Behavioral Guidelines
+- **Show approach/plan first, then implement after approval**
+- **Present options when there are multiple ways to solve something**
+- **Ask "Should I proceed with this approach?" before major changes**
+- **Never declare tasks "done" - say "I've completed X, please review"**
+- **Let the human review and confirm when tasks are actually complete**
+
+### Communication Style
+- "Here's what I'm thinking..." before acting
+- "I've completed X, please review" instead of "task is done"
+- Present 2-3 options when there are different approaches
+- Ask questions and propose options for decisions
 
 ## Critical Safety Prompts
 
