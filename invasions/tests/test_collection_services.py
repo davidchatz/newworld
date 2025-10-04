@@ -53,20 +53,20 @@ class TestIrusInvasionList:
             ),
         ]
 
-    def test_init(self, sample_invasions):
+    def test_init(self):
         """Test IrusInvasionList initialization."""
-        invasion_list = IrusInvasionList(sample_invasions, 20240301)
+        invasion_list = IrusInvasionList()
 
-        assert invasion_list.invasions == sample_invasions
-        assert invasion_list.start == 20240301
+        assert invasion_list.invasions == []
+        assert invasion_list.start == 0
         assert invasion_list._container is not None
         assert invasion_list._logger is not None
 
-    def test_init_with_container(self, sample_invasions, container):
+    def test_init_with_container(self, container):
         """Test IrusInvasionList initialization with specific container."""
-        invasion_list = IrusInvasionList(sample_invasions, 20240301, container)
+        invasion_list = IrusInvasionList(container)
 
-        assert invasion_list.invasions == sample_invasions
+        assert invasion_list.invasions == []
         assert invasion_list._container is container
 
     def test_from_month(self, mock_repository, sample_invasions):
@@ -114,67 +114,93 @@ class TestIrusInvasionList:
 
     def test_str_empty(self):
         """Test string representation with empty list."""
-        invasion_list = IrusInvasionList([], 20240301)
+        invasion_list = IrusInvasionList()
 
         result = invasion_list.str()
 
         assert result == ""
 
-    def test_str_single_invasion(self, sample_invasions):
+    def test_str_single_invasion(self, mock_repository, sample_invasions):
         """Test string representation with single invasion."""
-        invasion_list = IrusInvasionList([sample_invasions[0]], 20240301)
+        mock_repository.get_by_month.return_value = [sample_invasions[0]]
 
-        result = invasion_list.str()
+        with patch("irus.invasionlist.InvasionRepository") as mock_repo_class:
+            mock_repo_class.return_value = mock_repository
 
-        assert result == "20240301-bw\n"
+            invasion_list = IrusInvasionList.from_month(3, 2024)
+            result = invasion_list.str()
 
-    def test_str_multiple_invasions(self, sample_invasions):
+            assert result == "20240301-bw\n"
+
+    def test_str_multiple_invasions(self, mock_repository, sample_invasions):
         """Test string representation with multiple invasions."""
-        invasion_list = IrusInvasionList(sample_invasions, 20240301)
+        mock_repository.get_by_month.return_value = sample_invasions
 
-        result = invasion_list.str()
+        with patch("irus.invasionlist.InvasionRepository") as mock_repo_class:
+            mock_repo_class.return_value = mock_repository
 
-        assert result == "20240301-bw,20240302-ef\n"
+            invasion_list = IrusInvasionList.from_month(3, 2024)
+            result = invasion_list.str()
+
+            assert result == "20240301-bw,20240302-ef\n"
 
     def test_markdown_empty(self):
         """Test markdown representation with empty list."""
-        invasion_list = IrusInvasionList([], 20240301)
+        invasion_list = IrusInvasionList()
 
         result = invasion_list.markdown()
 
-        assert "# Invasions from 20240301" in result
+        assert "# Invasions from 0" in result
         assert "*No invasions found*" in result
 
-    def test_markdown_with_invasions(self, sample_invasions):
+    def test_markdown_with_invasions(self, mock_repository, sample_invasions):
         """Test markdown representation with invasions."""
-        invasion_list = IrusInvasionList(sample_invasions, 20240301)
+        mock_repository.get_by_month.return_value = sample_invasions
 
-        result = invasion_list.markdown()
+        with patch("irus.invasionlist.InvasionRepository") as mock_repo_class:
+            mock_repo_class.return_value = mock_repository
 
-        assert "# Invasions from 20240301" in result
-        assert "- 20240301-bw" in result
-        assert "- 20240302-ef" in result
+            invasion_list = IrusInvasionList.from_month(3, 2024)
+            result = invasion_list.markdown()
 
-    def test_count(self, sample_invasions):
+            assert "# Invasions from 20240301" in result
+            assert "- 20240301-bw" in result
+            assert "- 20240302-ef" in result
+
+    def test_count(self, mock_repository, sample_invasions):
         """Test counting invasions."""
-        invasion_list = IrusInvasionList(sample_invasions, 20240301)
+        mock_repository.get_by_month.return_value = sample_invasions
 
-        assert invasion_list.count() == 2
+        with patch("irus.invasionlist.InvasionRepository") as mock_repo_class:
+            mock_repo_class.return_value = mock_repository
 
-    def test_range(self, sample_invasions):
+            invasion_list = IrusInvasionList.from_month(3, 2024)
+
+            assert invasion_list.count() == 2
+
+    def test_range(self, mock_repository, sample_invasions):
         """Test getting range of invasions."""
-        invasion_list = IrusInvasionList(sample_invasions, 20240301)
+        mock_repository.get_by_month.return_value = sample_invasions
 
-        result = invasion_list.range()
+        with patch("irus.invasionlist.InvasionRepository") as mock_repo_class:
+            mock_repo_class.return_value = mock_repository
 
-        assert list(result) == [0, 1]
+            invasion_list = IrusInvasionList.from_month(3, 2024)
+            result = invasion_list.range()
 
-    def test_get(self, sample_invasions):
+            assert list(result) == [0, 1]
+
+    def test_get(self, mock_repository, sample_invasions):
         """Test getting invasion by index."""
-        invasion_list = IrusInvasionList(sample_invasions, 20240301)
+        mock_repository.get_by_month.return_value = sample_invasions
 
-        assert invasion_list.get(0) == sample_invasions[0]
-        assert invasion_list.get(1) == sample_invasions[1]
+        with patch("irus.invasionlist.InvasionRepository") as mock_repo_class:
+            mock_repo_class.return_value = mock_repository
+
+            invasion_list = IrusInvasionList.from_month(3, 2024)
+
+            assert invasion_list.get(0) == sample_invasions[0]
+            assert invasion_list.get(1) == sample_invasions[1]
 
 
 class TestIrusMemberList:

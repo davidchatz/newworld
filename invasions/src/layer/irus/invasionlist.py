@@ -6,7 +6,19 @@ from .repositories.invasion import InvasionRepository
 
 
 class IrusInvasionList:
-    """Service for managing invasion collections with dependency injection."""
+    """Service for managing invasion collections with dependency injection.
+
+    This class follows the same pattern as IrusMemberList, providing factory
+    methods for convenient construction with data loading.
+
+    Example:
+        >>> # Using factory method (recommended)
+        >>> invasion_list = IrusInvasionList.from_month(3, 2024)
+        >>>
+        >>> # Or create empty and load manually
+        >>> invasion_list = IrusInvasionList()
+        >>> invasion_list.load_from_month(3, 2024)
+    """
 
     def __init__(self, container: IrusContainer | None = None):
         """Initialize invasion list service.
@@ -21,6 +33,53 @@ class IrusInvasionList:
         # Internal state for loaded invasions
         self.invasions: list[IrusInvasion] = []
         self.start: Decimal = Decimal(0)
+
+    @classmethod
+    def from_month(
+        cls, month: int, year: int, container: IrusContainer | None = None
+    ) -> "IrusInvasionList":
+        """Create invasion list for a specific month.
+
+        Factory method that creates an instance and loads data in one step.
+
+        Args:
+            month: Month (1-12)
+            year: Year (YYYY)
+            container: Optional dependency injection container
+
+        Returns:
+            IrusInvasionList instance with invasions loaded for the specified month
+
+        Example:
+            >>> invasion_list = IrusInvasionList.from_month(3, 2024)
+            >>> print(f"Found {invasion_list.count()} invasions")
+        """
+        instance = cls(container)
+        instance.load_from_month(month, year)
+        return instance
+
+    @classmethod
+    def from_start(
+        cls, start: int, container: IrusContainer | None = None
+    ) -> "IrusInvasionList":
+        """Create invasion list from a start date.
+
+        Factory method that creates an instance and loads data from start date forward.
+
+        Args:
+            start: Start date in YYYYMMDD format
+            container: Optional dependency injection container
+
+        Returns:
+            IrusInvasionList instance with invasions loaded from start date
+
+        Example:
+            >>> invasion_list = IrusInvasionList.from_start(20240301)
+            >>> print(f"Found {invasion_list.count()} invasions")
+        """
+        instance = cls(container)
+        instance.load_from_start(start)
+        return instance
 
     def load_from_month(self, month: int, year: int) -> None:
         """Load invasions for a specific month using repository pattern.

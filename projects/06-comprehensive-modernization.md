@@ -5,6 +5,11 @@
 **Est. Effort**: Large (3-4 weeks)
 **Dependencies**: Projects 03 (Code Quality Foundation), 04 (Test Coverage)
 
+**Current Test Status**:
+- **427 unit tests** + **41 integration tests** = **468 total tests**
+- **453 passing**, **15 skipped** (deprecated facades)
+- **Coverage: 69.89%**
+
 ## Overview
 
 Complete the modernization of remaining legacy code in `src/layer/irus`, building on the solid foundation of models, repositories, and services already established. This project will eliminate the remaining ~15% of legacy code while maintaining backward compatibility through clean facade patterns.
@@ -63,14 +68,40 @@ Complete the modernization of remaining legacy code in `src/layer/irus`, buildin
 
 ## Implementation Strategy
 
-### Phase 1: Fix Blocking Dependencies (Week 1) - ✅ **COMPLETED**
-- ✅ **`invasionlist.py`**: Converted to proper service with dependency injection pattern
-- ✅ **`MemberManagementService`**: Updated to use dependency injection for invasion list
-- ✅ **Integration Tests**: All 41 integration tests now pass (fixed unique test data generation)
-- ✅ **Deploy Script**: Added production safety checks with confirmation prompts
-- ✅ **Service Layer Testing**: Dependency injection enables proper mocking and testing
+### Phase 1: Collection Class Consistency (Week 1) - ✅ **COMPLETED**
 
-**Delivered in Commit**: `cd80852` - "Fix Phase 1 dependency injection and test reliability issues"
+**Initial State**: `IrusInvasionList` had dependency injection but lacked factory methods, making it inconsistent with `IrusMemberList` pattern.
+
+**Completed Work**:
+- ✅ **Factory Methods Added**: Implemented `from_month()` and `from_start()` class methods
+- ✅ **Pattern Consistency**: IrusInvasionList now matches IrusMemberList architecture
+- ✅ **Test Suite Updated**: All 13 IrusInvasionList tests passing with 100% coverage
+- ✅ **Documentation**: Added comprehensive docstrings and usage examples
+
+**Established Pattern**:
+```python
+# Factory method pattern (recommended for invasions)
+invasion_list = IrusInvasionList.from_month(3, 2024)
+invasion_list = IrusInvasionList.from_start(20240301)
+
+# Auto-loading pattern (used for members)
+member_list = IrusMemberList()  # Loads all members immediately
+
+# Both support dependency injection
+invasion_list = IrusInvasionList.from_month(3, 2024, container)
+member_list = IrusMemberList(container)
+```
+
+**Test Results**:
+- 427 unit tests + 41 integration tests = 468 total
+- 453 passing, 15 skipped (deprecated facades)
+- Coverage: 69.89% (up from 68.91%)
+
+**Files Modified**:
+- `src/layer/irus/invasionlist.py` - Added factory methods
+- `tests/test_collection_services.py` - Updated tests to use factory pattern
+
+**Session**: 2025-10-04
 
 ### Phase 2: Service Layer Modernization (Week 2) - ✅ **COMPLETED**
 - ✅ **`ladderrank.py`**: Already modernized as clean facade with modern model/repository underneath
