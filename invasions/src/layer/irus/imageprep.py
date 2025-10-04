@@ -38,10 +38,10 @@ class ImagePreprocessor:
 
             img = ImageOps.grayscale(img)
 
-            threshold = 128
+            threshold = 100
             img = img.point(lambda p: p > threshold and 255)  
 
-            img = ImageOps.autocontrast(img, cutoff=(60,0))
+            # img = ImageOps.autocontrast(img, cutoff=(60,0))
 
             img = img.resize((img.width * 2, img.height * 2), Image.LANCZOS)
 
