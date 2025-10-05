@@ -95,10 +95,10 @@ class ImageProcessingService:
         img = ImageOps.grayscale(img)
 
         # 2. Apply threshold to create binary image
-        img = self._apply_threshold(img)
+        img = self._apply_threshold(img, threshold=100)
 
         # 3. Auto-contrast adjustment
-        img = ImageOps.autocontrast(img, cutoff=(60, 0))
+        # img = ImageOps.autocontrast(img, cutoff=(60, 0))
 
         # 4. Upscale for better OCR
         img = self._upscale_image(img)
