@@ -121,52 +121,104 @@ def setup_aws_environment():
 
 
 def cleanup_test_data():
-    """Clean up all test data with year 9999 from DynamoDB tables."""
+    """Clean up all test data starting with "99" from DynamoDB tables.
+
+    SAFETY: Only runs against dev environment. Refuses to run against production.
+    """
     print("Starting test data cleanup...")
 
     # Set up AWS environment
     resources = setup_aws_environment()
+    config = load_config()
+    env = os.environ.get("TEST_ENV", "dev")
+
+    # SAFETY CHECK: Refuse to run against production
+    if env == "prod" or env == "production":
+        raise ValueError(
+            "SAFETY: Cleanup script cannot run against production environment"
+        )
+
+    stack_name = config["environments"][env]["stack_name"]
+    table_name = resources.get("table_name", "")
+
+    # SAFETY CHECK: Validate table name contains expected environment marker
+    if "dev" not in table_name.lower() and "test" not in table_name.lower():
+        raise ValueError(
+            f"SAFETY: Table name '{table_name}' does not appear to be a dev/test table. "
+            "Refusing to run cleanup."
+        )
+
+    print(f"Environment: {env}")
+    print(f"Stack: {stack_name}")
 
     # Import after environment is set up
-    from boto3.dynamodb.conditions import Key
     from irus.container import IrusContainer
-    from irus.repositories.invasion import InvasionRepository
-    from irus.repositories.member import MemberRepository
 
     # Create container with discovered resources (following STYLE_GUIDE.md testing patterns)
-    container = IrusContainer.create_integration(resources)
+    # This also includes safety checks that table_name contains stack_name
+    container = IrusContainer.create_integration(resources, stack_name)
 
-    # Create repositories using documented pattern (STYLE_GUIDE.md line 346)
-    invasion_repo = InvasionRepository(container)
-    member_repo = MemberRepository(container)
+    # Clean up all test data (using "99" prefix from conftest.py pattern)
+    # Test data has EITHER:
+    # - id starting with "99" (invasions/ladders: "99041228-bw")
+    # - start field starting with "99" (members with start date like 99041228)
+    # - id containing "TestPlayer" (old test data)
+    table = container.table()
 
-    # Clean up invasion test data
-    response = invasion_repo.table.scan(
-        FilterExpression=Key("invasion").eq("#invasion")
+    print("\nScanning for test data...")
+    print("  - Invasions/ladders with id starting with '99'")
+    print("  - Members with start date beginning with '99'")
+    print("  - Any records with 'TestPlayer' in id")
+
+    # Scan for all test data using multiple patterns
+    from boto3.dynamodb.conditions import Attr
+
+    response = table.scan(
+        FilterExpression=(
+            Attr("id").begins_with("99")  # Invasions/ladders
+            | Attr("start").begins_with("99")  # Members with 99DDHHMM start dates
+            | Attr("id").contains("TestPlayer")  # Old test data
+            | Attr("id").eq("NewMidMonth")  # Specific test member
+        )
     )
 
-    invasion_count = 0
-    for item in response.get("Items", []):
-        if item["id"].startswith("9999"):
-            invasion_repo.table.delete_item(
-                Key={"invasion": "#invasion", "id": item["id"]}
-            )
-            print(f"Deleted test invasion: {item['id']}")
-            invasion_count += 1
+    total_count = 0
+    deleted_items = []
 
-    # Clean up member test data
-    response = member_repo.table.scan(FilterExpression=Key("member").eq("#member"))
+    # Delete in batches
+    with table.batch_writer() as batch:
+        for item in response.get("Items", []):
+            batch.delete_item(Key={"invasion": item["invasion"], "id": item["id"]})
+            deleted_items.append(f"{item['invasion']}:{item['id']}")
+            total_count += 1
+            if total_count % 10 == 0:
+                print(f"Deleted {total_count} test records so far...")
 
-    member_count = 0
-    for item in response.get("Items", []):
-        if item["id"].startswith("9999"):
-            member_repo.table.delete_item(Key={"member": "#member", "id": item["id"]})
-            print(f"Deleted test member: {item['id']}")
-            member_count += 1
+    # Handle pagination
+    while "LastEvaluatedKey" in response:
+        response = table.scan(
+            FilterExpression=(
+                Attr("id").begins_with("99")
+                | Attr("start").begins_with("99")
+                | Attr("id").contains("TestPlayer")
+                | Attr("id").eq("NewMidMonth")
+            ),
+            ExclusiveStartKey=response["LastEvaluatedKey"],
+        )
 
-    print(
-        f"Cleanup complete: {invasion_count} invasions, {member_count} members deleted"
-    )
+        with table.batch_writer() as batch:
+            for item in response.get("Items", []):
+                batch.delete_item(Key={"invasion": item["invasion"], "id": item["id"]})
+                deleted_items.append(f"{item['invasion']}:{item['id']}")
+                total_count += 1
+                if total_count % 10 == 0:
+                    print(f"Deleted {total_count} test records so far...")
+
+    print(f"\n✓ Cleanup complete: {total_count} test records deleted")
+    if deleted_items and total_count <= 50:
+        print("\nDeleted items (sample):")
+        for item in deleted_items[:50]:
+            print(f"  - {item}")
 
 
 if __name__ == "__main__":
