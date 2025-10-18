@@ -48,8 +48,11 @@ def main():
     prefix = args.prefix
 
     APP_ID = get_param(prefix, 'appid', profile)
+    print(f'APP_ID: {APP_ID}')
     SERVER_ID = get_param(prefix, 'serverid', profile)
+    print(f'SERVER_ID: {SERVER_ID}')
     BOT_TOKEN = get_param(prefix, 'bottoken', profile)
+    print(f'BOT_TOKEN: {BOT_TOKEN}')
 
     url = f'https://discord.com/api/v10/applications/{APP_ID}/guilds/{SERVER_ID}/commands'
     headers = {'Authorization': f'Bot {BOT_TOKEN}', 'Content-Type': 'application/json'}
