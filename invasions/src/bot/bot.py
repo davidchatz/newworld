@@ -78,6 +78,7 @@ Settlements are specified using an abrieviation:
 - Everfall: ef
 - Monarchs Bluff: mb
 - Mourningdale: md
+- Nighthaven: nh
 - Reekwater: rw
 - Restless Shore: rs
 - Weavers Fen: wf
