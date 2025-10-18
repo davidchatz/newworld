@@ -192,7 +192,7 @@ Resources:
   Process:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: process.lambda_handler
+      Handler: handler.lambda_handler
       Runtime: python3.11
       CodeUri: src/process
       Description: 'Download and scan invasion screen shots'
